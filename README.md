@@ -5,7 +5,8 @@ descubrimiento, diseño, roadmap detallado y, en el futuro, el harness de
 desarrollo (`AGENTS.md`, `PROGRESS.md`, `feature_list.json`, specs…).
 
 **Nunca se publica.** El repositorio público (`DatoPublico`) ignora esta carpeta
-mediante `.gitignore` (`.harness/`).
+y el symlink `.agents` mediante una exclusión local no versionada
+(`.git/info/exclude`).
 
 ## Contenido
 
@@ -16,6 +17,7 @@ mediante `.gitignore` (`.harness/`).
 - `docs/technical-discovery.md` — stack, datos, integraciones y operación.
 - `docs/risks-and-open-questions.md` — riesgos y dudas abiertas.
 - `docs/roadmap.md` — roadmap detallado por versiones.
+- `.agents/skills/` — skills para agentes (RepoSkills), versionadas aquí.
 
 ## Licencia
 
@@ -34,4 +36,8 @@ desarrollo.
 ```sh
 git clone https://github.com/AviferDev/DatoPublico.git DatoPublico
 git clone https://github.com/AviferDev/DatoPublico-internal.git DatoPublico/.harness
+
+# Enlazar las skills a la ubicación estándar que descubre OpenCode
+cd DatoPublico
+ln -s .harness/.agents .agents
 ```
