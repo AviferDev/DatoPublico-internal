@@ -1,0 +1,666 @@
+[
+  {
+    "id": "bootstrap-monorepo-gradle",
+    "area": "fundaciones",
+    "title": "Estructura del monorepo Gradle",
+    "user_visible_behavior": "El repositorio público compila con un solo comando desde la raíz: existen los módulos shared, backend y composeApp definidos en un version catalog, y la CI ejecuta build + tests.",
+    "depends_on": [],
+    "status": "not_started",
+    "verification": [
+      "`./gradlew build` termina sin errores desde la raíz del repo público.",
+      "`./gradlew test` pasa.",
+      "El workflow de GitHub Actions de build + tests finaliza en verde."
+    ],
+    "evidence": [],
+    "notes": "Bootstrap inicial: no existe app ejecutable todavía. Fuente: docs/roadmap.md 0.1-T01 y 0.1-T06, docs/technical-discovery.md (Gradle Kotlin DSL + version catalog). Las features se implementan en el repo público (`..`), no en `.harness/`."
+  },
+  {
+    "id": "bootstrap-shared-dtos",
+    "area": "fundaciones",
+    "title": "DTOs compartidos con kotlinx.serialization",
+    "user_visible_behavior": "El módulo shared expone los DTO base (DailySummary, SourceCategory, etc.) serializables en JSON, reutilizables por backend y cliente.",
+    "depends_on": [
+      "bootstrap-monorepo-gradle"
+    ],
+    "status": "not_started",
+    "verification": [
+      "Un test de ida y vuelta de serialización JSON de los DTO base pasa.",
+      "`./gradlew :shared:test` pasa."
+    ],
+    "evidence": [],
+    "notes": "Fuente: docs/roadmap.md 0.1-T02, docs/domain-model.md."
+  },
+  {
+    "id": "bootstrap-postgres-pgvector",
+    "area": "fundaciones",
+    "title": "PostgreSQL + pgvector en docker-compose",
+    "user_visible_behavior": "Levantando docker-compose arranca PostgreSQL con la extensión pgvector y Flyway aplica una migración base sin errores.",
+    "depends_on": [
+      "bootstrap-monorepo-gradle"
+    ],
+    "status": "not_started",
+    "verification": [
+      "`docker compose up -d` levanta la base y una consulta `SELECT 1` responde.",
+      "`CREATE EXTENSION IF NOT EXISTS vector;` funciona.",
+      "Flyway aplica la migración base sin errores."
+    ],
+    "evidence": [],
+    "notes": "Fuente: docs/roadmap.md 0.1-T04, docs/technical-discovery.md (PostgreSQL + pgvector + Flyway)."
+  },
+  {
+    "id": "bootstrap-ktor-healthcheck",
+    "area": "fundaciones",
+    "title": "Esqueleto Ktor con healthcheck",
+    "user_visible_behavior": "El backend arranca con configuración por entorno y logging estructurado, y responde en un endpoint de healthcheck.",
+    "depends_on": [
+      "bootstrap-monorepo-gradle"
+    ],
+    "status": "not_started",
+    "verification": [
+      "El servidor arranca con `./gradlew :backend:run`.",
+      "`curl /health` devuelve 200 con estado ok."
+    ],
+    "evidence": [],
+    "notes": "Fuente: docs/roadmap.md 0.1-T03."
+  },
+  {
+    "id": "bootstrap-cmp-targets",
+    "area": "fundaciones",
+    "title": "Esqueleto Compose Multiplatform (Android, Web, iOS)",
+    "user_visible_behavior": "El módulo composeApp compila y muestra una pantalla mínima en Android y Web (Wasm), y genera el framework de iOS.",
+    "depends_on": [
+      "bootstrap-monorepo-gradle"
+    ],
+    "status": "not_started",
+    "verification": [
+      "`./gradlew :composeApp:assembleDebug` compila Android.",
+      "La tarea de distribución Wasm compila Web.",
+      "La tarea de framework de iOS (klib/framework) se genera sin errores."
+    ],
+    "evidence": [],
+    "notes": "Fuente: docs/roadmap.md 0.1-T05, docs/technical-discovery.md."
+  },
+  {
+    "id": "boe-sumario-cliente",
+    "area": "ingesta-boe",
+    "title": "Cliente del sumario diario del BOE",
+    "user_visible_behavior": "El backend obtiene el sumario diario de la Sección I desde la API de datos abiertos del BOE para una fecha dada.",
+    "depends_on": [
+      "bootstrap-shared-dtos",
+      "bootstrap-ktor-healthcheck"
+    ],
+    "status": "not_started",
+    "verification": [
+      "Un test con un fixture real del sumario parsea y devuelve las entradas de la Sección I.",
+      "Una llamada a la API real devuelve 200 y datos no vacíos para una fecha laborable."
+    ],
+    "evidence": [],
+    "notes": "Fuente: docs/roadmap.md 0.2-T01, docs/technical-discovery.md. Riesgo: cambios de formato o disponibilidad de la fuente."
+  },
+  {
+    "id": "boe-parser-norma",
+    "area": "ingesta-boe",
+    "title": "Parser de normas (metadatos y texto)",
+    "user_visible_behavior": "Cada entrada del sumario se convierte en una norma con identificador, título, fecha, organismo, categoría, texto y URL oficial.",
+    "depends_on": [
+      "boe-sumario-cliente"
+    ],
+    "status": "not_started",
+    "verification": [
+      "Con un fixture real de norma se extraen todos los campos obligatorios, incluida la URL oficial.",
+      "Existe un test que cubre una norma extensa y una norma sin texto completo disponible."
+    ],
+    "evidence": [],
+    "notes": "Fuente: docs/roadmap.md 0.2-T02, docs/domain-model.md (edge cases)."
+  },
+  {
+    "id": "norma-persistencia",
+    "area": "ingesta-boe",
+    "title": "Persistencia de normas, fragmentos y resúmenes",
+    "user_visible_behavior": "Las normas, fragmentos, resúmenes y la cola de revisión se guardan y recuperan en PostgreSQL mediante repositorios.",
+    "depends_on": [
+      "bootstrap-postgres-pgvector",
+      "boe-parser-norma"
+    ],
+    "status": "not_started",
+    "verification": [
+      "Un test guarda y recupera una norma con sus metadatos.",
+      "Las tablas norma, fragmento, resumen y cola_revision existen vía migración Flyway."
+    ],
+    "evidence": [],
+    "notes": "Fuente: docs/roadmap.md 0.2-T03, docs/technical-discovery.md."
+  },
+  {
+    "id": "ingesta-job-diario",
+    "area": "ingesta-boe",
+    "title": "Job diario de ingesta idempotente",
+    "user_visible_behavior": "Un job programado descarga y guarda las normas del día sin duplicar las ya existentes.",
+    "depends_on": [
+      "norma-persistencia"
+    ],
+    "status": "not_started",
+    "verification": [
+      "Ejecutar el job dos veces sobre la misma fecha no crea normas duplicadas.",
+      "El job programado se dispara en la ventana diaria esperada."
+    ],
+    "evidence": [],
+    "notes": "Fuente: docs/roadmap.md 0.2-T04/T05. Deduplicación e idempotencia."
+  },
+  {
+    "id": "ingesta-observabilidad",
+    "area": "ingesta-boe",
+    "title": "Observabilidad de la ingesta diaria",
+    "user_visible_behavior": "La ingesta diaria emite logs estructurados y avisa cuando no se produce en la ventana esperada.",
+    "depends_on": [
+      "ingesta-job-diario"
+    ],
+    "status": "not_started",
+    "verification": [
+      "El log estructurado registra las normas nuevas por ejecución.",
+      "La ausencia de ingesta dispara una alerta."
+    ],
+    "evidence": [],
+    "notes": "Fuente: docs/roadmap.md 0.2-T07."
+  },
+  {
+    "id": "backfill-historico",
+    "area": "ingesta-boe",
+    "title": "Backfill del histórico reciente",
+    "user_visible_behavior": "Se cargan por lotes las normas de la Sección I de los últimos 2 años, dejando el corpus poblado para la búsqueda.",
+    "depends_on": [
+      "ingesta-job-diario"
+    ],
+    "status": "not_started",
+    "verification": [
+      "El backfill de un rango corto de fechas persiste normas sin duplicar.",
+      "El proceso puede reanudarse por lotes tras una interrupción."
+    ],
+    "evidence": [],
+    "notes": "Fuente: docs/roadmap.md 0.2-T08, docs/technical-discovery.md (backfill por lotes en N100)."
+  },
+  {
+    "id": "chunking-articulos",
+    "area": "rag",
+    "title": "Fragmentación por artículo o sección",
+    "user_visible_behavior": "El texto de una norma se divide en fragmentos con metadatos de artículo/sección, listos para vectorizar.",
+    "depends_on": [
+      "norma-persistencia"
+    ],
+    "status": "not_started",
+    "verification": [
+      "Sobre una norma real, los fragmentos cubren el texto y conservan su referencia de artículo/sección sin solapamientos inválidos."
+    ],
+    "evidence": [],
+    "notes": "Fuente: docs/roadmap.md 0.3-T01, docs/domain-model.md (Fragmento)."
+  },
+  {
+    "id": "embeddings-locales-onnx",
+    "area": "rag",
+    "title": "Servicio de embeddings locales (ONNX)",
+    "user_visible_behavior": "El backend genera embeddings con un modelo multilingüe pequeño ejecutado localmente vía ONNX Runtime en CPU.",
+    "depends_on": [
+      "chunking-articulos"
+    ],
+    "status": "not_started",
+    "verification": [
+      "Dado un texto, se obtiene un vector de la dimensión esperada.",
+      "Dos textos similares tienen mayor similitud coseno que dos no relacionados."
+    ],
+    "evidence": [],
+    "notes": "Fuente: docs/roadmap.md 0.3-T06, docs/technical-discovery.md (multilingual-e5-small)."
+  },
+  {
+    "id": "pgvector-indexado",
+    "area": "rag",
+    "title": "Almacenamiento vectorial en pgvector",
+    "user_visible_behavior": "Los embeddings de los fragmentos se almacenan en pgvector con índices adecuados para búsqueda por similitud.",
+    "depends_on": [
+      "bootstrap-postgres-pgvector",
+      "embeddings-locales-onnx"
+    ],
+    "status": "not_started",
+    "verification": [
+      "Guardar y consultar por similitud devuelve el fragmento más cercano esperado.",
+      "El índice vectorial existe y se utiliza en la consulta."
+    ],
+    "evidence": [],
+    "notes": "Fuente: docs/roadmap.md 0.3-T03."
+  },
+  {
+    "id": "recuperacion-hibrida",
+    "area": "rag",
+    "title": "Recuperación híbrida de fragmentos",
+    "user_visible_behavior": "Dada una consulta, se recuperan fragmentos combinando filtros SQL por metadatos con similitud vectorial.",
+    "depends_on": [
+      "pgvector-indexado"
+    ],
+    "status": "not_started",
+    "verification": [
+      "Una consulta con filtro de fecha o categoría devuelve solo fragmentos que cumplen el filtro, ordenados por relevancia."
+    ],
+    "evidence": [],
+    "notes": "Fuente: docs/roadmap.md 0.3-T04."
+  },
+  {
+    "id": "evaluacion-recuperacion",
+    "area": "rag",
+    "title": "Evaluación de recuperación (precision/recall)",
+    "user_visible_behavior": "Existe un conjunto de prueba con el que se mide precision/recall de la recuperación y se registra el resultado.",
+    "depends_on": [
+      "recuperacion-hibrida"
+    ],
+    "status": "not_started",
+    "verification": [
+      "La evaluación se ejecuta con un comando y produce precision/recall sobre el set de prueba."
+    ],
+    "evidence": [],
+    "notes": "Fuente: docs/roadmap.md 0.3-T05, docs/technical-discovery.md (pruebas de recuperación)."
+  },
+  {
+    "id": "contrato-resumen-ciudadano",
+    "area": "simplificacion-ia",
+    "title": "Contrato del resumen ciudadano",
+    "user_visible_behavior": "El resumen se modela y valida con las secciones «¿Qué cambia?», «¿A quién afecta?» y «Cifras clave», más la fuente oficial obligatoria.",
+    "depends_on": [
+      "bootstrap-shared-dtos"
+    ],
+    "status": "not_started",
+    "verification": [
+      "Un resumen sin fuente oficial falla la validación.",
+      "Un resumen con las tres secciones serializa y se valida correctamente."
+    ],
+    "evidence": [],
+    "notes": "Fuente: docs/roadmap.md 0.4-T01, docs/domain-model.md."
+  },
+  {
+    "id": "generacion-resumen-go",
+    "area": "simplificacion-ia",
+    "title": "Generación de resumen con OpenCode Go",
+    "user_visible_behavior": "A partir de los fragmentos recuperados, se genera un resumen ciudadano con cita obligatoria a la fuente, usando una abstracción de proveedor de IA intercambiable.",
+    "depends_on": [
+      "recuperacion-hibrida",
+      "contrato-resumen-ciudadano"
+    ],
+    "status": "not_started",
+    "verification": [
+      "Dada una norma de prueba, se genera un resumen válido con enlace a la fuente oficial.",
+      "El proveedor se sustituye por un doble en tests sin tocar el servicio."
+    ],
+    "evidence": [],
+    "notes": "Fuente: docs/roadmap.md 0.4-T02, docs/technical-discovery.md (OpenCode Go, deepseek-v4.1-flash). Riesgo asumido: uso de Go como backend de app pública."
+  },
+  {
+    "id": "cacheo-resumenes",
+    "area": "simplificacion-ia",
+    "title": "Cacheo de resúmenes y control de coste",
+    "user_visible_behavior": "Un resumen ya generado para una norma no se vuelve a generar, y se registra el consumo de tokens.",
+    "depends_on": [
+      "generacion-resumen-go"
+    ],
+    "status": "not_started",
+    "verification": [
+      "Una segunda generación de la misma norma reutiliza el resumen cacheado y no llama al proveedor.",
+      "Se registra el consumo de tokens por generación."
+    ],
+    "evidence": [],
+    "notes": "Fuente: docs/roadmap.md 0.4-T04. Clave para la sostenibilidad del coste de LLM."
+  },
+  {
+    "id": "guardrails-anti-alucinacion",
+    "area": "simplificacion-ia",
+    "title": "Guardrails anti-alucinación y trazabilidad",
+    "user_visible_behavior": "Ningún resumen se publica sin enlace válido a la fuente ni con afirmaciones no sustentadas por el contexto recuperado; los fallos se descartan o van a revisión.",
+    "depends_on": [
+      "generacion-resumen-go"
+    ],
+    "status": "not_started",
+    "verification": [
+      "Un resumen con enlace inexistente o afirmación fuera del contexto recuperado no se publica.",
+      "Un resumen válido pasa los guardrails y queda publicable."
+    ],
+    "evidence": [],
+    "notes": "Fuente: docs/roadmap.md 0.4-T03. Requisito de trazabilidad, no opcional."
+  },
+  {
+    "id": "cola-revision-confianza",
+    "area": "simplificacion-ia",
+    "title": "Cola de revisión por baja confianza",
+    "user_visible_behavior": "Los resúmenes de baja confianza entran en una cola de revisión interna sin bloquear el resto del feed.",
+    "depends_on": [
+      "guardrails-anti-alucinacion"
+    ],
+    "status": "not_started",
+    "verification": [
+      "Un resumen por debajo del umbral aparece en la cola y no en el feed.",
+      "Un resumen de alta confianza se publica directamente."
+    ],
+    "evidence": [],
+    "notes": "Fuente: docs/roadmap.md 0.4-T06, docs/domain-model.md (estados del resumen)."
+  },
+  {
+    "id": "evaluacion-golden-set",
+    "area": "simplificacion-ia",
+    "title": "Evaluación de calidad con golden set",
+    "user_visible_behavior": "Existe un golden set de normas con resumen de referencia y una medición de acierto en «¿Qué cambia?» y «¿A quién afecta?».",
+    "depends_on": [
+      "generacion-resumen-go"
+    ],
+    "status": "not_started",
+    "verification": [
+      "La evaluación se ejecuta con un comando y reporta el error/acierto sobre el golden set."
+    ],
+    "evidence": [],
+    "notes": "Fuente: docs/roadmap.md 0.4-T05, docs/build-brief.md (Validation Plan)."
+  },
+  {
+    "id": "api-feed-diario",
+    "area": "api-publica",
+    "title": "Endpoint del feed diario",
+    "user_visible_behavior": "La API expone el feed diario de normas publicadas con su resumen y enlace a la fuente, de forma paginada.",
+    "depends_on": [
+      "ingesta-job-diario",
+      "guardrails-anti-alucinacion"
+    ],
+    "status": "not_started",
+    "verification": [
+      "`GET` del feed devuelve normas con resumen y enlace oficial, en páginas con tamaño configurable."
+    ],
+    "evidence": [],
+    "notes": "Fuente: docs/roadmap.md 0.5-T01."
+  },
+  {
+    "id": "api-detalle-norma",
+    "area": "api-publica",
+    "title": "Endpoint de detalle de norma",
+    "user_visible_behavior": "La API devuelve el detalle de una norma: resumen ciudadano estructurado y enlace a la fuente oficial.",
+    "depends_on": [
+      "guardrails-anti-alucinacion"
+    ],
+    "status": "not_started",
+    "verification": [
+      "`GET` del detalle de una norma publicada devuelve las tres secciones del resumen y la URL oficial."
+    ],
+    "evidence": [],
+    "notes": "Fuente: docs/roadmap.md 0.5-T02."
+  },
+  {
+    "id": "api-busqueda",
+    "area": "api-publica",
+    "title": "Endpoint de búsqueda",
+    "user_visible_behavior": "La API permite buscar en el corpus con una consulta y filtros de categoría y fecha.",
+    "depends_on": [
+      "recuperacion-hibrida"
+    ],
+    "status": "not_started",
+    "verification": [
+      "`GET` de búsqueda con consulta y filtros devuelve resultados relevantes y respeta los filtros."
+    ],
+    "evidence": [],
+    "notes": "Fuente: docs/roadmap.md 0.5-T03."
+  },
+  {
+    "id": "api-contratos-openapi",
+    "area": "api-publica",
+    "title": "Contratos OpenAPI y versionado",
+    "user_visible_behavior": "La API publica sus contratos OpenAPI y una versión de API que refleja los endpoints existentes.",
+    "depends_on": [
+      "api-feed-diario",
+      "api-detalle-norma",
+      "api-busqueda"
+    ],
+    "status": "not_started",
+    "verification": [
+      "El contrato OpenAPI se genera y describe los endpoints de feed, detalle y búsqueda."
+    ],
+    "evidence": [],
+    "notes": "Fuente: docs/roadmap.md 0.5-T04."
+  },
+  {
+    "id": "api-cors-ratelimit-errores",
+    "area": "api-publica",
+    "title": "Endurecimiento HTTP de la API",
+    "user_visible_behavior": "La API acepta peticiones de los clientes (CORS), limita el abuso con rate limiting y responde con errores claros y consistentes.",
+    "depends_on": [
+      "api-feed-diario",
+      "api-detalle-norma",
+      "api-busqueda"
+    ],
+    "status": "not_started",
+    "verification": [
+      "Una petición preflight CORS del cliente se resuelve correctamente.",
+      "Superar el límite de peticiones devuelve 429.",
+      "Una petición inválida devuelve un JSON de error consistente."
+    ],
+    "evidence": [],
+    "notes": "Fuente: docs/roadmap.md 0.5-T05."
+  },
+  {
+    "id": "ui-feed",
+    "area": "cliente-cmp",
+    "title": "UI del feed con estados y dirección visual",
+    "user_visible_behavior": "La app muestra el feed diario de normas en Android, Web e iOS desde la misma UI, con estados de vacío, carga y error, aplicando la dirección visual de DESIGN.md.",
+    "depends_on": [
+      "api-feed-diario",
+      "bootstrap-cmp-targets"
+    ],
+    "status": "not_started",
+    "verification": [
+      "El feed muestra tarjetas de normas y los estados vacío/carga/error en las tres plataformas."
+    ],
+    "evidence": [],
+    "notes": "Fuente: docs/roadmap.md 0.6-T01/T07, DESIGN.md."
+  },
+  {
+    "id": "ui-detalle",
+    "area": "cliente-cmp",
+    "title": "Pantalla de detalle con resumen y fuente",
+    "user_visible_behavior": "La app muestra el detalle de una norma con el resumen estructurado, el enlace destacado a la fuente oficial y el aviso de contenido generado por IA.",
+    "depends_on": [
+      "api-detalle-norma",
+      "ui-feed"
+    ],
+    "status": "not_started",
+    "verification": [
+      "Abrir una norma muestra «¿Qué cambia?», «¿A quién afecta?», «Cifras clave», el enlace oficial y el aviso de IA."
+    ],
+    "evidence": [],
+    "notes": "Fuente: docs/roadmap.md 0.6-T02, docs/build-brief.md."
+  },
+  {
+    "id": "ui-navegacion-estado",
+    "area": "cliente-cmp",
+    "title": "Navegación y estado compartido",
+    "user_visible_behavior": "La app navega entre feed y detalle con estado compartido mediante StateFlow y ViewModels.",
+    "depends_on": [
+      "ui-feed"
+    ],
+    "status": "not_started",
+    "verification": [
+      "La navegación feed → detalle → atrás funciona y se conserva el estado."
+    ],
+    "evidence": [],
+    "notes": "Fuente: docs/roadmap.md 0.6-T03, docs/technical-discovery.md (StateFlow/ViewModels)."
+  },
+  {
+    "id": "ui-cliente-http-cache",
+    "area": "cliente-cmp",
+    "title": "Cliente HTTP común y cache offline",
+    "user_visible_behavior": "La app consume la API mediante un cliente HTTP común y mantiene visible el contenido cacheado cuando no hay red.",
+    "depends_on": [
+      "ui-feed"
+    ],
+    "status": "not_started",
+    "verification": [
+      "Con la red caída, el contenido cacheado sigue visible."
+    ],
+    "evidence": [],
+    "notes": "Fuente: docs/roadmap.md 0.6-T04, docs/technical-discovery.md (ktor-client)."
+  },
+  {
+    "id": "ui-busqueda-filtros",
+    "area": "cliente-cmp",
+    "title": "UI de búsqueda con filtros",
+    "user_visible_behavior": "El usuario busca normas por texto y aplica filtros de categoría y fecha desde la app.",
+    "depends_on": [
+      "api-busqueda",
+      "ui-navegacion-estado"
+    ],
+    "status": "not_started",
+    "verification": [
+      "Una búsqueda con texto y filtros muestra resultados y el estado «sin resultados» cuando corresponde."
+    ],
+    "evidence": [],
+    "notes": "Fuente: docs/roadmap.md 0.9-T01."
+  },
+  {
+    "id": "dist-android",
+    "area": "distribucion",
+    "title": "Empaquetado Android y preparación para Google Play",
+    "user_visible_behavior": "Existe un artefacto Android firmado e instalable, preparado para la ficha de Google Play.",
+    "depends_on": [
+      "ui-detalle",
+      "ui-navegacion-estado"
+    ],
+    "status": "not_started",
+    "verification": [
+      "Se genera un AAB firmado que instala y arranca en un dispositivo o emulador."
+    ],
+    "evidence": [],
+    "notes": "Fuente: docs/roadmap.md 0.7-T01."
+  },
+  {
+    "id": "dist-web",
+    "area": "distribucion",
+    "title": "Despliegue web (Wasm) y enlaces compartibles",
+    "user_visible_behavior": "La app Web (Wasm) se despliega como estático, se abre por URL y ofrece enlaces compartibles con SEO básico.",
+    "depends_on": [
+      "ui-detalle",
+      "ui-navegacion-estado"
+    ],
+    "status": "not_started",
+    "verification": [
+      "La build Web se sirve estáticamente y carga el feed por URL.",
+      "Una URL de detalle es compartible y muestra la norma correspondiente."
+    ],
+    "evidence": [],
+    "notes": "Fuente: docs/roadmap.md 0.7-T02, 0.9-T03."
+  },
+  {
+    "id": "dist-ios",
+    "area": "distribucion",
+    "title": "App iOS distribuible vía TestFlight",
+    "user_visible_behavior": "La app iOS compila, se firma y se distribuye a la beta cerrada por TestFlight.",
+    "depends_on": [
+      "ui-detalle",
+      "ui-navegacion-estado"
+    ],
+    "status": "not_started",
+    "verification": [
+      "Una build firmada se sube a App Store Connect y queda disponible en TestFlight."
+    ],
+    "evidence": [],
+    "notes": "Fuente: docs/roadmap.md 0.8-T01/T02/T04. Riesgo: revisión de Apple."
+  },
+  {
+    "id": "deploy-backend",
+    "area": "operacion",
+    "title": "Despliegue del backend en servidor propio",
+    "user_visible_behavior": "El backend y la base de datos corren en el servidor propio con Docker + Nginx, HTTPS, cron para la ingesta y secretos por entorno.",
+    "depends_on": [
+      "api-contratos-openapi",
+      "api-cors-ratelimit-errores"
+    ],
+    "status": "not_started",
+    "verification": [
+      "El backend responde por HTTPS desde el servidor y la base persiste datos.",
+      "El cron ejecuta la ingesta diaria.",
+      "Los secretos se inyectan por entorno y no están en el repositorio."
+    ],
+    "evidence": [],
+    "notes": "Fuente: docs/roadmap.md 0.7-T04, 0.10-T04. Incluye hardening (HTTPS y secretos)."
+  },
+  {
+    "id": "observabilidad-y-backups",
+    "area": "operacion",
+    "title": "Observabilidad y backups de producción",
+    "user_visible_behavior": "Producción emite logs y métricas, alerta si la ingesta falla y genera backups que pueden restaurarse.",
+    "depends_on": [
+      "deploy-backend"
+    ],
+    "status": "not_started",
+    "verification": [
+      "Existen logs/métricas y una alerta si la ingesta falla.",
+      "Una copia de seguridad se genera y puede restaurarse."
+    ],
+    "evidence": [],
+    "notes": "Fuente: docs/roadmap.md 0.10-T02."
+  },
+  {
+    "id": "accesibilidad-i18n",
+    "area": "operacion",
+    "title": "Accesibilidad y textos en español",
+    "user_visible_behavior": "La app cumple una base de accesibilidad (contraste AA, etiquetas, tamaño escalable) y sus textos están externalizados en español.",
+    "depends_on": [
+      "ui-detalle"
+    ],
+    "status": "not_started",
+    "verification": [
+      "Una revisión de contraste/etiquetas no encuentra bloqueos AA.",
+      "Los textos están externalizados en español y el tamaño de fuente sigue al sistema."
+    ],
+    "evidence": [],
+    "notes": "Fuente: docs/roadmap.md 0.10-T01, DESIGN.md (accesibilidad)."
+  },
+  {
+    "id": "legal-avisos",
+    "area": "operacion",
+    "title": "Avisos legales y disclaimer",
+    "user_visible_behavior": "La app muestra el aviso de contenido generado por IA, la política de privacidad, los términos y el disclaimer de no asesoramiento jurídico.",
+    "depends_on": [
+      "ui-detalle"
+    ],
+    "status": "not_started",
+    "verification": [
+      "El aviso de IA y el disclaimer de no asesoramiento son visibles en el detalle.",
+      "Las páginas de privacidad y términos son accesibles desde la app."
+    ],
+    "evidence": [],
+    "notes": "Fuente: docs/roadmap.md 0.10-T03, docs/build-brief.md, docs/technical-discovery.md (legal)."
+  },
+  {
+    "id": "beta-cerrada",
+    "area": "operacion",
+    "title": "Beta cerrada y corrección de bugs",
+    "user_visible_behavior": "Usuarios reales usan la app en Android, Web e iOS mediante beta cerrada y los bugs detectados se corrigen.",
+    "depends_on": [
+      "dist-android",
+      "dist-web",
+      "dist-ios",
+      "ui-busqueda-filtros",
+      "accesibilidad-i18n",
+      "legal-avisos"
+    ],
+    "status": "not_started",
+    "verification": [
+      "La beta cerrada está disponible en las tres plataformas y los bugs bloqueantes reportados quedan cerrados."
+    ],
+    "evidence": [],
+    "notes": "Fuente: docs/roadmap.md 0.10-T05."
+  },
+  {
+    "id": "publicacion-1.0.0",
+    "area": "operacion",
+    "title": "Publicación pública 1.0.0",
+    "user_visible_behavior": "DatoPublico se publica de forma estable en Google Play, App Store y Web con la versión 1.0.0.",
+    "depends_on": [
+      "beta-cerrada"
+    ],
+    "status": "not_started",
+    "verification": [
+      "La app está publicada y accesible en las tres plataformas.",
+      "Existe runbook de producción y checklist de lanzamiento completada."
+    ],
+    "evidence": [],
+    "notes": "Fuente: docs/roadmap.md 1.0-T01/T02/T03. Requiere resolver el nombre/marca pendiente."
+  }
+]
