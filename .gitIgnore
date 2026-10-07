@@ -1,0 +1,9 @@
+# IDE (IntelliJ / Android Studio)
+.idea/
+
+# macOS
+.DS_Store
+
+# Secretos y entorno
+.env
+.env.*
