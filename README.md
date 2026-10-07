@@ -17,9 +17,21 @@ mediante `.gitignore` (`.harness/`).
 - `docs/risks-and-open-questions.md` — riesgos y dudas abiertas.
 - `docs/roadmap.md` — roadmap detallado por versiones.
 
+## Licencia
+
+El proyecto público **DatoPublico** se distribuye bajo la **Mozilla Public
+License 2.0 (MPL-2.0)**; el fichero `LICENSE` vive en el repositorio público.
+Este repositorio interno no se licencia para terceros: es material privado de
+desarrollo.
+
+## Repositorios
+
+- Público: `https://github.com/AviferDev/DatoPublico`
+- Privado (este): `https://github.com/AviferDev/DatoPublico-internal`
+
 ## Cómo usarlo en un equipo nuevo
 
 ```sh
-git clone <url-repo-publico> DatoPublico
-git clone <url-repo-privado> DatoPublico/.harness
+git clone https://github.com/AviferDev/DatoPublico.git DatoPublico
+git clone https://github.com/AviferDev/DatoPublico-internal.git DatoPublico/.harness
 ```
