@@ -20,8 +20,8 @@
       "`./gradlew projects` → proyectos ':backend', ':composeApp', ':shared'. `./gradlew :backend:compileKotlin` → BUILD SUCCESSFUL, resuelve :shared:jvmJar.",
       "Wrapper Gradle 8.10.2 commiteado y funcional sin Gradle del sistema: gradlew, gradlew.bat, gradle/wrapper/gradle-wrapper.{jar,properties}.",
       "`init.sh` reparado: gate real no bloqueante que descubre el JDK (JAVA_HOME → /usr/libexec/java_home → JBR de Android Studio), ejecuta `./gradlew build --no-daemon` desde la raíz del producto y devuelve 0 en verde; no arranca servidores.",
-      "CI `.github/workflows/ci.yml` (ubuntu-latest, temurin JDK 21, checkout@v5, setup-java@v5, ./gradlew build --no-daemon): verde. Run 37993686508, job 'Build and test' SUCCESS para el head 3e83a7d (PR #1).",
-      "Aceptación independiente (validator, 2026-10-09): veredicto `accept` sobre el head 3e83a7d; regeneró los 3 XML de test tras la reparación, comprobó `init.sh` (exit 0) y el run de CI en verde. Sin hallazgos de seguridad."
+      "CI `.github/workflows/ci.yml` (ubuntu-latest, temurin JDK 21, checkout@v5, setup-java@v5, ./gradlew build --no-daemon): verde. Run 37995689375, job 'Build and test' SUCCESS para el head 8ad45c4 (PR #1).",
+      "Aceptación independiente (validator, 2026-10-09): veredicto `accept`; regeneró los 3 XML de test tras la reparación, comprobó `init.sh` (exit 0) y el run de CI en verde. Sin hallazgos de seguridad. La rama se rebasó después para fusionar un commit de limpieza (quitada una referencia al hardware en gradle.properties) en el commit de bootstrap; CI reejecutada en verde en el head resultante (8ad45c4)."
     ],
     "notes": "Bootstrap inicial: no existe app ejecutable todavía. Fuente: docs/roadmap.md 0.1-T01 y 0.1-T06, docs/technical-discovery.md (Gradle Kotlin DSL + version catalog). Las features se implementan en el repo público (`..`), no en `.harness/`."
   },

@@ -14,7 +14,7 @@
   `accepted`** (validación independiente `accept`). Gate verde desde `..`:
   `./gradlew build`, `./gradlew test` (los tres módulos, 3 tests), `./gradlew
   projects`, `:backend:compileKotlin`; `init.sh` como gate real; **CI en verde**
-  (run 37993686508, head 3e83a7d). PR #1 abierto hacia `main`.
+  (run 37995689375, head 8ad45c4). PR #1 abierto hacia `main`.
 - PoC exploratoria (no feature), **temporal y ya eliminada**: `poc/boe-rag`
   validó el RAG de punta a punta (embeddings locales ONNX + pgvector + generación
   con cita). Sus lecciones quedan en la skill `rag-datapublico`. Ver Session 002.
@@ -377,11 +377,11 @@
   aceptación.
 - Completado:
   - Commits de producto en la rama `feat/ft00001-bootstrap-monorepo-gradle`:
-    `107ec63` (bootstrap) y `3e83a7d` (fix: `./gradlew test` cubre los tres
+    `6bde1d5` (bootstrap) y `8ad45c4` (fix: `./gradlew test` cubre los tres
     módulos + acciones CI `@v5`). Rama pusheada.
   - **PR #1** hacia `main`: https://github.com/AviferDev/DatoPublico/pull/1
-  - **CI en verde**: run `37993686508`, job "Build and test" SUCCESS para el head
-    `3e83a7d`.
+  - **CI en verde**: run `37995689375`, job "Build and test" SUCCESS para el head
+    `8ad45c4`.
   - **Validación independiente**: `revise` inicial → reparación → revalidación con
     veredicto **`accept`**.
   - `.harness/feature_list.json`: FT00001 → **`accepted`** (evidencia con ref. real
@@ -390,6 +390,13 @@
   comprobó `init.sh` (exit 0) y el run de CI; árbol de producto limpio.
 - Ficheros: `.harness/feature_list.json`, `.harness/docs/feature-ids.md`,
   `.harness/PROGRESS.md`.
+- Limpieza posterior: se detectó una referencia al **hardware** (N100) en
+  `gradle.properties` del repo público. Se quitó y la rama se **rebasó**
+  (`git rebase -i`) para **fusionar** ese commit (`chore(FT00001): quitar la
+  referencia al hardware…`) dentro del commit de bootstrap, de modo que la línea
+  nunca aparece en el historial. Hashes reescritos: feat `6bde1d5`, fix `8ad45c4`;
+  CI reejecutada en verde (run `37995689375`). El resto de menciones al N100 siguen
+  solo en el **harness privado** (planificación), no en el repo público.
 - Estado: **FT00001 `accepted`**. Siguiente feature lista: `bootstrap-shared-dtos`
   (FT00002).
 - Siguiente mejor paso: implementar `bootstrap-shared-dtos` (FT00002) con el flujo.
