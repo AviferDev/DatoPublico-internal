@@ -166,6 +166,33 @@ Hallazgos al implementar (no cambian el alcance):
   excluía la plantilla; así la plantilla siempre es versionable.
 
 
+### Nota de reparación de seguridad (2026-10-10, reapertura)
+
+Hallazgo tras la aceptación: había una **credencial de desarrollo versionada** y
+un default silencioso inseguro. Reparación (sin cambiar el alcance funcional):
+
+- `backend/build.gradle.kts`: eliminado el *fallback* literal
+  (`password = System.getenv("FLYWAY_PASSWORD") ?: "datopublico"`). La conexión
+  `FLYWAY_*` se resuelve del entorno y, si no está definida, del `.env` de la
+  raíz (parser mínimo `clave=valor`, nunca imprime valores). `url`/`user`
+  conservan default no sensible; **`password` no**: si falta tras cargar `.env`,
+  la tarea Flyway falla con `FLYWAY_PASSWORD no definido: copia .env.example a
+  .env o expórtalo`. La validación se hace en **tiempo de ejecución** (`doFirst`
+  sobre las tareas Flyway) porque la extensión del plugin usa `String` (no un
+  `Provider`); así `./gradlew build` sigue verde sin `.env` ni base de datos.
+- `docker-compose.yml`: `POSTGRES_PASSWORD` **obligatorio**
+  (`${POSTGRES_PASSWORD:?define POSTGRES_PASSWORD en .env}`); puerto publicado
+  **solo en loopback** (`127.0.0.1:${POSTGRES_PORT:-5432}:5432`).
+- `.env.example`: `POSTGRES_PASSWORD`/`FLYWAY_PASSWORD` con *placeholder*
+  explícito de desarrollo (`cambia_esta_clave_local`), documentado como no
+  secreto; comentario de `FLYWAY_*` actualizado (el build ya no tiene default de
+  contraseña).
+- `CONSTRAINTS.md`: MUST de no versionar credenciales (ni de desarrollo),
+  fail-fast ante secreto ausente y Postgres local solo en loopback.
+
+Escenarios y ficheros del spec no cambian; el comportamiento observable es el
+mismo con `.env` presente y **más seguro** cuando falta.
+
 ## Expected File Changes
 
 Rutas en el repo de producto (`..`):

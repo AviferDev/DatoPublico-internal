@@ -8,10 +8,10 @@
 - Camino de verificación estándar: `./gradlew build` y `./gradlew test` desde la
   raíz del repo público (`..`) — **bootstrapped** (Gradle 8.10.2 + JDK 21).
 - Siguiente feature lista: `bootstrap-ktor-healthcheck` (FT00004, depende de
-  FT00001). FT00003 (`bootstrap-postgres-pgvector`) queda **`accepted`** (ver
-  Session 018). FT00002 (`bootstrap-shared-dtos`) **`accepted`** y **fusionada**
-  (PR #2, merge `ca781f3`); habilita `contrato-resumen-ciudadano` (FT00019) y
-  `boe-sumario-cliente` (FT00006).
+  FT00001). FT00003 (`bootstrap-postgres-pgvector`) queda **`accepted`** tras la
+  reparación de seguridad (ver Session 020). FT00002 (`bootstrap-shared-dtos`)
+  **`accepted`** y **fusionada** (PR #2, merge `ca781f3`); habilita
+  `contrato-resumen-ciudadano` (FT00019) y `boe-sumario-cliente` (FT00006).
 - Bloqueo actual: ninguno para el bootstrap. Pendiente de producto: **nombre y
   marca** (bloquea la fase de producción, no el bootstrap).
 - Convención de nombres (2026-10-10): **todos los tipos serializables del
@@ -25,10 +25,12 @@
   872fb2b) y **fusionado** (`ca781f3`). Gate verde desde `..` con JDK 21 (JBR):
   `./gradlew :shared:jvmTest`, `./gradlew test` (3 módulos) y `./gradlew build`.
   FT00001 `bootstrap-monorepo-gradle`: **`accepted`** (PR #1 fusionado, merge
-  `912c328`). **FT00003 `bootstrap-postgres-pgvector`: `accepted`** (Session 018):
-  Docker Compose con pgvector + migración `V1` de Flyway verificadas de verdad,
-  `./gradlew build` verde sin base de datos (CI) y CI en verde (run 37999962253,
-  head 9231452); PR #3.
+  `912c328`). **FT00003 `bootstrap-postgres-pgvector`: `accepted`** (Session 020)
+  tras la **reparación de seguridad**: sin credenciales versionadas,
+  `POSTGRES_PASSWORD` obligatorio, Postgres local solo en loopback y fail-fast
+  ante `FLYWAY_PASSWORD` ausente; Docker Compose + migración `V1` reverificados y
+  `./gradlew build` verde sin BD. PR #3 con CI en verde (run 38001658074, head
+  44b8d50).
 - PoC exploratoria (no feature), **temporal y ya eliminada**: `poc/boe-rag`
   validó el RAG de punta a punta (embeddings locales ONNX + pgvector + generación
   con cita). Sus lecciones quedan en la skill `rag-datapublico`. Ver Session 002.
@@ -687,6 +689,92 @@
   `ktor-backend-architecture` §«Docker y entorno local» que en **local** las
   migraciones se aplican con `:backend:flywayMigrate` (tarea explícita, fuera de
   `build`/`check`) y que el backend en producción aplicará al arrancar (FT00004+).
+- Estado: **FT00003 `accepted`**. Siguiente feature lista:
+  `bootstrap-ktor-healthcheck` (FT00004).
+- Siguiente mejor paso: implementar `bootstrap-ktor-healthcheck` (FT00004) con el
+  flujo.
+
+### Session 019
+
+- Fecha: 2026-10-10
+- Objetivo: **reparación de seguridad** de `bootstrap-postgres-pgvector`
+  (FT00003): eliminar credenciales de ficheros versionados y el default silencioso
+  inseguro. Sin ampliar alcance funcional.
+- Diagnóstico: `backend/build.gradle.kts` tenía una contraseña literal como
+  *fallback* (`password = System.getenv("FLYWAY_PASSWORD") ?: "datopublico"`);
+  `docker-compose.yml` un default inseguro (`POSTGRES_PASSWORD:-datopublico`); y
+  el puerto se publicaba en `0.0.0.0`. Riesgo: credencial versionada y, sobre
+  todo, que un `FLYWAY_PASSWORD` ausente en producción **no** fallara (usaría el
+  default en silencio).
+- Completado:
+  - `backend/build.gradle.kts`: sin contraseña literal. La conexión `FLYWAY_*` se
+    resuelve del entorno y, si falta, del `.env` de la raíz (parser mínimo
+    `clave=valor`, sin imprimir valores). `url`/`user` conservan default no
+    sensible; `password` no: si falta, `flywayPasswordOrFail()` lanza
+    `FLYWAY_PASSWORD no definido: copia .env.example a .env o expórtalo`. La
+    validación se ejecuta en `doFirst` sobre las tareas `AbstractFlywayTask`
+    (la extensión del plugin usa `String`, no un `Provider`), así
+    `./gradlew build` sigue verde sin `.env` ni BD.
+  - `docker-compose.yml`: `POSTGRES_PASSWORD` obligatorio
+    (`${POSTGRES_PASSWORD:?define POSTGRES_PASSWORD en .env}`) y puerto publicado
+    solo en loopback (`127.0.0.1:${POSTGRES_PORT:-5432}:5432`).
+  - `.env.example`: `POSTGRES_PASSWORD`/`FLYWAY_PASSWORD` con *placeholder*
+    explícito de desarrollo (`cambia_esta_clave_local`), documentado como no
+    secreto; comentario de `FLYWAY_*` actualizado (el build ya no tiene default de
+    contraseña).
+  - `CONSTRAINTS.md` §«Operación»: MUST NOT de versionar credenciales (ni de
+    desarrollo), MUST de fail-fast ante secreto ausente y MUST de Postgres local
+    solo en loopback.
+  - Nota de reparación en `docs/specs/bootstrap-postgres-pgvector.md`;
+    `feature_list.json` (FT00003 → `in_progress`) y verificación ampliada.
+- Verificación ejecutada (desde `..`, `JAVA_HOME` del JBR 21; Docker 29.8.2 +
+  Compose v5.6.0). `.env` creado desde `.env.example` con contraseña de prueba
+  (ignorado por git):
+  - `docker compose up -d` → `datopublico-postgres` `Up (healthy)`;
+    `SELECT 1;` → `1`; puerto publicado `127.0.0.1:5432->5432/tcp`.
+  - `./gradlew :backend:flywayMigrate` → BUILD SUCCESSFUL;
+    `:backend:flywayInfo` → `V1 | esquema base | SQL | Success`;
+    `flyway_schema_history` → `V1 success=t`; `vector` → `0.8.7`;
+    `esquema_info` → `(esquema_base, FT00003)`.
+  - **Fail-fast**: sin `.env` ni `FLYWAY_PASSWORD`,
+    `./gradlew :backend:flywayInfo` → exit 1 con
+    `FLYWAY_PASSWORD no definido: copia .env.example a .env o expórtalo`;
+    `docker compose config` sin `POSTGRES_PASSWORD` → exit 1 con
+    `define POSTGRES_PASSWORD en .env`.
+  - **CI sin BD**: `docker compose down` y `./gradlew build --no-daemon` (sin
+    `.env` ni `FLYWAY_PASSWORD`) → BUILD SUCCESSFUL (17 tareas);
+    `./gradlew build --dry-run | grep -i flyway` → sin resultados. Gate estándar
+    `env -u JAVA_HOME .harness/init.sh` → exit 0.
+  - **Grep** en ficheros rastreados: sin contraseña literal `datopublico` en
+    código/compose (solo `POSTGRES_DB`/`POSTGRES_USER`/nombre de contenedor y la
+    URL JDBC); el único valor de contraseña es el placeholder de `.env.example`.
+  - Entorno limpiado: `docker compose down -v` (contenedor, volumen y red
+    eliminados) y `.env` borrado; nada de `.env` versionado.
+- Ficheros modificados: `backend/build.gradle.kts`, `docker-compose.yml`,
+  `.env.example` (producto); `.harness/{CONSTRAINTS.md,PROGRESS.md,feature_list.json}`,
+  `.harness/docs/specs/bootstrap-postgres-pgvector.md`.
+- Riesgo o duda sin resolver: el commit/push/PR y el run de CI los hace el
+  orquestador; queda pendiente la **validación independiente** de la reparación.
+- Siguiente mejor paso: validación independiente de FT00003 (`feature-validator`)
+  tras la reparación de seguridad; después, `bootstrap-ktor-healthcheck` (FT00004).
+
+### Session 020
+
+- Fecha: 2026-10-10
+- Objetivo: cerrar la reparación de seguridad de FT00003
+  (`bootstrap-postgres-pgvector`): commit → CI → PR → aceptación.
+- Completado:
+  - Commit de producto en `feat/ft00003-bootstrap-postgres-pgvector`:
+    `44b8d50 fix(FT00003): eliminar credenciales versionadas y ligar Postgres a
+    loopback` (3 ficheros). Pusheado.
+  - **CI en verde**: run `38001658074`, head `44b8d50` (PR #3).
+  - **Validación independiente**: veredicto **`accept`**; confirmó ausencia de
+    credenciales versionadas, fail-fast (Flyway y Compose), Postgres en loopback y
+    `./gradlew build` verde sin BD; sin hallazgos de seguridad.
+  - `.harness/feature_list.json`: FT00003 → **`accepted`** (evidencia con
+    commit/PR/CI/aceptación). `docs/feature-ids.md`: FT00003 → `accepted`.
+- Ficheros: `.harness/feature_list.json`, `.harness/docs/feature-ids.md`,
+  `.harness/PROGRESS.md`.
 - Estado: **FT00003 `accepted`**. Siguiente feature lista:
   `bootstrap-ktor-healthcheck` (FT00004).
 - Siguiente mejor paso: implementar `bootstrap-ktor-healthcheck` (FT00004) con el

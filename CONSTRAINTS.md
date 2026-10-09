@@ -42,6 +42,14 @@
   depende de servicios externos (base de datos). Las migraciones se ejecutan con
   una tarea explícita (`./gradlew :backend:flywayMigrate`) y las tareas Flyway
   **nunca** se enganchan a `build`/`check` (la CI corre sin PostgreSQL).
-- **MUST**: secretos por entorno (`.env` ignorado; nunca en el repositorio).
+- **MUST NOT**: incluir credenciales en ficheros versionados, **ni siquiera de
+  desarrollo** (sin contraseñas literales ni como *fallback* en código, compose,
+  CI o plantillas). La única fuente es el entorno/`.env` (ignorado por git); la
+  plantilla `.env.example` solo admite *placeholders* explícitos no secretos.
+- **MUST**: un secreto ausente debe **fallar con mensaje claro** (fail-fast), no
+  caer en un valor por defecto silencioso. `POSTGRES_PASSWORD` es obligatorio en
+  `docker-compose` (`:?`) y `FLYWAY_PASSWORD` no tiene default en el build.
+- **MUST**: el PostgreSQL local de desarrollo se publica **solo en loopback**
+  (`127.0.0.1`), nunca en `0.0.0.0`.
 - **N100 / 8 GB**: backfill por lotes en baja carga; `shared_buffers` ~1 GB,
   heap JVM ~1 GB, swap activado.
