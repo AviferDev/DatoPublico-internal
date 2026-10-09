@@ -8,16 +8,20 @@
 - Camino de verificación estándar: `./gradlew build` y `./gradlew test` desde la
   raíz del repo público (`..`) — **bootstrapped** (Gradle 8.10.2 + JDK 21).
 - Siguiente feature lista: `bootstrap-postgres-pgvector` (FT00003). FT00002
-  (`bootstrap-shared-dtos`) queda `accepted` y habilita `contrato-resumen-ciudadano`
-  (FT00019) y `boe-sumario-cliente` (FT00006).
+  (`bootstrap-shared-dtos`) queda `accepted` tras aplicar la convención de nombres
+  `Dto` (2026-10-10); habilita `contrato-resumen-ciudadano` (FT00019) y
+  `boe-sumario-cliente` (FT00006).
 - Bloqueo actual: ninguno para el bootstrap. Pendiente de producto: **nombre y
   marca** (bloquea la fase de producción, no el bootstrap).
+- Convención de nombres (2026-10-10): los contenedores de datos del contrato en
+  `:shared` llevan sufijo **`Dto`**; enums de wire sin sufijo; sin prefijos. En
+  `ARCHITECTURE.md` §«Convenciones de nombres» y **MUST** en `CONSTRAINTS.md`.
 - Última verificación: 2026-10-10. **FT00002 `bootstrap-shared-dtos`:
-  `accepted`** (validación independiente `accept`); PR #2 con CI en verde (run
-  37996544504, head 9bfeaf5). Gate verde desde `..` con JDK 21 (JBR):
-  `./gradlew :shared:jvmTest`, `./gradlew test` (3 módulos) y `./gradlew build`.
-  FT00001 `bootstrap-monorepo-gradle`: **`accepted`** (PR #1 fusionado, merge
-  `912c328`).
+  `accepted`** (validación independiente `accept`, incluida la reparación de
+  nombres); PR #2 con CI en verde (run 37997372090, head 8320bfd). Gate verde
+  desde `..` con JDK 21 (JBR): `./gradlew :shared:jvmTest`, `./gradlew test`
+  (3 módulos) y `./gradlew build`. FT00001 `bootstrap-monorepo-gradle`:
+  **`accepted`** (PR #1 fusionado, merge `912c328`).
 - PoC exploratoria (no feature), **temporal y ya eliminada**: `poc/boe-rag`
   validó el RAG de punta a punta (embeddings locales ONNX + pgvector + generación
   con cita). Sus lecciones quedan en la skill `rag-datapublico`. Ver Session 002.
@@ -472,3 +476,68 @@
   `bootstrap-postgres-pgvector` (FT00003).
 - Siguiente mejor paso: implementar `bootstrap-postgres-pgvector` (FT00003) con el
   flujo.
+
+### Session 013
+
+- Fecha: 2026-10-10
+- Objetivo: reparar `bootstrap-shared-dtos` (FT00002) aplicando la **convención
+  de nombres** `Dto` en `:shared` y dejarla durable en la documentación.
+- Completado:
+  - Renombrados (con `git mv`, mismos tokens de wire y JSON) los contenedores de
+    datos del contrato en `es.aviferdev.datopublico.model`:
+    `Publicacion`→`PublicacionDto`, `Resumen`→`ResumenDto`,
+    `Plazo`→`PlazoDto`, `DailySummary`→`ResumenDiarioDto`
+    (`PublicacionDto.kt`, `ResumenDto.kt`, `PlazoDto.kt`, `ResumenDiarioDto.kt`).
+  - Sin cambios (no son DTO): `Categoria` y `SeccionBoe` (enums de
+    vocabulario/tokens de wire) y `DatoPublicoJson` (config de serialización).
+  - Campos `PublicacionDto.resumen`/`plazo` ahora `ResumenDto?`/`PlazoDto?`;
+    KDocs y `SerializationTest` actualizados (`CategoriaWireTest` no referenciaba
+    los tipos renombrados).
+  - Convención durable: `ARCHITECTURE.md` §«Convenciones de nombres» (sufijo
+    `Dto`, enums sin sufijo, `...Entity`/`...Row`/`...Ui`, sin prefijos) y regla
+    **MUST** en `CONSTRAINTS.md` §«Nombres y contratos». Nota de reparación en
+    `docs/specs/bootstrap-shared-dtos.md` (sin reescribir el spec).
+  - `.harness/feature_list.json` (FT00002 → `in_progress`) con la evidencia del
+    renombrado.
+- Verificación ejecutada (desde `..`, `JAVA_HOME` del JBR 21):
+  - `./gradlew :shared:jvmTest --rerun-tasks` → BUILD SUCCESSFUL; XML: SmokeTest
+    1/0/0, CategoriaWireTest 3/0/0, SerializationTest 7/0/0 (failures/errors = 0).
+  - `./gradlew test` → BUILD SUCCESSFUL (agrega `:shared:jvmTest`,
+    `:backend:test`, `:composeApp:jvmTest`).
+  - `./gradlew build` → BUILD SUCCESSFUL (16 tareas).
+  - grep: sin referencias stale a los nombres antiguos como tipos en `:shared`.
+- Ficheros: `shared/src/commonMain/.../model/{PublicacionDto,ResumenDto,PlazoDto,ResumenDiarioDto}.kt`
+  (renombrados), `.../model/Categoria.kt` (KDoc), `.../commonTest/.../SerializationTest.kt`,
+  `.harness/{ARCHITECTURE.md,CONSTRAINTS.md,feature_list.json,PROGRESS.md}`,
+  `.harness/docs/specs/bootstrap-shared-dtos.md`.
+- Riesgo o duda sin resolver: el commit/push/PR y la CI los hace el orquestador;
+  queda pendiente la **validación independiente** del renombrado.
+- Siguiente mejor paso: validación independiente de FT00002 tras el renombrado.
+
+### Session 014
+
+- Fecha: 2026-10-10
+- Objetivo: cerrar la reparación de nombres de FT00002 y dejar la convención
+  aplicada y documentada.
+- Completado:
+  - Commit de producto en `feat/ft00002-bootstrap-shared-dtos`:
+    `8320bfd refactor(FT00002): sufijo Dto en los contenedores de datos de :shared`
+    (4 ficheros renombrados con `git mv`, +31/−31). Pusheado.
+  - **CI en verde**: run `37997372090`, head `8320bfd` (PR #2).
+  - **Validación independiente**: veredicto **`accept`**; confirmó renombrado
+    íntegro, contrato de wire invariante y convención bien reflejada.
+  - `.harness/feature_list.json`: FT00002 → **`accepted`** (nombres en la
+    descripción y la evidencia alineados; commit/PR/CI y aceptación reales).
+    `docs/feature-ids.md`: FT00002 → `accepted`. Spec: cabecera `accepted`.
+- Convención durable (para no repetirlo):
+  - `ARCHITECTURE.md` §«Convenciones de nombres» y regla **MUST** en
+    `CONSTRAINTS.md` §«Nombres y contratos»: en `:shared` los contenedores de datos
+    llevan sufijo **`Dto`**; los enums de vocabulario/tokens de wire van sin sufijo;
+    la config de serialización sin `Dto`; capas internas `...Entity`/`...Row`/`...Ui`;
+    **sin prefijos**.
+- Ficheros: `.harness/feature_list.json`, `.harness/docs/feature-ids.md`,
+  `.harness/docs/specs/bootstrap-shared-dtos.md`, `.harness/PROGRESS.md`.
+- Estado: **FT00002 `accepted`**. Siguiente feature lista:
+  `bootstrap-postgres-pgvector` (FT00003).
+- Siguiente mejor paso: implementar `bootstrap-postgres-pgvector` (FT00003) con el
+  flujo (aplicando ya la convención de nombres).

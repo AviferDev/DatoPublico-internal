@@ -7,8 +7,27 @@
 - `parts`: none (atomic)
 - `area`: fundaciones
 - `depends_on`: bootstrap-monorepo-gradle (FT00001, `accepted`)
-- `status`: not_started (rama `feat/ft00002-bootstrap-shared-dtos` ya reclamada con push, commit `6663b18`)
+- `status`: accepted (2026-10-10; reabierta para aplicar la convención de nombres `Dto` — ver nota)
 - `source`: `feature_list.json`
+
+## Nota de reparación: convención de nombres (2026-10-10)
+
+Tras la aceptación inicial, se reabrió esta feature para aplicar la **convención
+de nombres** de `:shared` (ver `ARCHITECTURE.md` §Convenciones de nombres y la
+regla MUST de `CONSTRAINTS.md`). Los contenedores de datos del contrato llevan
+sufijo **`Dto`**:
+
+- `Publicacion` → **`PublicacionDto`**
+- `Resumen` → **`ResumenDto`**
+- `Plazo` → **`PlazoDto`**
+- `DailySummary` → **`ResumenDiarioDto`**
+
+Se mantienen **sin cambios** (no son contenedores DTO): `Categoria` y
+`SeccionBoe` (enums de vocabulario/tokens de wire) y `DatoPublicoJson`
+(configuración de serialización). Donde en el resto de este spec se lea
+`Publicacion`, `Resumen`, `Plazo` o `DailySummary`, debe entenderse el nombre
+`...Dto` correspondiente. El token de wire y el JSON no cambian: es un renombrado
+de tipos Kotlin, no del contrato.
 
 ## Goal
 
@@ -159,8 +178,8 @@ Rutas en el repo de producto (`..`):
 - `shared/build.gradle.kts` — modify; aplicar plugin serialization y dependencia
   `commonMain` de `kotlinx-serialization-json`.
 - `shared/src/commonMain/kotlin/es/aviferdev/datopublico/model/` — create
-  `Categoria.kt`, `SeccionBoe.kt`, `Plazo.kt`, `Resumen.kt`, `Publicacion.kt` y
-  `DailySummary.kt`.
+  `Categoria.kt`, `SeccionBoe.kt`, `PlazoDto.kt`, `ResumenDto.kt`,
+  `PublicacionDto.kt` y `ResumenDiarioDto.kt` (nombres tras la convención `Dto`).
 - `shared/src/commonMain/kotlin/es/aviferdev/datopublico/serialization/DatoPublicoJson.kt` — create.
 - `shared/src/commonTest/kotlin/es/aviferdev/datopublico/model/` — create
   `SerializationTest.kt` y `CategoriaWireTest.kt`.
