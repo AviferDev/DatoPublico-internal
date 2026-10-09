@@ -14,7 +14,8 @@
   `accepted`** (validación independiente `accept`). Gate verde desde `..`:
   `./gradlew build`, `./gradlew test` (los tres módulos, 3 tests), `./gradlew
   projects`, `:backend:compileKotlin`; `init.sh` como gate real; **CI en verde**
-  (run 37995689375, head 8ad45c4). PR #1 abierto hacia `main`.
+  (run 37995689375, head 8ad45c4). **PR #1 fusionado** en `main` (merge
+  `912c328`); rama de feature eliminada (local y remota).
 - PoC exploratoria (no feature), **temporal y ya eliminada**: `poc/boe-rag`
   validó el RAG de punta a punta (embeddings locales ONNX + pgvector + generación
   con cita). Sus lecciones quedan en la skill `rag-datapublico`. Ver Session 002.
@@ -379,7 +380,9 @@
   - Commits de producto en la rama `feat/ft00001-bootstrap-monorepo-gradle`:
     `6bde1d5` (bootstrap) y `8ad45c4` (fix: `./gradlew test` cubre los tres
     módulos + acciones CI `@v5`). Rama pusheada.
-  - **PR #1** hacia `main`: https://github.com/AviferDev/DatoPublico/pull/1
+  - **PR #1** hacia `main`: https://github.com/AviferDev/DatoPublico/pull/1 —
+    **fusionado** (merge commit `912c328`); rama `feat/ft00001-...` eliminada
+    (local y remota).
   - **CI en verde**: run `37995689375`, job "Build and test" SUCCESS para el head
     `8ad45c4`.
   - **Validación independiente**: `revise` inicial → reparación → revalidación con
