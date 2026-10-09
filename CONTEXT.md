@@ -9,29 +9,81 @@
 Usuario objetivo del MVP: persona sin formación jurídica y sin perfil
 segmentado, que se informa por prensa y redes sociales.
 
-### Norma (disposición general)
-Cualquier texto publicado en la Sección I del BOE: leyes orgánicas, leyes
-ordinarias, reales decretos-leyes y reglamentos. Se usa "norma" en lugar de
-"ley" para no excluir los reglamentos.
+### Publicación
+Elemento unitario que aparece en el feed: cualquier contenido ingerido del BOE
+que DatoPublico resume y muestra. Tiene una **Categoría**, metadatos de **Sección
+y Epígrafe** del BOE, organismo, fecha y enlace a la fuente oficial. Es el término
+paraguas; "norma" se reserva a la Sección I.
+
+### Categoría
+Familia estable de cara al ciudadano, usada para filtrar y etiquetar en la UI. Se
+deriva de la sección y el epígrafe del BOE. En la 1.0.0: **Normas y legislación**,
+**Nombramientos y ceses**, **Oposiciones y empleo público**, **Becas, subvenciones
+y ayudas**, **Premios**, **Convenios y acuerdos**, **Educación y planes de
+estudio**, **Medio ambiente**, **Recursos y resoluciones**, **Información pública
+y concesiones** y **Otras disposiciones y anuncios**.
+
+### Sección / Epígrafe (BOE)
+Metadatos crudos del sumario: la sección (I, II.A, II.B, III, V.B) y el epígrafe
+del BOE (p. ej. «Subvenciones», «Recursos»). Se conservan junto a la Categoría
+curada para trazabilidad y filtros finos.
+
+### Norma
+Publicación de la **Sección I** del BOE: leyes orgánicas, leyes ordinarias,
+reales decretos-leyes y reglamentos. Se usa "norma" en lugar de "ley" para no
+excluir los reglamentos.
+
+### Empleo público
+Publicación de la **Sección II.B** del BOE ("Oposiciones y concursos"): ofertas
+de empleo público, convocatorias y procesos selectivos.
+
+### Becas y subvenciones
+Publicación relativa a becas, ayudas y subvenciones. Puede aparecer en la Sección
+I (p. ej. concesión por Real Decreto), la III (bases reguladoras) o la V.B
+(extractos). Puede incluir plazo de solicitud.
 
 ### BOE
-Boletín Oficial del Estado, fuente oficial de publicación de normas en España.
+Boletín Oficial del Estado, fuente oficial de publicación en España.
 
 ### Sección I
-Sección "Disposiciones generales" del BOE. Es el ámbito de ingesta de la
-versión 1.0.0.
+"Disposiciones generales" del BOE (leyes y reglamentos). Parte del ámbito de
+ingesta de la 1.0.0.
+
+### Sección II.A
+"Autoridades y personal — Nombramientos, situaciones e incidencias" del BOE.
+Fuente de nombramientos y ceses.
+
+### Sección II.B
+"Autoridades y personal — Oposiciones y concursos" del BOE. Fuente del empleo
+público.
+
+### Sección III
+"Otras disposiciones" del BOE: becas, subvenciones, premios, recursos, convenios,
+planes de estudio, impacto ambiental, etc.
+
+### Sección V.B
+"Anuncios — Otros anuncios oficiales" del BOE: extractos de convocatorias de
+ayudas, información pública y concesiones administrativas.
 
 ### Cambio (en 1.0.0)
-Aparición de una **norma nueva** en el BOE. En la 1.0.0 no se consideran cambios
-las modificaciones de normas ya existentes.
+Aparición de una **publicación nueva** (norma, empleo o beca) en el BOE. En la
+1.0.0 no se consideran cambios las modificaciones de publicaciones ya existentes.
 
 ### Feed diario
-Lista de las normas nuevas publicadas cada día, cada una con su resumen
-ciudadano, ordenada por fecha.
+Lista de las **publicaciones** nuevas de cada día (Secciones I, II.A, II.B, III y
+V.B), cada una con su resumen ciudadano, ordenada por fecha. Incluye una selección
+de **destacados**.
+
+### Destacados (del día)
+Subconjunto de publicaciones del día consideradas más relevantes mediante una
+puntuación **automática y explicable** por señales objetivas (rango normativo,
+organismo y palabras clave temáticas). No usa datos personales ni analítica.
 
 ### Resumen ciudadano
-Explicación de una norma en lenguaje claro, estructurada en "¿Qué cambia?",
-"¿A quién afecta?" y "Cifras clave". Distinto del sumario oficial del BOE.
+Explicación en lenguaje claro de una **publicación** (norma, empleo o beca),
+estructurada en "¿Qué cambia?", "¿A quién afecta?" y "Cifras clave". Para empleo
+y becas, "¿Qué cambia?" se adapta al plazo y requisitos. Distinto del sumario
+oficial del BOE.
 
 ### Simplificación
 Proceso de generar un resumen ciudadano a partir del texto oficial mediante IA.
@@ -52,6 +104,13 @@ revisión interna. No bloquea el resto del feed.
 Generación aumentada por recuperación: el resumen se apoya en fragmentos
 recuperados del texto oficial, no en conocimiento libre del modelo.
 
+### Consulta / chat RAG
+Pregunta en lenguaje natural del ciudadano, o **afirmación a verificar**
+(desmentir bulos), sobre el corpus de publicaciones. Se responde con fragmentos
+recuperados y **citas a la fuente oficial**, no con conocimiento libre del modelo
+ni con fuentes externas (prensa/redes). Sin historial en el servidor (no hay
+cuentas). Forma parte de la 1.0.0.
+
 ### Embedding
 Representación vectorial de un fragmento de texto, usada para la búsqueda
 semántica.
@@ -63,8 +122,9 @@ Extensión de PostgreSQL para almacenar y consultar vectores.
 Fragmentación del texto oficial por artículo o sección para su indexado.
 
 ### Backfill
-Carga inicial del histórico reciente del BOE (últimos 2-3 años) para poblar la
-búsqueda desde el primer día.
+Carga inicial del histórico reciente del BOE para poblar la búsqueda desde el
+primer día. En la 1.0.0: **último año**, de las Secciones I, II.A, II.B, III y
+V.B.
 
 ### Watchlist (futuro)
 Seguimiento personalizado de normas para alertar de cambios posteriores. Se
@@ -76,9 +136,9 @@ Token aleatorio, sin datos personales, que permitiría recibir alertas en segund
 plano sin crear cuenta. No forma parte de la 1.0.0.
 
 ### Colectivos afectados
-Grupos amplios a los que afecta una norma (ciudadanía, trabajadores, empresas,
-autónomos, arrendatarios…). Es el nivel de detalle de "¿A quién afecta?" en la
-1.0.0.
+Grupos amplios a los que afecta una publicación (ciudadanía, trabajadores,
+empresas, autónomos, arrendatarios…). Es el nivel de detalle de "¿A quién
+afecta?" en la 1.0.0.
 
 ## Rejected / Ambiguous Terms
 
@@ -87,9 +147,9 @@ Usar `Norma` cuando el ámbito incluya reglamentos. Razón: no todo lo publicado
 en la Sección I es una ley.
 
 ### Transparencia
-Demasiado amplio para este producto. Razón: el seguimiento de gasto,
-licitaciones y subvenciones pertenece a versiones 1.x; el núcleo de la 1.0.0 es
-la simplificación de normas.
+Demasiado amplio para este producto. Razón: las becas y subvenciones de la
+Sección III ya están en la 1.0.0, pero el seguimiento de gasto y licitaciones
+(PLACSP, PRTR) sigue en 1.x.
 
 ### Resumen
 Usar `Resumen ciudadano` para diferenciarlo del sumario oficial del BOE. Razón:
@@ -98,3 +158,25 @@ Usar `Resumen ciudadano` para diferenciarlo del sumario oficial del BOE. Razón:
 ### Actualización de ley
 No se usa en la 1.0.0. Razón: la modificación de normas existentes queda fuera
 de alcance; en 1.0.0 `Cambio` significa solo norma nueva.
+
+### Traducción
+No se usa para la simplificación a lenguaje claro: ese proceso se llama
+**Simplificación** y produce un **Resumen ciudadano**. "Traducción" se reserva
+para pasar a idiomas distintos del castellano, que quedan fuera de la 1.0.0.
+
+### Contrato público (adjudicado)
+Fuera de la 1.0.0. Razón: los contratos adjudicados no se publican en el BOE sino
+en la Plataforma de Contratación del Sector Público (PLACSP); entra en 1.x.
+
+### Verificación con fuentes externas
+El chat de la 1.0.0 verifica afirmaciones **solo contra el corpus del BOE**. El
+fact-checking que rastrea prensa o redes no forma parte de la 1.0.0 (1.x).
+
+### Sección IV (Administración de Justicia)
+Fuera de la 1.0.0. Razón: edictos, notificaciones y requisitorias de Juzgados y
+Tribunales incluyen **datos personales**, contrarios al principio de «sin datos
+personales».
+
+### Sección V.A (Subastas y licitaciones)
+Fuera de la 1.0.0. Razón: es contratación pública; su fuente canónica es PLACSP y
+su tratamiento llega en 1.x.

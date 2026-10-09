@@ -11,12 +11,12 @@ claro y un criterio de salida por versión, de forma que cada paso acerque a la
 
 ## 2. Supuestos y decisiones
 
-- **Producto:** consulta, simplificación y seguimiento de legislación oficial
-  (España) con IA sobre un RAG.
+- **Producto:** consulta, simplificación y verificación de publicaciones del BOE
+  (por categoría) con IA sobre un RAG.
 - **Usuario principal:** ciudadano general de España, sin perfil segmentado en la
   primera etapa.
-- **Núcleo del MVP:** "qué cambia una ley y cómo me afecta".
-- **Vía principal de entrada:** feed diario de novedades.
+- **Núcleo del MVP:** "qué se ha publicado y cómo me afecta", por **categoría**.
+- **Vía principal de entrada:** feed diario de novedades con **destacados**.
 - **Stack:** Kotlin end-to-end.
   - Backend: **Ktor** (jobs programados, ingesta de APIs, RAG).
   - Cliente: **Compose Multiplatform**, con **UI compartida** en `commonMain`
@@ -24,27 +24,38 @@ claro y un criterio de salida por versión, de forma que cada paso acerque a la
   - Módulo `shared`: DTOs y lógica compartida, serializada con
     `kotlinx.serialization`.
   - Persistencia: **PostgreSQL + `pgvector`** (metadatos + embeddings).
-  - IA: generación con **OpenCode Go** (endpoint OpenAI-compatible,
-    `deepseek-v4.1-flash` como candidato) y **embeddings locales**
-    (`multilingual-e5-small` vía ONNX) en el servidor.
+  - IA: generación de resúmenes y **chat** con **OpenCode** (endpoint
+    OpenAI-compatible, `deepseek-v4.1-flash` como candidato) y **embeddings
+    locales** (`multilingual-e5-small` int8 vía ONNX) en el servidor.
 - **Plataformas del producto:** Android, Web e iOS. **iOS es obligatorio en la
   `1.0.0`.**
-- **Alcance de la `1.0.0` (producción):** BOE estatal (Sección I), resúmenes IA
-  con enlace a la fuente, feed diario, búsqueda básica, clientes Android + Web +
-  iOS, **sin cuentas de usuario**.
-- **Fuera de la `1.0.0`** (va a la serie `1.x`): CCAA, UE, cuentas/watchlist,
-  oposiciones y plazos, subvenciones y licitaciones, contexto estadístico,
-  fact-checker, simulador de impacto, chat RAG y dossiers PDF.
-- **"Cambio" en 1.0.0:** solo normas nuevas publicadas cada día (Sección I del
-  BOE); no se gestionan modificaciones de normas existentes.
-- **Corpus de búsqueda:** backfill del histórico reciente (últimos 2 años).
+- **Alcance de la `1.0.0` (producción):** BOE estatal Secciones **I** (normas),
+  **II.A** (nombramientos y ceses), **II.B** (empleo público), **III** (otras
+  disposiciones) y **V.B** (otros anuncios oficiales); resúmenes IA con enlace a la
+  fuente; feed diario con **destacados** y **categorías**; búsqueda con filtros por
+  categoría y fecha; **chat RAG** (consulta o verificación de afirmaciones contra
+  el BOE, con citas); clientes Android + Web + iOS; **sin cuentas de usuario**.
+- **Fuera de la `1.0.0`** (va a la serie `1.x`): CCAA y UE; cuentas/watchlist;
+  alertas y calendario de plazos; **Sección IV (Administración de Justicia, datos
+  personales)**; contratación pública y licitaciones (Sección V.A / PLACSP);
+  contexto estadístico; fact-checking con fuentes externas; simulador de impacto y
+  dossiers PDF.
+- **"Cambio" en 1.0.0:** solo publicaciones nuevas (I, II.A, II.B, III o V.B); no
+  se gestionan modificaciones de publicaciones existentes.
+- **Corpus de búsqueda:** backfill del **último año** de las Secciones I, II.A,
+  II.B, III y V.B.
+- **Categoría:** enum curado (11 valores) derivado de la sección/epígrafe del BOE,
+  que se conserva como metadato.
+- **Ingesta:** job diario a las **9:30** más una **segunda pasada** por la tarde.
+- **Destacados:** selección diaria automática por ranking objetivo y explicable
+  (rango normativo, organismo, palabras clave).
 - **Publicación:** automática con guardrails, aviso de IA y trazabilidad, más
   una cola de revisión interna para casos de baja confianza.
 - **Sostenibilidad:** gratuito de interés público (subvenciones/donaciones).
 - **Equipo:** una persona, a tiempo parcial y sin fecha fija.
 - **Diseño:** dirección visual inicial definida en `DESIGN.md`.
-- **Contenido del feed:** todas las normas nuevas de la Sección I. Detalle =
-  resumen ciudadano + enlace a la fuente.
+- **Contenido del feed:** todas las publicaciones nuevas de las Secciones I, II.A,
+  II.B, III y V.B. Detalle = resumen ciudadano + enlace a la fuente.
 - **Lenguas:** solo castellano.
 - **"A quién afecta":** colectivos amplios.
 - **Analítica:** sin telemetría de uso en la 1.0.0.
@@ -71,17 +82,17 @@ claro y un criterio de salida por versión, de forma que cada paso acerque a la
 | Versión | Nombre | Objetivo | Producción |
 | --- | --- | --- | --- |
 | `0.1.0` | Fundaciones | Monorepo, CI, entornos, DB, esqueletos | No |
-| `0.2.0` | Ingesta BOE | Descargar y almacenar normas del BOE estatal | No |
+| `0.2.0` | Ingesta BOE | Descargar y clasificar publicaciones (Secciones I, II.A, II.B, III, V.B) | No |
 | `0.3.0` | RAG base | Fragmentar, vectorizar y recuperar | No |
-| `0.4.0` | Simplificación IA | Resúmenes claros y trazables | No |
-| `0.5.0` | API pública | Feed, detalle y búsqueda en backend | No |
-| `0.6.0` | Cliente CMP (UI compartida) | Feed y detalle una vez para las 3 plataformas | No |
+| `0.4.0` | Simplificación IA | Resúmenes claros, trazables y destacados | No |
+| `0.5.0` | API pública | Feed, detalle, búsqueda y chat en backend | No |
+| `0.6.0` | Cliente CMP (UI compartida) | Feed, detalle y chat una vez para las 3 plataformas | No |
 | `0.7.0` | Distribución Android + Web | Empaquetar y desplegar Android y Web | No |
 | `0.8.0` | Distribución iOS | Xcode, firma, TestFlight y App Store | No |
 | `0.9.0` | Búsqueda y navegación | Filtros, deep links, compartir | No |
 | `0.10.0` | Beta y operación | Calidad, legal, seguridad, beta cerrada | No |
 | `1.0.0` | **Producción España** | Salida pública Android + Web + iOS | **Sí** |
-| `1.1.0`–`1.10.0` | Expansión | CCAA, UE, cuentas, servicios, IA avanzada | Sí (1.1+) |
+| `1.1.0`–`1.9.0` | Expansión | CCAA, UE, cuentas, servicios, IA avanzada | Sí (1.1+) |
 | `2.0.0` | Plataforma | Personalización, votaciones, escalado | Sí |
 
 ## 5. Detalle por versión
@@ -102,21 +113,27 @@ reproducible.
 - `0.1-T07` `README`/guía de arranque y definición de entornos
   (dev/staging/prod).
 
-### `0.2.0` — Ingesta BOE estatal (Sección I)
-**Objetivo:** disponer de las disposiciones generales del BOE de forma diaria y
-fiable.
-**Criterio de salida:** cada día se descargan y guardan las normas con metadatos
-fiables.
+### `0.2.0` — Ingesta BOE (Secciones I, II.A, II.B, III y V.B)
+**Objetivo:** disponer de las publicaciones del BOE (todas las categorías) de
+forma diaria y fiable.
+**Criterio de salida:** cada día se descargan, clasifican y guardan las
+publicaciones con metadatos fiables.
 
-- `0.2-T01` Cliente de la API de datos abiertos del BOE (sumario diario).
-- `0.2-T02` Parser de normas (identificador, título, fecha, organismo, categoría,
-  texto, URL oficial).
-- `0.2-T03` Modelo de datos y persistencia + versionado/consolidación.
-- `0.2-T04` Job programado diario (cron) de descarga.
-- `0.2-T05` Deduplicación y detección de cambios.
+- `0.2-T01` Cliente de la API de datos abiertos del BOE (sumario diario) para las
+  Secciones I, II.A, II.B, III y V.B.
+- `0.2-T02` Parser de publicaciones (identificador, título, fecha, organismo,
+  sección, epígrafe, texto, URL oficial), con variantes por sección.
+- `0.2-T03` Modelo de datos y persistencia (`publicacion`, categoría, sección,
+  epígrafe) + versionado/consolidación.
+- `0.2-T04` Job programado diario (cron) a las **9:30** con **segunda pasada**.
+- `0.2-T05` Deduplicación y detección de cambios (incluida la duplicidad
+  III ↔ V.B).
 - `0.2-T06` Tests con fixtures reales y manejo de fallos de la fuente.
 - `0.2-T07` Observabilidad del job (logs y alerta si no hay ingesta).
-- `0.2-T08` Backfill del histórico reciente (últimos 2-3 años).
+- `0.2-T08` Clasificación por **categoría** (enum curado de 11) desde la
+  sección/epígrafe, y extracción de **plazos** de convocatorias.
+- `0.2-T09` Backfill del histórico reciente (**último año**, Secciones I, II.A,
+  II.B, III y V.B).
 
 ### `0.3.0` — RAG base (chunking + pgvector)
 **Objetivo:** recuperar los fragmentos relevantes de una norma con calidad
@@ -125,44 +142,54 @@ medida.
 precisión evaluada.
 
 - `0.3-T01` Pipeline de fragmentación por artículo/sección.
-- `0.3-T02` Generación de embeddings con la API elegida.
+- `0.3-T02` Generación de embeddings con el modelo local (`multilingual-e5-small`
+  int8, ONNX).
 - `0.3-T03` Almacenamiento vectorial en `pgvector` con índices.
 - `0.3-T04` Recuperación híbrida (filtro SQL por metadatos + similitud
   vectorial).
 - `0.3-T05` Evaluación de recuperación (precision/recall) sobre un set de prueba.
-- `0.3-T06` Servicio de embeddings locales (ONNX, modelo multilingüe pequeño).
+- `0.3-T06` Servicio de embeddings locales (ONNX, `multilingual-e5-small` int8).
 
 ### `0.4.0` — Simplificación con IA + trazabilidad
-**Objetivo:** resúmenes en lenguaje claro y confiables.
+**Objetivo:** resúmenes en lenguaje claro y confiables, y destacados del día.
 **Criterio de salida:** resúmenes estructurados, en español claro y con enlace
-verificable a la norma.
+verificable a la fuente, más una selección de destacados.
 
 - `0.4-T01` Contrato de salida: "¿Qué cambia?", "¿A quién afecta?", "Cifras
-  clave".
+  clave", con variante para empleo y becas.
 - `0.4-T02` Prompts y generación con cita obligatoria a la fuente oficial.
 - `0.4-T03` Guardrails anti-alucinación (solo contexto RAG, validación de
   enlaces).
 - `0.4-T04` Cacheo de resúmenes y control de coste de tokens.
-- `0.4-T05` Evaluación de calidad con *golden set* de normas.
+- `0.4-T05` Evaluación de calidad con *golden set* de publicaciones.
 - `0.4-T06` Cola de revisión de resúmenes de baja confianza y aviso de contenido
   generado por IA.
+- `0.4-T07` Generación del **chat RAG** con OpenCode: respuestas fundamentadas con
+  citas, guardrail de "sin fundamento" y **verificación/refutación** de
+  afirmaciones.
+- `0.4-T08` Ranking de **destacados del día** por señales objetivas (rango,
+  organismo, palabras clave), explicable.
 
 ### `0.5.0` — API pública backend
 **Objetivo:** exponer el contenido a los clientes de forma estable.
-**Criterio de salida:** los clientes pueden consumir feed, detalle y búsqueda.
+**Criterio de salida:** los clientes pueden consumir feed, detalle, búsqueda y
+chat.
 
-- `0.5-T01` Endpoint feed diario con paginación.
-- `0.5-T02` Endpoint detalle de norma (resumen + fuente).
-- `0.5-T03` Endpoint de búsqueda (query + filtros categoría/fecha).
+- `0.5-T01` Endpoint feed diario (con **destacados** y categorías) y paginación.
+- `0.5-T02` Endpoint detalle de publicación (resumen + fuente).
+- `0.5-T03` Endpoint de búsqueda (query + filtros de categoría y fecha).
 - `0.5-T04` Contratos OpenAPI y versionado de API.
 - `0.5-T05` Rate limiting, CORS y manejo de errores.
+- `0.5-T06` Endpoint de **chat RAG** (consulta o afirmación a verificar contra el
+  BOE, con citas a la fuente).
 
 ### `0.6.0` — Cliente CMP (UI compartida)
 **Objetivo:** una sola UI para las tres plataformas.
-**Criterio de salida:** la app funciona con feed y detalle en Android, Web e iOS
-desde el mismo código de UI.
+**Criterio de salida:** la app funciona con feed, detalle, búsqueda y chat en
+Android, Web e iOS desde el mismo código de UI.
 
-- `0.6-T01` UI del feed en `commonMain` (lista + estados vacío/carga/error).
+- `0.6-T01` UI del feed en `commonMain` (publicaciones, **destacados**, categorías
+  y estados vacío/carga/error).
 - `0.6-T02` Pantalla detalle con resumen estructurado y enlace oficial.
 - `0.6-T03` Navegación, theming y estado compartido con `StateFlow`/ViewModels.
 - `0.6-T04` Cliente HTTP `ktor-client` común y cache offline básica.
@@ -170,6 +197,8 @@ desde el mismo código de UI.
 - `0.6-T06` Targets de ejecución: Android, Wasm (Web) e iOS en desarrollo.
 - `0.6-T07` Aplicar la dirección visual de `DESIGN.md` (tokens, componentes y
   pantallas).
+- `0.6-T08` UI de **chat RAG** en `commonMain` (pregunta o afirmación, respuesta
+  con citas y estados carga/error/sin fundamento/refutada).
 
 ### `0.7.0` — Distribución Android + Web
 **Objetivo:** builds instalables/publicables de Android y Web.
@@ -224,13 +253,12 @@ preparada.
 | `1.1.0` | CCAA | Filtrado geográfico de leyes autonómicas (Sección I del BOE + boletines), `?ccaa=`. |
 | `1.2.0` | UE | Ingesta DOUE/EUR-Lex (Serie L) vía CELLAR; TED para licitaciones. |
 | `1.3.0` | Watchlist y alertas | Seguimiento de leyes **local** (sin cuenta) y alertas. Si hay push en segundo plano, ID anónimo de dispositivo (requiere tarea nativa). |
-| `1.4.0` | Oposiciones y plazos | Sección II.B, requisitos y fechas; calendario y alertas (Google/Apple, requiere tarea nativa). |
-| `1.5.0` | Subvenciones y licitaciones | BDNS + PLACSP/PRTR. |
+| `1.4.0` | Alertas de plazos | Calendario y notificaciones de plazos de empleo público y becas (Google/Apple, requiere tarea nativa). |
+| `1.5.0` | Contratación y subvenciones externas | PLACSP/PRTR y BDNS. |
 | `1.6.0` | Contexto estadístico | INE, datos.gob.es y ejecución presupuestaria. |
-| `1.7.0` | Fact-checker | Verificador de bulos legislativos. |
+| `1.7.0` | Fact-checking externo | Verificador de bulos con fuentes de prensa y redes. |
 | `1.8.0` | Simulador de impacto | Cálculo en euros (fiscal/SMI/deducciones). |
-| `1.9.0` | Chat RAG | Asistente conversacional sobre el corpus. |
-| `1.10.0` | Dossiers PDF | Exportación de informes. |
+| `1.9.0` | Dossiers PDF | Exportación de informes. |
 | `2.0.0` | Plataforma | Personalización por perfil (autónomo, inquilino…), votaciones del Congreso y escalado. |
 
 ## 7. Notas y riesgos
@@ -246,8 +274,15 @@ preparada.
   trazabilidad a la fuente oficial (`0.4-T03`) es requisito, no extra.
 - **Pendiente antes de producción:** nombre/marca del producto y umbral de
   confianza de la cola de revisión.
-- **OpenCode Go:** pensado para agentes de coding; usarlo como backend de la app
-  es un riesgo asumido (límites/abuso) y la cuota mensual puede agotarse.
+- **OpenCode (Zen/Go):** pensado para agentes de coding; usarlo como backend de
+  la app es un riesgo asumido (límites/abuso) y la cuota mensual puede agotarse.
+  El **chat RAG** es más caro por consulta que el feed: exige rate limiting y
+  control de contexto desde el diseño.
+- **Secciones II.A, II.B, III y V.B:** su estructura difiere de la Sección I;
+  parser, chunking, deduplicación (III ↔ V.B) y clasificación requieren validación
+  con datos reales.
+- **Relevancia de destacados:** el ranking debe ser transparente y explicable
+  para no percibirse como sesgo editorial.
 - **N100 / 8 GB:** suficiente para la 1.0.0, pero el backfill se ejecuta por
   lotes y la RAM es ajustada.
 - **Recurso único:** una persona a tiempo parcial; tres plataformas más RAG y

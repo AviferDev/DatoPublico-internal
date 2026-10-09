@@ -10,7 +10,20 @@
 - Siguiente feature lista: `bootstrap-monorepo-gradle`
 - Bloqueo actual: ninguno para el bootstrap. Pendiente de producto: **nombre y
   marca** (bloquea la fase de producción, no el bootstrap).
-- Última verificación: 2026-10-08
+- Última verificación: 2026-10-09
+- PoC exploratoria (no feature), **temporal y ya eliminada**: `poc/boe-rag`
+  validó el RAG de punta a punta (embeddings locales ONNX + pgvector + generación
+  con cita). Sus lecciones quedan en la skill `rag-datapublico`. Ver Session 002.
+- Decisión de IA (2026-10-09): **embeddings locales `multilingual-e5-small` int8
+  (ONNX/CPU)** por defecto (`-base` como alternativa tras la interfaz) +
+  **OpenCode** (`deepseek-v4.1-flash`) para resumen y chat. OpenCode no ofrece
+  endpoint de embeddings. El **chat RAG entra en el alcance de la 1.0.0**.
+- Alcance 1.0.0 (2026-10-09): BOE **Secciones I, II.A, II.B, III y V.B**, con
+  **categorías** curadas (11 valores) + sección/epígrafe del BOE como metadato;
+  feed diario con **destacados**, búsqueda con filtros y **chat de verificación**
+  contra el BOE. Ingesta **9:30 + segunda pasada**; backfill del **último año**.
+  Fuera: Sección IV (Justicia, datos personales), V.A (licitaciones), PLACSP y
+  fact-checking externo (1.x).
 
 ## Session Log
 
@@ -32,3 +45,237 @@
   el público (`..`); hay que ejecutar los comandos de build desde `..`.
 - Siguiente mejor paso: implementar `bootstrap-monorepo-gradle` en el repo
   público.
+
+### Session 002
+
+- Fecha: 2026-10-08
+- Objetivo: POC de viabilidad del RAG (recuperación + generación con cita).
+- Completado: nueva PoC standalone en `poc/boe-rag` (repo público, no feature):
+  ingesta del BOE → chunking por artículo/disposición → embeddings locales
+  `multilingual-e5-small` vía ONNX Runtime (CPU) → pgvector (docker-compose,
+  índice HNSW) → recuperación semántica con filtros → respuesta con OpenCode Go
+  citando fuentes → evaluación recall@k/MRR. Endpoints: `POST /index`,
+  `GET /buscar`, `GET /preguntar`, `GET /evaluar`, `GET /stats`.
+- Verificación ejecutada (servidor real en :8090, Postgres+pgvector en Docker):
+  - `GET /health` → 200 `{status:ok, dimensiones:384}`.
+  - `POST /index?fecha=20261008&limite=5` → 5 normas, 240 fragmentos sin errores.
+  - `GET /buscar?q=...` → devuelve fragmentos relevantes con referencia y score.
+  - `GET /evaluar?k=5` → recall 1.0, MRR 1.0 sobre 4 casos.
+  - `GET /preguntar?q=...` → respuesta en castellano citando `[3]` («Artículo 4»)
+    y fuentes oficiales; ~6 s por respuesta. avisoIA presente.
+- Evidencia capturada: resultados anteriores por HTTP; `docker ps` con
+  `datopublico-rag-postgres` healthy; reindexado de 5 normas en ~12 s.
+- Ficheros creados: `poc/boe-rag/` (Boe.kt, Chunking.kt, Embeddings.kt, Db.kt,
+  Rag.kt, Llm.kt, Eval.kt, Main.kt, build.gradle.kts, docker-compose.yml,
+  download-model.sh, README.md, eval/queries.json).
+- Correcciones durante la PoC: los encabezados del BOE usan espacio duro
+  (`\u00a0`) tras «Artículo», y el texto se extraía sin saltos de bloque; se
+  normalizan espacios y se insertan saltos por párrafo, anclando los encabezados
+  a inicio de línea. Esto arregla referencias erróneas («parte 32», «Encabezado»).
+- Riesgo o duda sin resolver: el chunking por expresiones regulares es heurístico
+  (la ruta de producto debería aprovechar la estructura XML); los embeddings
+  cuantizados (int8) no se han comparado aún con fp32 en calidad; corpus de
+  prueba pequeño (5 normas).
+- Ampliación posterior (misma sesión): generación **local sin OpenCode**.
+  `LlmClient` pasa a ser configurable por entorno (`LLM_CHAT_URL`, `LLM_MODEL`,
+  `LLM_API_KEY`); si no hay clave no envía cabecera de auth (sirve para un
+  servidor local). Se añade `ollama` al `docker-compose` (puerto 11434) y
+  `pull-model.sh`. Modelo probado en la VM (4 CPU, 4 GB, sin GPU):
+  `qwen2.5:1.5b`. Verificado `/preguntar` con el modelo local (respuesta
+  correcta a la consulta de beneficiarios) y `/health` con `modelo=qwen2.5:1.5b`.
+  Consumo: Ollama ~1.5 GB RAM y 100% CPU durante la inferencia; Postgres ~62 MB.
+  Incidencia resuelta: la red host↔Colima se rompió (socket Docker y reenvío de
+  puertos); se arregló con `colima restart` (los contenedores `vuelantis` con
+  `restart=unless-stopped` volvieron solos). Para que cupiera la imagen de
+  Ollama hubo que liberar caché de build (`docker builder prune -a`), 19 GB.
+- Decisión final de la PoC: **generación con DeepSeek remoto para todo**
+  (`deepseek-v4.1-flash` vía OpenCode Go). Se retira del `.env` la config del
+  modelo local (`LLM_CHAT_URL`/`LLM_MODEL`), de modo que la PoC vuelve al
+  endpoint por defecto. Los **embeddings siguen siendo locales** (ONNX), que es
+  la otra mitad del RAG y no tiene equivalente en DeepSeek. Verificado:
+  `/health` → `modelo=deepseek-v4.1-flash` y `/preguntar` devuelve respuesta
+  citada correcta. Se **retira Ollama por completo**: servicio fuera del
+  `docker-compose`, contenedor/volumen/imagen eliminados y `pull-model.sh`
+  borrado; el stack de la PoC queda solo con Postgres + DeepSeek.
+- Siguiente mejor paso: decidir si esta PoC informa las features `rag` del
+  `feature_list.json` (`embeddings-locales-onnx`, `pgvector-indexado`,
+  `recuperacion-hibrida`) y seguir con `bootstrap-monorepo-gradle`.
+- Nota posterior (2026-10-09): la PoC era **temporal** (solo una prueba) y se
+  **eliminó** a propósito; no hay que recuperarla. Sus lecciones quedan
+  destiladas en la skill `rag-datapublico`.
+
+### Session 003
+
+- Fecha: 2026-10-09
+- Objetivo: replanificar la IA (embeddings locales pequeños + OpenCode para
+  generación y chat) e incorporar el **chat RAG** al alcance de la `1.0.0`.
+- Completado:
+  - Decision de IA fijada: `multilingual-e5-small` **int8** (ONNX/CPU) como
+    único modelo local; OpenCode (`deepseek-v4.1-flash`) para resumen y chat.
+    OpenCode **no** ofrece endpoint de embeddings (verificado en su documentación).
+  - Discovery actualizado: `build-brief.md` (Goals, MVP Slice, validación y
+    criterios), `domain-model.md` (entidad **Consulta** y sus estados),
+    `technical-discovery.md` (reparto IA, chat RAG), `risks-and-open-questions.md`
+    (riesgos/dudas del chat) y `CONTEXT.md` (glosario + término "Traducción").
+  - Roadmap interno (`docs/roadmap.md`): chat movido a `0.4-T07` (generación),
+    `0.5-T06` (endpoint) y `0.6-T08` (UI); retirado de post-producción; stack e
+    IA actualizados.
+  - `feature_list.json`: 3 features nuevas — `chat-generacion` (simplificacion-ia),
+    `api-chat` (api-publica) y `ui-chat` (cliente-cmp); `beta-cerrada` depende de
+    `ui-chat`. Títulos/notas "OpenCode Go" normalizados a "OpenCode".
+  - Repo público: `README.md` y `ROADMAP.md` incluyen el chat en la 1.0.0.
+- Verificación ejecutada: `feature_list.json` parsea como JSON válido; 44
+  features, todas con los campos requeridos y todas las dependencias referencian
+  ids existentes (0 problemas).
+- Ficheros actualizados: `.harness/CONTEXT.md`, `.harness/docs/build-brief.md`,
+  `.harness/docs/domain-model.md`, `.harness/docs/risks-and-open-questions.md`,
+  `.harness/docs/technical-discovery.md`, `.harness/docs/roadmap.md`,
+  `.harness/feature_list.json`, `.harness/PROGRESS.md`, `README.md`, `ROADMAP.md`.
+- Riesgo o duda sin resolver: el chat es más caro por consulta que el feed
+  (requiere rate limiting y control de contexto); el historial de chat no se
+  persiste en el servidor; sigue pendiente el **nombre y marca**.
+- Siguiente mejor paso: implementar `bootstrap-monorepo-gradle` en el repo
+  público.
+
+### Session 004
+
+- Fecha: 2026-10-09
+- Objetivo: ampliar el alcance de la `1.0.0` con **empleo público y becas**
+  (Secciones II.B y III del BOE), **destacados del día**, **verificación de
+  afirmaciones** en el chat, ingesta **9:30 + segunda pasada** y backfill del
+  **último año**; y propagarlo a la planificación.
+- Decisiones tomadas:
+  - Datos 1.0.0: Secciones I, II.B y III. **Contratación pública (PLACSP)** queda
+    en 1.x.
+  - Chat: verifica afirmaciones **solo contra el BOE** (sin prensa/redes); el
+    fact-checking externo queda en 1.x.
+  - Destacados: ranking **automático y explicable** por señales objetivas (rango
+    normativo, organismo, palabras clave).
+  - Ingesta a las **9:30** con segunda pasada; backfill del **último año**.
+  - Lenguaje: término paraguas **Publicación** (Norma / Empleo público / Becas y
+    subvenciones).
+- Completado:
+  - Discovery: `CONTEXT.md`, `build-brief.md`, `domain-model.md` (reescrito sobre
+    **Publicación**), `technical-discovery.md` y `risks-and-open-questions.md`.
+  - `docs/roadmap.md`: alcance, corpus, ingesta, destacados y tareas (`0.2-T08`
+    clasificación+plazos, `0.2-T09` backfill, `0.4-T08` destacados); API/UI con
+    destacados, categorías y chat de verificación.
+  - `feature_list.json`: renombrados `boe-parser-norma`→`boe-parser-publicacion` y
+    `norma-persistencia`→`publicacion-persistencia`; nuevas features
+    `categorizacion-publicaciones` y `destacados-diarios` (area `relevancia`);
+    actualizadas feed, detalle, búsqueda, chat y UI.
+  - `DESIGN.md`: descripción, colores de categoría, tarjeta de publicación,
+    pantalla de chat, destacados y estados.
+  - `AGENTS.md` interno y `README.md`/`ROADMAP.md` públicos actualizados.
+- Verificación ejecutada: `feature_list.json` parsea como JSON válido; **46
+  features**, todas con los campos requeridos y todas las dependencias referencian
+  ids existentes (0 problemas, sin ids duplicados).
+- Ficheros actualizados: `.harness/CONTEXT.md`, `.harness/DESIGN.md`,
+  `.harness/AGENTS.md`, `.harness/docs/{build-brief,domain-model,technical-discovery,risks-and-open-questions,roadmap}.md`,
+  `.harness/feature_list.json`, `.harness/PROGRESS.md`, `README.md`, `ROADMAP.md`.
+- Riesgo o duda sin resolver: estructura irregular de las Secciones II.B/III
+  (parser/clasificación a validar); posible percepción de sesgo en los destacados;
+  taxonomía fina de la Sección III y modelado de plazos; sigue pendiente el
+  **nombre y marca**.
+- Siguiente mejor paso: implementar `bootstrap-monorepo-gradle` en el repo
+  público.
+
+### Session 005
+
+- Fecha: 2026-10-09
+- Objetivo: preparar las **skills del proyecto** para poder implementar con
+  consistencia.
+- Completado:
+  - **Adaptadas a DatoPublico** (estaban copiadas de otro proyecto, «Vuelantis»):
+    `ktor-backend-architecture` y `compose-multiplatform-architecture`.
+  - **Nueva skill** `rag-datapublico` (pipeline RAG sobre el BOE: chunking por
+    sección, `multilingual-e5-small` int8, pgvector, recuperación híbrida,
+    generación con citas, guardrails y evaluación).
+  - No se crea skill de Docker: basta la sección de operación local dentro de la
+    skill de backend.
+- Estado de skills del harness: `build-brief`, `harness-starter`,
+  `feature-spec`, `feature-implementer`, `feature-validator`,
+  `feature-task-ids` (genéricas); `ktor-backend-architecture`,
+  `compose-multiplatform-architecture`, `rag-datapublico` (proyecto).
+- Pendiente/deuda detectada (resuelta en Session 006):
+  - `feature-flow` **no operativo**: faltaban `docs/git-workflow.md`,
+    `docs/feature-ids.md`, `docs/specs/`, `docs/validations/`, campos `ft_id` y
+    los subagentes `planner/implementer/validator`.
+  - `poc/boe-rag`: era una PoC **temporal** y se eliminó a propósito; no hay que
+    recuperarla (lecciones en la skill `rag-datapublico`).
+  - Namespace raíz **decidido**: `es.aviferdev.datopublico`.
+- Ficheros: `.harness/.agents/skills/{ktor-backend-architecture,compose-multiplatform-architecture}/SKILL.md`
+  (reescritos), `.harness/.agents/skills/rag-datapublico/SKILL.md` (nuevo).
+- Siguiente mejor paso: implementar `bootstrap-monorepo-gradle` en el repo
+  público.
+
+### Session 006
+
+- Fecha: 2026-10-09
+- Objetivo: **cablear el flujo de features** (`feature-flow`) y cerrar las
+  decisiones pendientes.
+- Decisiones: namespace raíz **`es.aviferdev.datopublico`** (backend en
+  `es.aviferdev.datopublico.backend`); la PoC `poc/boe-rag` era **temporal** y se
+  eliminó a propósito.
+- Completado:
+  - `docs/git-workflow.md`: protocolo adaptado a **dos repos** (producto público
+    con ramas/PR; harness privado en `main`), *claim* por push inmediato de la
+    rama, commits con `FT` como scope y worktrees opcionales.
+  - `docs/feature-ids.md`: convención `FTxxxxx` + tabla de las **46 features** +
+    siguiente libre (`FT00047`).
+  - `feature_list.json`: campo `ft_id` añadido a las 46 features (FT00001..FT00046).
+  - `docs/specs/README.md` y `docs/validations/README.md` (carpetas del flujo).
+  - Subagentes OpenCode en `.harness/.opencode/agents/` (`planner`, `implementer`,
+    `validator`), expuestos vía symlink `.opencode → .harness/.opencode` y
+    excluidos del repo público.
+  - Skill de backend: namespace fijado; skill de RAG: nota de PoC actualizada.
+- Verificación ejecutada: `feature_list.json` parsea; 46 features con `ft_id`
+  único y todas las dependencias válidas; los 3 agentes y 3 skills presentes en
+  disco.
+- Ficheros: `.harness/docs/{git-workflow,feature-ids}.md`,
+  `.harness/docs/specs/README.md`, `.harness/docs/validations/README.md`,
+  `.harness/feature_list.json`, `.harness/.opencode/agents/*.md`,
+  `.harness/ARCHITECTURE.md`, `.harness/CONSTRAINTS.md`, `.harness/AGENTS.md`,
+  `.harness/.agents/skills/{ktor-backend-architecture,rag-datapublico}/SKILL.md`,
+  symlink `.opencode` en la raíz del producto.
+- Riesgo o duda sin resolver: los subagentes pueden requerir **reiniciar la
+  sesión** de OpenCode para aparecer; los permisos de los agentes son mínimos
+  (denegar `subagent`; validador solo-lectura) y puede haber que ajustarlos al
+  usarlos.
+- Siguiente mejor paso: implementar `bootstrap-monorepo-gradle` (FT00001 en
+  `docs/feature-ids.md`).
+
+### Session 007
+
+- Fecha: 2026-10-09
+- Objetivo: ampliar el alcance a **todas las categorías** del BOE.
+- Decisiones:
+  - Secciones ingeridas: **I, II.A, II.B, III y V.B**. Fuera: **IV**
+    (Administración de Justicia, datos personales) y **V.A** (subastas y
+    licitaciones → PLACSP/1.x).
+  - Categorías: **enum curado de 11** (Normas y legislación; Nombramientos y
+    ceses; Oposiciones y empleo público; Becas, subvenciones y ayudas; Premios;
+    Convenios y acuerdos; Educación y planes de estudio; Medio ambiente; Recursos
+    y resoluciones; Información pública y concesiones; Otras disposiciones y
+    anuncios) + **sección/epígrafe del BOE** como metadato.
+- Completado:
+  - Discovery: `CONTEXT.md` (Categoría, Sección/Epígrafe, secciones nuevas y
+    términos excluidos IV/V.A), `docs/build-brief.md`, `docs/domain-model.md`
+    (reescrito con la taxonomía), `docs/technical-discovery.md` (corpus y BOE) y
+    `docs/risks-and-open-questions.md` (mapeo, duplicidad III↔V.B, volumen).
+  - `docs/roadmap.md`: alcance, corpus y tareas de la 0.2 (secciones, categorías,
+    dedup III↔V.B).
+  - `feature_list.json`: actualizadas ingesta/parser/persistencia, categorización,
+    backfill, feed/UI (siguen 46 features; sin features nuevas).
+  - `DESIGN.md` (categorías), `CONSTRAINTS.md` (secciones excluidas),
+    `AGENTS.md`, skills `ktor-backend-architecture` y `rag-datapublico`,
+    `README.md`/`ROADMAP.md` públicos.
+- Verificación ejecutada: `feature_list.json` parsea; 46 features, `ft_id` únicos
+  y dependencias válidas (0 problemas).
+- Ficheros: `.harness/{CONTEXT.md,DESIGN.md,CONSTRAINTS.md,AGENTS.md,PROGRESS.md,feature_list.json}`,
+  `.harness/docs/{build-brief,domain-model,technical-discovery,risks-and-open-questions,roadmap}.md`,
+  `.harness/.agents/skills/{ktor-backend-architecture,rag-datapublico}/SKILL.md`,
+  `README.md`, `ROADMAP.md`.
+- Riesgo o duda sin resolver: mapeo epígrafe→categoría en casos ambiguos;
+  duplicidad III↔V.B; volumen de III/V.B en el N100.
+- Siguiente mejor paso: implementar `bootstrap-monorepo-gradle` (FT00001).

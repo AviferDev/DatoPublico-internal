@@ -5,11 +5,14 @@ interno/privado** del proyecto DatoPublico: descubrimiento, diseño, roadmap y e
 estado de features. **El código de producto no vive aquí**, sino en el
 repositorio público, un nivel por encima (`..`).
 
-**DatoPublico** explica en lenguaje claro **qué cambia** una norma publicada en
-la Sección I del BOE y **a quién afecta**, con enlace siempre a la fuente
-oficial. Es gratuito, de código abierto, sin cuentas ni datos personales. Stack
-Kotlin end-to-end: backend **Ktor** + **PostgreSQL/pgvector**, cliente **Compose
-Multiplatform** (Android, Web Wasm, iOS).
+**DatoPublico** explica en lenguaje claro **qué se ha publicado** en el BOE
+(Secciones I, II.A, II.B, III y V.B: normas, nombramientos, empleo público, becas
+y subvenciones, premios, convenios, información pública…) por **categoría** y **a
+quién afecta**, con enlace siempre a la fuente oficial, un feed diario con
+destacados y un chat que verifica afirmaciones contra el BOE. Es gratuito, de
+código abierto, sin cuentas ni datos personales. Stack Kotlin end-to-end: backend
+**Ktor** + **PostgreSQL/pgvector**, cliente **Compose Multiplatform** (Android,
+Web Wasm, iOS).
 
 ## Léelo primero (rutas relativas a `.harness/`)
 
@@ -24,6 +27,26 @@ Léelos solo cuando apliquen:
   operación.
 - `DESIGN.md` — dirección visual, tokens y pantallas.
 - `docs/roadmap.md` — plan detallado por versiones (`0.1.0` → `1.0.0`).
+- `docs/git-workflow.md` — ramas, *claim*, commits y PR (dos repos).
+- `docs/feature-ids.md` — registro de identificadores `FTxxxxx`.
+- `docs/specs/` y `docs/validations/` — specs y validaciones por feature.
+- `.opencode/agents/` — subagentes `planner`, `implementer`, `validator`.
+- `ARCHITECTURE.md` — mapa de módulos y fronteras.
+- `CONSTRAINTS.md` — reglas operativas MUST/MUST NOT.
+
+**Namespace del código:** `es.aviferdev.datopublico` (backend en
+`es.aviferdev.datopublico.backend`).
+
+## Flujo de features
+
+Para una feature concreta existe `feature-flow` con tres roles (`planner` →
+`implementer` → `validator`) y sus skills. Antes de ejecutarlo:
+
+1. La feature debe tener `ft_id` (`docs/feature-ids.md`).
+2. Sigue el protocolo de `docs/git-workflow.md` (rama en el repo de producto,
+   *claim* por push, commits con `FT` como scope, PR).
+3. Los specs viven en `docs/specs/<feature-id>.md` y las validaciones en
+   `docs/validations/<feature-id>.md`.
 
 ## Flujo de arranque
 

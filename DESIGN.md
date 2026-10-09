@@ -1,6 +1,6 @@
 ---
 name: DatoPublico
-description: Consulta de legislación simplificada, clara y trazable para el ciudadano.
+description: Consulta, simplificación y verificación de publicaciones del BOE por categoría (normas, empleo, becas, nombramientos, premios…), clara y trazable para el ciudadano.
 designAssets:
   sourceOfTruth: []
   generatedConcepts: []
@@ -65,11 +65,18 @@ hacerlo, se guardarán en `docs/design/concepts/` y se referenciarán aquí.
 ## Colors
 
 - **primary `#1A4D8F`:** acciones principales, encabezados y enlaces.
-- **secondary `#0F766E`:** acentos informativos (contexto, datos).
-- **accent `#F59E0B`:** avisos y plazos que requieren atención.
+- **secondary `#0F766E`:** acentos informativos (contexto, datos) y categoría
+  **Empleo público**.
+- **accent `#F59E0B`:** avisos y plazos que requieren atención, y categoría
+  **Becas y subvenciones**.
 - **background `#F7F9FC`:** fondo general, descansado.
 - **surface `#FFFFFF`:** tarjetas y superficies de contenido.
 - **text `#1F2937`:** texto principal con buen contraste.
+
+Las categorías (**11**) se muestran como **etiquetas sobrias**; no se asigna un
+color único a cada una. Se agrupan en tonos: `primary` para lo normativo,
+`secondary` para lo informativo/administrativo y `accent` para lo que implica
+plazo o atención (convocatorias y ayudas).
 
 ## Typography
 
@@ -83,8 +90,12 @@ hacerlo, se guardarán en `docs/design/concepts/` y se referenciarán aquí.
 - Enfoque **content-first**: una idea por tarjeta en el feed.
 - Móvil: una columna, espaciado generoso.
 - Web: columna de lectura centrada con ancho máximo; navegación secundaria.
-- Detalle de norma: bloques "¿Qué cambia?", "¿A quién afecta?", "Cifras clave"
-  y enlace destacado a la fuente oficial.
+- Feed: bloque de **Destacados del día** arriba, luego lista por categoría/fecha.
+- Detalle de publicación: bloques "¿Qué cambia?", "¿A quién afecta?", "Cifras
+  clave" y enlace destacado a la fuente oficial; **plazo** resaltado en
+  convocatorias.
+- Chat: conversación simple, con las citas a la fuente siempre visibles junto a la
+  respuesta.
 
 ## Shapes
 
@@ -94,17 +105,23 @@ hacerlo, se guardarán en `docs/design/concepts/` y se referenciarán aquí.
 ## Components
 
 - `button-primary`: fondo `primary`, texto blanco, radio `md`.
-- Tarjeta de norma: título, fecha, categoría y resumen corto.
+- Tarjeta de publicación: título, **categoría**, fecha, resumen corto, badge de
+  **destacado** y **plazo** si es convocatoria.
+- Etiqueta de categoría: pastilla sobria con el color de la categoría.
 - Bloque de sección: etiqueta + contenido del resumen.
 - Aviso de IA: banda sobria y visible, no un banner agresivo.
 - Enlace de fuente oficial: siempre visible y claro.
+- Respuesta de chat: texto + lista de **citas** a la fuente, con estado de
+  "sin fundamento"/"refutada" claramente señalado.
 
 ## Core Screens
 
-1. **Feed diario:** lista de normas del día.
-2. **Detalle de norma:** resumen estructurado + fuente oficial + aviso de IA.
+1. **Feed diario:** destacados del día + lista de publicaciones por categoría/fecha.
+2. **Detalle de publicación:** resumen estructurado + plazo (si aplica) + fuente
+   oficial + aviso de IA.
 3. **Búsqueda:** campo + filtros (categoría, fecha) + resultados.
-4. **Estados:** vacío, carga, error y "sin resultados".
+4. **Chat RAG:** pregunta o afirmación, respuesta con citas y estados.
+5. **Estados:** vacío, carga, error, "sin resultados", "sin fundamento" y "refutada".
 
 ## Responsive Baseline
 
@@ -123,7 +140,9 @@ hacerlo, se guardarán en `docs/design/concepts/` y se referenciarán aquí.
 
 - **Sí:** dar prioridad a la legibilidad y a la fuente oficial.
 - **Sí:** usar el color de acento con moderación y solo para atención.
+- **Sí:** explicar de forma breve por qué una publicación es "destacada".
 - **No:** estética sensacionalista o colores partidistas.
+- **No:** presentar el ranking de destacados como opinión editorial.
 - **No:** ocultar el aviso de IA ni el enlace a la fuente.
 
 ## Open Design Questions

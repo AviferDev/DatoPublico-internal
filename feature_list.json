@@ -1,6 +1,7 @@
 [
   {
     "id": "bootstrap-monorepo-gradle",
+    "ft_id": "FT00001",
     "area": "fundaciones",
     "title": "Estructura del monorepo Gradle",
     "user_visible_behavior": "El repositorio público compila con un solo comando desde la raíz: existen los módulos shared, backend y composeApp definidos en un version catalog, y la CI ejecuta build + tests.",
@@ -16,9 +17,10 @@
   },
   {
     "id": "bootstrap-shared-dtos",
+    "ft_id": "FT00002",
     "area": "fundaciones",
     "title": "DTOs compartidos con kotlinx.serialization",
-    "user_visible_behavior": "El módulo shared expone los DTO base (DailySummary, SourceCategory, etc.) serializables en JSON, reutilizables por backend y cliente.",
+    "user_visible_behavior": "El módulo shared expone los DTO base (Publicacion/DailySummary, SourceCategory, Resumen, etc., incluidos plazos de convocatorias) serializables en JSON, reutilizables por backend y cliente.",
     "depends_on": [
       "bootstrap-monorepo-gradle"
     ],
@@ -32,6 +34,7 @@
   },
   {
     "id": "bootstrap-postgres-pgvector",
+    "ft_id": "FT00003",
     "area": "fundaciones",
     "title": "PostgreSQL + pgvector en docker-compose",
     "user_visible_behavior": "Levantando docker-compose arranca PostgreSQL con la extensión pgvector y Flyway aplica una migración base sin errores.",
@@ -49,6 +52,7 @@
   },
   {
     "id": "bootstrap-ktor-healthcheck",
+    "ft_id": "FT00004",
     "area": "fundaciones",
     "title": "Esqueleto Ktor con healthcheck",
     "user_visible_behavior": "El backend arranca con configuración por entorno y logging estructurado, y responde en un endpoint de healthcheck.",
@@ -65,6 +69,7 @@
   },
   {
     "id": "bootstrap-cmp-targets",
+    "ft_id": "FT00005",
     "area": "fundaciones",
     "title": "Esqueleto Compose Multiplatform (Android, Web, iOS)",
     "user_visible_behavior": "El módulo composeApp compila y muestra una pantalla mínima en Android y Web (Wasm), y genera el framework de iOS.",
@@ -82,81 +87,86 @@
   },
   {
     "id": "boe-sumario-cliente",
+    "ft_id": "FT00006",
     "area": "ingesta-boe",
     "title": "Cliente del sumario diario del BOE",
-    "user_visible_behavior": "El backend obtiene el sumario diario de la Sección I desde la API de datos abiertos del BOE para una fecha dada.",
+    "user_visible_behavior": "El backend obtiene el sumario diario de las Secciones I, II.A, II.B, III y V.B desde la API de datos abiertos del BOE para una fecha dada.",
     "depends_on": [
       "bootstrap-shared-dtos",
       "bootstrap-ktor-healthcheck"
     ],
     "status": "not_started",
     "verification": [
-      "Un test con un fixture real del sumario parsea y devuelve las entradas de la Sección I.",
+      "Un test con un fixture real del sumario parsea y devuelve las entradas de las Secciones I, II.A, II.B, III y V.B.",
       "Una llamada a la API real devuelve 200 y datos no vacíos para una fecha laborable."
     ],
     "evidence": [],
     "notes": "Fuente: docs/roadmap.md 0.2-T01, docs/technical-discovery.md. Riesgo: cambios de formato o disponibilidad de la fuente."
   },
   {
-    "id": "boe-parser-norma",
+    "id": "boe-parser-publicacion",
+    "ft_id": "FT00007",
     "area": "ingesta-boe",
-    "title": "Parser de normas (metadatos y texto)",
-    "user_visible_behavior": "Cada entrada del sumario se convierte en una norma con identificador, título, fecha, organismo, categoría, texto y URL oficial.",
+    "title": "Parser de publicaciones (metadatos y texto)",
+    "user_visible_behavior": "Cada entrada del sumario se convierte en una publicación con identificador, título, fecha, organismo, sección, epígrafe, categoría, texto y URL oficial, con variantes por sección.",
     "depends_on": [
       "boe-sumario-cliente"
     ],
     "status": "not_started",
     "verification": [
-      "Con un fixture real de norma se extraen todos los campos obligatorios, incluida la URL oficial.",
-      "Existe un test que cubre una norma extensa y una norma sin texto completo disponible."
+      "Con un fixture real de cada sección se extraen todos los campos obligatorios, incluida la URL oficial.",
+      "Existe un test que cubre una publicación extensa y una publicación sin texto completo disponible."
     ],
     "evidence": [],
     "notes": "Fuente: docs/roadmap.md 0.2-T02, docs/domain-model.md (edge cases)."
   },
   {
-    "id": "norma-persistencia",
+    "id": "publicacion-persistencia",
+    "ft_id": "FT00008",
     "area": "ingesta-boe",
-    "title": "Persistencia de normas, fragmentos y resúmenes",
-    "user_visible_behavior": "Las normas, fragmentos, resúmenes y la cola de revisión se guardan y recuperan en PostgreSQL mediante repositorios.",
+    "title": "Persistencia de publicaciones, fragmentos y resúmenes",
+    "user_visible_behavior": "Las publicaciones (con categoría, sección, epígrafe y plazos), fragmentos, resúmenes y la cola de revisión se guardan y recuperan en PostgreSQL mediante repositorios.",
     "depends_on": [
       "bootstrap-postgres-pgvector",
-      "boe-parser-norma"
+      "boe-parser-publicacion"
     ],
     "status": "not_started",
     "verification": [
-      "Un test guarda y recupera una norma con sus metadatos.",
-      "Las tablas norma, fragmento, resumen y cola_revision existen vía migración Flyway."
+      "Un test guarda y recupera una publicación con sus metadatos (categoría, sección, epígrafe y plazo).",
+      "Las tablas publicacion, fragmento, resumen y cola_revision existen vía migración Flyway."
     ],
     "evidence": [],
     "notes": "Fuente: docs/roadmap.md 0.2-T03, docs/technical-discovery.md."
   },
   {
     "id": "ingesta-job-diario",
+    "ft_id": "FT00009",
     "area": "ingesta-boe",
     "title": "Job diario de ingesta idempotente",
-    "user_visible_behavior": "Un job programado descarga y guarda las normas del día sin duplicar las ya existentes.",
+    "user_visible_behavior": "Un job programado a las 9:30 descarga y guarda las publicaciones del día sin duplicar las ya existentes, con una segunda pasada por la tarde.",
     "depends_on": [
-      "norma-persistencia"
+      "publicacion-persistencia"
     ],
     "status": "not_started",
     "verification": [
-      "Ejecutar el job dos veces sobre la misma fecha no crea normas duplicadas.",
-      "El job programado se dispara en la ventana diaria esperada."
+      "Ejecutar el job dos veces sobre la misma fecha no crea publicaciones duplicadas.",
+      "El job se dispara a las 9:30 y la segunda pasada se ejecuta en su ventana."
     ],
     "evidence": [],
-    "notes": "Fuente: docs/roadmap.md 0.2-T04/T05. Deduplicación e idempotencia."
+    "notes": "Fuente: docs/roadmap.md 0.2-T04/T05. Deduplicación, idempotencia y segunda pasada."
   },
   {
     "id": "ingesta-observabilidad",
+    "ft_id": "FT00010",
     "area": "ingesta-boe",
     "title": "Observabilidad de la ingesta diaria",
-    "user_visible_behavior": "La ingesta diaria emite logs estructurados y avisa cuando no se produce en la ventana esperada.",
+    "user_visible_behavior": "La ingesta diaria emite logs estructurados y avisa cuando no se produce en la ventana esperada (9:30 o segunda pasada).",
     "depends_on": [
       "ingesta-job-diario"
     ],
     "status": "not_started",
     "verification": [
-      "El log estructurado registra las normas nuevas por ejecución.",
+      "El log estructurado registra las publicaciones nuevas por ejecución.",
       "La ausencia de ingesta dispara una alerta."
     ],
     "evidence": [],
@@ -164,40 +174,78 @@
   },
   {
     "id": "backfill-historico",
+    "ft_id": "FT00011",
     "area": "ingesta-boe",
     "title": "Backfill del histórico reciente",
-    "user_visible_behavior": "Se cargan por lotes las normas de la Sección I de los últimos 2 años, dejando el corpus poblado para la búsqueda.",
+    "user_visible_behavior": "Se cargan por lotes las publicaciones de las Secciones I, II.A, II.B, III y V.B del último año, dejando el corpus poblado para la búsqueda.",
     "depends_on": [
       "ingesta-job-diario"
     ],
     "status": "not_started",
     "verification": [
-      "El backfill de un rango corto de fechas persiste normas sin duplicar.",
+      "El backfill de un rango corto de fechas persiste publicaciones sin duplicar.",
       "El proceso puede reanudarse por lotes tras una interrupción."
     ],
     "evidence": [],
-    "notes": "Fuente: docs/roadmap.md 0.2-T08, docs/technical-discovery.md (backfill por lotes en N100)."
+    "notes": "Fuente: docs/roadmap.md 0.2-T09, docs/technical-discovery.md (backfill por lotes en N100)."
   },
   {
-    "id": "chunking-articulos",
-    "area": "rag",
-    "title": "Fragmentación por artículo o sección",
-    "user_visible_behavior": "El texto de una norma se divide en fragmentos con metadatos de artículo/sección, listos para vectorizar.",
+    "id": "categorizacion-publicaciones",
+    "ft_id": "FT00012",
+    "area": "ingesta-boe",
+    "title": "Clasificación por categoría y extracción de plazos",
+    "user_visible_behavior": "Cada publicación se clasifica en una de las 11 categorías curadas a partir de la sección y el epígrafe del BOE (que se conservan como metadato), y las convocatorias exponen su plazo de solicitud cuando la fuente lo indica.",
     "depends_on": [
-      "norma-persistencia"
+      "publicacion-persistencia"
     ],
     "status": "not_started",
     "verification": [
-      "Sobre una norma real, los fragmentos cubren el texto y conservan su referencia de artículo/sección sin solapamientos inválidos."
+      "Una muestra real de las Secciones I, II.A, II.B, III y V.B se clasifica correctamente por categoría.",
+      "Los casos ambiguos (sin epígrafe o con varios) se resuelven con la categoría más representativa, conservando el epígrafe.",
+      "Una convocatoria con plazo en la fuente expone la fecha límite; sin plazo, el campo queda vacío."
+    ],
+    "evidence": [],
+    "notes": "Fuente: docs/roadmap.md 0.2-T08, docs/domain-model.md (Categoría, Plazo)."
+  },
+  {
+    "id": "destacados-diarios",
+    "ft_id": "FT00013",
+    "area": "relevancia",
+    "title": "Destacados del día por ranking objetivo",
+    "user_visible_behavior": "Cada día se marca un subconjunto de publicaciones como destacadas mediante una puntuación automática por señales objetivas (rango normativo, organismo y palabras clave), explicable al usuario.",
+    "depends_on": [
+      "categorizacion-publicaciones"
+    ],
+    "status": "not_started",
+    "verification": [
+      "Dado un conjunto de publicaciones del día, el ranking produce destacados reproducibles y explicables ('por qué es destacado').",
+      "El ranking prioriza rangos normativos superiores y organismos/palabras clave relevantes."
+    ],
+    "evidence": [],
+    "notes": "Fuente: docs/roadmap.md 0.4-T08, docs/domain-model.md (Destacado). Riesgo: evitar percepción de sesgo editorial."
+  },
+  {
+    "id": "chunking-articulos",
+    "ft_id": "FT00014",
+    "area": "rag",
+    "title": "Fragmentación por artículo o sección",
+    "user_visible_behavior": "El texto de una publicación se divide en fragmentos con metadatos de artículo/sección, listos para vectorizar.",
+    "depends_on": [
+      "publicacion-persistencia"
+    ],
+    "status": "not_started",
+    "verification": [
+      "Sobre una publicación real, los fragmentos cubren el texto y conservan su referencia de artículo/sección sin solapamientos inválidos."
     ],
     "evidence": [],
     "notes": "Fuente: docs/roadmap.md 0.3-T01, docs/domain-model.md (Fragmento)."
   },
   {
     "id": "embeddings-locales-onnx",
+    "ft_id": "FT00015",
     "area": "rag",
     "title": "Servicio de embeddings locales (ONNX)",
-    "user_visible_behavior": "El backend genera embeddings con un modelo multilingüe pequeño ejecutado localmente vía ONNX Runtime en CPU.",
+    "user_visible_behavior": "El backend genera embeddings con un modelo multilingüe pequeño (multilingual-e5-small int8) ejecutado localmente vía ONNX Runtime en CPU.",
     "depends_on": [
       "chunking-articulos"
     ],
@@ -207,10 +255,11 @@
       "Dos textos similares tienen mayor similitud coseno que dos no relacionados."
     ],
     "evidence": [],
-    "notes": "Fuente: docs/roadmap.md 0.3-T06, docs/technical-discovery.md (multilingual-e5-small)."
+    "notes": "Fuente: docs/roadmap.md 0.3-T06, docs/technical-discovery.md (multilingual-e5-small int8)."
   },
   {
     "id": "pgvector-indexado",
+    "ft_id": "FT00016",
     "area": "rag",
     "title": "Almacenamiento vectorial en pgvector",
     "user_visible_behavior": "Los embeddings de los fragmentos se almacenan en pgvector con índices adecuados para búsqueda por similitud.",
@@ -228,6 +277,7 @@
   },
   {
     "id": "recuperacion-hibrida",
+    "ft_id": "FT00017",
     "area": "rag",
     "title": "Recuperación híbrida de fragmentos",
     "user_visible_behavior": "Dada una consulta, se recuperan fragmentos combinando filtros SQL por metadatos con similitud vectorial.",
@@ -243,6 +293,7 @@
   },
   {
     "id": "evaluacion-recuperacion",
+    "ft_id": "FT00018",
     "area": "rag",
     "title": "Evaluación de recuperación (precision/recall)",
     "user_visible_behavior": "Existe un conjunto de prueba con el que se mide precision/recall de la recuperación y se registra el resultado.",
@@ -258,9 +309,10 @@
   },
   {
     "id": "contrato-resumen-ciudadano",
+    "ft_id": "FT00019",
     "area": "simplificacion-ia",
     "title": "Contrato del resumen ciudadano",
-    "user_visible_behavior": "El resumen se modela y valida con las secciones «¿Qué cambia?», «¿A quién afecta?» y «Cifras clave», más la fuente oficial obligatoria.",
+    "user_visible_behavior": "El resumen se modela y valida con las secciones «¿Qué cambia?», «¿A quién afecta?» y «Cifras clave» (con variante para empleo y becas, que incluye plazo), más la fuente oficial obligatoria.",
     "depends_on": [
       "bootstrap-shared-dtos"
     ],
@@ -274,8 +326,9 @@
   },
   {
     "id": "generacion-resumen-go",
+    "ft_id": "FT00020",
     "area": "simplificacion-ia",
-    "title": "Generación de resumen con OpenCode Go",
+    "title": "Generación de resumen con OpenCode",
     "user_visible_behavior": "A partir de los fragmentos recuperados, se genera un resumen ciudadano con cita obligatoria a la fuente, usando una abstracción de proveedor de IA intercambiable.",
     "depends_on": [
       "recuperacion-hibrida",
@@ -287,10 +340,11 @@
       "El proveedor se sustituye por un doble en tests sin tocar el servicio."
     ],
     "evidence": [],
-    "notes": "Fuente: docs/roadmap.md 0.4-T02, docs/technical-discovery.md (OpenCode Go, deepseek-v4.1-flash). Riesgo asumido: uso de Go como backend de app pública."
+    "notes": "Fuente: docs/roadmap.md 0.4-T02, docs/technical-discovery.md (OpenCode, deepseek-v4.1-flash). Riesgo asumido: uso de OpenCode como backend de app pública."
   },
   {
     "id": "cacheo-resumenes",
+    "ft_id": "FT00021",
     "area": "simplificacion-ia",
     "title": "Cacheo de resúmenes y control de coste",
     "user_visible_behavior": "Un resumen ya generado para una norma no se vuelve a generar, y se registra el consumo de tokens.",
@@ -307,6 +361,7 @@
   },
   {
     "id": "guardrails-anti-alucinacion",
+    "ft_id": "FT00022",
     "area": "simplificacion-ia",
     "title": "Guardrails anti-alucinación y trazabilidad",
     "user_visible_behavior": "Ningún resumen se publica sin enlace válido a la fuente ni con afirmaciones no sustentadas por el contexto recuperado; los fallos se descartan o van a revisión.",
@@ -323,6 +378,7 @@
   },
   {
     "id": "cola-revision-confianza",
+    "ft_id": "FT00023",
     "area": "simplificacion-ia",
     "title": "Cola de revisión por baja confianza",
     "user_visible_behavior": "Los resúmenes de baja confianza entran en una cola de revisión interna sin bloquear el resto del feed.",
@@ -339,9 +395,10 @@
   },
   {
     "id": "evaluacion-golden-set",
+    "ft_id": "FT00024",
     "area": "simplificacion-ia",
     "title": "Evaluación de calidad con golden set",
-    "user_visible_behavior": "Existe un golden set de normas con resumen de referencia y una medición de acierto en «¿Qué cambia?» y «¿A quién afecta?».",
+    "user_visible_behavior": "Existe un golden set de publicaciones con resumen de referencia y una medición de acierto en «¿Qué cambia?» y «¿A quién afecta?».",
     "depends_on": [
       "generacion-resumen-go"
     ],
@@ -353,38 +410,62 @@
     "notes": "Fuente: docs/roadmap.md 0.4-T05, docs/build-brief.md (Validation Plan)."
   },
   {
-    "id": "api-feed-diario",
-    "area": "api-publica",
-    "title": "Endpoint del feed diario",
-    "user_visible_behavior": "La API expone el feed diario de normas publicadas con su resumen y enlace a la fuente, de forma paginada.",
+    "id": "chat-generacion",
+    "ft_id": "FT00025",
+    "area": "simplificacion-ia",
+    "title": "Generación del chat RAG con OpenCode",
+    "user_visible_behavior": "Dada una pregunta o una afirmación en lenguaje natural, se genera una respuesta fundamentada solo en los fragmentos recuperados del BOE, con citas a la fuente oficial y sin afirmaciones fuera del corpus; las afirmaciones falsas se refutan y las preguntas sin base se declaran como tales.",
     "depends_on": [
-      "ingesta-job-diario",
-      "guardrails-anti-alucinacion"
+      "recuperacion-hibrida",
+      "generacion-resumen-go"
     ],
     "status": "not_started",
     "verification": [
-      "`GET` del feed devuelve normas con resumen y enlace oficial, en páginas con tamaño configurable."
+      "Una pregunta sobre el corpus devuelve una respuesta con al menos una cita a la fuente oficial.",
+      "Una afirmación falsa sobre el corpus se refuta con citas.",
+      "Una pregunta sin base en el corpus no inventa: se declara sin fundamento.",
+      "El proveedor se sustituye por un doble en tests sin tocar el servicio."
+    ],
+    "evidence": [],
+    "notes": "Fuente: docs/roadmap.md 0.4-T07, docs/technical-discovery.md (OpenCode, deepseek-v4.1-flash). Dominio: Consulta (chat RAG)."
+  },
+  {
+    "id": "api-feed-diario",
+    "ft_id": "FT00026",
+    "area": "api-publica",
+    "title": "Endpoint del feed diario",
+    "user_visible_behavior": "La API expone el feed diario de publicaciones (de cualquier categoría) con su resumen, categoría y destacados, de forma paginada.",
+    "depends_on": [
+      "ingesta-job-diario",
+      "guardrails-anti-alucinacion",
+      "destacados-diarios"
+    ],
+    "status": "not_started",
+    "verification": [
+      "`GET` del feed devuelve publicaciones con resumen, categoría, destacados y enlace oficial, en páginas con tamaño configurable."
     ],
     "evidence": [],
     "notes": "Fuente: docs/roadmap.md 0.5-T01."
   },
   {
     "id": "api-detalle-norma",
+    "ft_id": "FT00027",
     "area": "api-publica",
-    "title": "Endpoint de detalle de norma",
-    "user_visible_behavior": "La API devuelve el detalle de una norma: resumen ciudadano estructurado y enlace a la fuente oficial.",
+    "title": "Endpoint de detalle de publicación",
+    "user_visible_behavior": "La API devuelve el detalle de una publicación: resumen ciudadano estructurado, categoría, plazo (si aplica) y enlace a la fuente oficial.",
     "depends_on": [
       "guardrails-anti-alucinacion"
     ],
     "status": "not_started",
     "verification": [
-      "`GET` del detalle de una norma publicada devuelve las tres secciones del resumen y la URL oficial."
+      "`GET` del detalle de una publicación devuelve las secciones del resumen, la categoría y la URL oficial."
     ],
     "evidence": [],
     "notes": "Fuente: docs/roadmap.md 0.5-T02."
   },
   {
     "id": "api-busqueda",
+    "ft_id": "FT00028",
     "area": "api-publica",
     "title": "Endpoint de búsqueda",
     "user_visible_behavior": "La API permite buscar en el corpus con una consulta y filtros de categoría y fecha.",
@@ -400,30 +481,34 @@
   },
   {
     "id": "api-contratos-openapi",
+    "ft_id": "FT00029",
     "area": "api-publica",
     "title": "Contratos OpenAPI y versionado",
     "user_visible_behavior": "La API publica sus contratos OpenAPI y una versión de API que refleja los endpoints existentes.",
     "depends_on": [
       "api-feed-diario",
       "api-detalle-norma",
-      "api-busqueda"
+      "api-busqueda",
+      "api-chat"
     ],
     "status": "not_started",
     "verification": [
-      "El contrato OpenAPI se genera y describe los endpoints de feed, detalle y búsqueda."
+      "El contrato OpenAPI se genera y describe los endpoints de feed, detalle, búsqueda y chat."
     ],
     "evidence": [],
     "notes": "Fuente: docs/roadmap.md 0.5-T04."
   },
   {
     "id": "api-cors-ratelimit-errores",
+    "ft_id": "FT00030",
     "area": "api-publica",
     "title": "Endurecimiento HTTP de la API",
     "user_visible_behavior": "La API acepta peticiones de los clientes (CORS), limita el abuso con rate limiting y responde con errores claros y consistentes.",
     "depends_on": [
       "api-feed-diario",
       "api-detalle-norma",
-      "api-busqueda"
+      "api-busqueda",
+      "api-chat"
     ],
     "status": "not_started",
     "verification": [
@@ -435,39 +520,60 @@
     "notes": "Fuente: docs/roadmap.md 0.5-T05."
   },
   {
+    "id": "api-chat",
+    "ft_id": "FT00031",
+    "area": "api-publica",
+    "title": "Endpoint de chat RAG",
+    "user_visible_behavior": "La API expone un endpoint de consulta o verificación en lenguaje natural que devuelve la respuesta (o refutación) con las fuentes oficiales citadas.",
+    "depends_on": [
+      "chat-generacion"
+    ],
+    "status": "not_started",
+    "verification": [
+      "Una consulta al endpoint de chat devuelve una respuesta con las citas de las publicaciones usadas.",
+      "Una afirmación falsa devuelve una refutación con citas.",
+      "El endpoint respeta el rate limiting y devuelve errores consistentes."
+    ],
+    "evidence": [],
+    "notes": "Fuente: docs/roadmap.md 0.5-T06, docs/build-brief.md (MVP Slice). Sin historial persistido en el servidor."
+  },
+  {
     "id": "ui-feed",
+    "ft_id": "FT00032",
     "area": "cliente-cmp",
     "title": "UI del feed con estados y dirección visual",
-    "user_visible_behavior": "La app muestra el feed diario de normas en Android, Web e iOS desde la misma UI, con estados de vacío, carga y error, aplicando la dirección visual de DESIGN.md.",
+    "user_visible_behavior": "La app muestra el feed diario de publicaciones (de cualquier categoría) con destacados y categorías en Android, Web e iOS desde la misma UI, con estados de vacío, carga y error, aplicando la dirección visual de DESIGN.md.",
     "depends_on": [
       "api-feed-diario",
       "bootstrap-cmp-targets"
     ],
     "status": "not_started",
     "verification": [
-      "El feed muestra tarjetas de normas y los estados vacío/carga/error en las tres plataformas."
+      "El feed muestra tarjetas de publicaciones con su categoría y los destacados, y los estados vacío/carga/error en las tres plataformas."
     ],
     "evidence": [],
     "notes": "Fuente: docs/roadmap.md 0.6-T01/T07, DESIGN.md."
   },
   {
     "id": "ui-detalle",
+    "ft_id": "FT00033",
     "area": "cliente-cmp",
     "title": "Pantalla de detalle con resumen y fuente",
-    "user_visible_behavior": "La app muestra el detalle de una norma con el resumen estructurado, el enlace destacado a la fuente oficial y el aviso de contenido generado por IA.",
+    "user_visible_behavior": "La app muestra el detalle de una publicación con el resumen estructurado (y su plazo, si es una convocatoria), el enlace destacado a la fuente oficial y el aviso de contenido generado por IA.",
     "depends_on": [
       "api-detalle-norma",
       "ui-feed"
     ],
     "status": "not_started",
     "verification": [
-      "Abrir una norma muestra «¿Qué cambia?», «¿A quién afecta?», «Cifras clave», el enlace oficial y el aviso de IA."
+      "Abrir una publicación muestra «¿Qué cambia?», «¿A quién afecta?», «Cifras clave», el plazo si aplica, el enlace oficial y el aviso de IA."
     ],
     "evidence": [],
     "notes": "Fuente: docs/roadmap.md 0.6-T02, docs/build-brief.md."
   },
   {
     "id": "ui-navegacion-estado",
+    "ft_id": "FT00034",
     "area": "cliente-cmp",
     "title": "Navegación y estado compartido",
     "user_visible_behavior": "La app navega entre feed y detalle con estado compartido mediante StateFlow y ViewModels.",
@@ -483,6 +589,7 @@
   },
   {
     "id": "ui-cliente-http-cache",
+    "ft_id": "FT00035",
     "area": "cliente-cmp",
     "title": "Cliente HTTP común y cache offline",
     "user_visible_behavior": "La app consume la API mediante un cliente HTTP común y mantiene visible el contenido cacheado cuando no hay red.",
@@ -498,9 +605,10 @@
   },
   {
     "id": "ui-busqueda-filtros",
+    "ft_id": "FT00036",
     "area": "cliente-cmp",
     "title": "UI de búsqueda con filtros",
-    "user_visible_behavior": "El usuario busca normas por texto y aplica filtros de categoría y fecha desde la app.",
+    "user_visible_behavior": "El usuario busca publicaciones por texto y aplica filtros de categoría y fecha desde la app.",
     "depends_on": [
       "api-busqueda",
       "ui-navegacion-estado"
@@ -513,7 +621,26 @@
     "notes": "Fuente: docs/roadmap.md 0.9-T01."
   },
   {
+    "id": "ui-chat",
+    "ft_id": "FT00037",
+    "area": "cliente-cmp",
+    "title": "UI de chat RAG",
+    "user_visible_behavior": "La app permite preguntar o pegar una afirmación en lenguaje natural y muestra la respuesta, la refutación o el «sin fundamento», con sus citas y estados de carga y error.",
+    "depends_on": [
+      "api-chat",
+      "ui-navegacion-estado"
+    ],
+    "status": "not_started",
+    "verification": [
+      "La app permite enviar una pregunta o afirmación y muestra la respuesta (o refutación) con las fuentes citadas en las tres plataformas.",
+      "Se cubren los estados de carga, error, sin fundamento y refutación."
+    ],
+    "evidence": [],
+    "notes": "Fuente: docs/roadmap.md 0.6-T08, DESIGN.md."
+  },
+  {
     "id": "dist-android",
+    "ft_id": "FT00038",
     "area": "distribucion",
     "title": "Empaquetado Android y preparación para Google Play",
     "user_visible_behavior": "Existe un artefacto Android firmado e instalable, preparado para la ficha de Google Play.",
@@ -530,6 +657,7 @@
   },
   {
     "id": "dist-web",
+    "ft_id": "FT00039",
     "area": "distribucion",
     "title": "Despliegue web (Wasm) y enlaces compartibles",
     "user_visible_behavior": "La app Web (Wasm) se despliega como estático, se abre por URL y ofrece enlaces compartibles con SEO básico.",
@@ -547,6 +675,7 @@
   },
   {
     "id": "dist-ios",
+    "ft_id": "FT00040",
     "area": "distribucion",
     "title": "App iOS distribuible vía TestFlight",
     "user_visible_behavior": "La app iOS compila, se firma y se distribuye a la beta cerrada por TestFlight.",
@@ -563,6 +692,7 @@
   },
   {
     "id": "deploy-backend",
+    "ft_id": "FT00041",
     "area": "operacion",
     "title": "Despliegue del backend en servidor propio",
     "user_visible_behavior": "El backend y la base de datos corren en el servidor propio con Docker + Nginx, HTTPS, cron para la ingesta y secretos por entorno.",
@@ -581,6 +711,7 @@
   },
   {
     "id": "observabilidad-y-backups",
+    "ft_id": "FT00042",
     "area": "operacion",
     "title": "Observabilidad y backups de producción",
     "user_visible_behavior": "Producción emite logs y métricas, alerta si la ingesta falla y genera backups que pueden restaurarse.",
@@ -597,6 +728,7 @@
   },
   {
     "id": "accesibilidad-i18n",
+    "ft_id": "FT00043",
     "area": "operacion",
     "title": "Accesibilidad y textos en español",
     "user_visible_behavior": "La app cumple una base de accesibilidad (contraste AA, etiquetas, tamaño escalable) y sus textos están externalizados en español.",
@@ -613,6 +745,7 @@
   },
   {
     "id": "legal-avisos",
+    "ft_id": "FT00044",
     "area": "operacion",
     "title": "Avisos legales y disclaimer",
     "user_visible_behavior": "La app muestra el aviso de contenido generado por IA, la política de privacidad, los términos y el disclaimer de no asesoramiento jurídico.",
@@ -629,6 +762,7 @@
   },
   {
     "id": "beta-cerrada",
+    "ft_id": "FT00045",
     "area": "operacion",
     "title": "Beta cerrada y corrección de bugs",
     "user_visible_behavior": "Usuarios reales usan la app en Android, Web e iOS mediante beta cerrada y los bugs detectados se corrigen.",
@@ -637,6 +771,7 @@
       "dist-web",
       "dist-ios",
       "ui-busqueda-filtros",
+      "ui-chat",
       "accesibilidad-i18n",
       "legal-avisos"
     ],
@@ -649,6 +784,7 @@
   },
   {
     "id": "publicacion-1.0.0",
+    "ft_id": "FT00046",
     "area": "operacion",
     "title": "Publicación pública 1.0.0",
     "user_visible_behavior": "DatoPublico se publica de forma estable en Google Play, App Store y Web con la versión 1.0.0.",

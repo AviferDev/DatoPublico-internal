@@ -1,22 +1,40 @@
 ---
 name: ktor-backend-architecture
-description: Guía de arquitectura del backend Kotlin + Ktor (módulo :backend) de Vuelantis. Úsala al añadir o modificar endpoints/plugs, servicios de aplicación, lógica de dominio, repositorios y migraciones (PostgreSQL/Flyway), caché (Redis), integraciones externas (Ignav), configuración por entorno, composición de dependencias, errores, observabilidad o tests. Define la dirección de dependencias, el layout de paquetes y las reglas para que el código sea limpio, ordenado y mantenible, y distingue el patrón objetivo del estado actual del repositorio.
+description: Guía de arquitectura del backend Kotlin + Ktor (módulo :backend) de DatoPublico. Úsala al añadir o modificar endpoints/plugins, servicios de aplicación, dominio, repositorios y migraciones (PostgreSQL/pgvector/Flyway), ingesta del BOE, pipeline RAG (embeddings ONNX + pgvector), generación de resúmenes y chat con OpenCode, destacados, configuración por entorno, composición de dependencias, errores, observabilidad, Docker o tests. Define la dirección de dependencias, el layout de paquetes y las reglas, y distingue el patrón objetivo del estado actual (aún no bootstrapped).
 ---
 
-# Arquitectura del backend Ktor
+# Arquitectura del backend Ktor — DatoPublico
 
-Guía práctica para trabajar en `:backend`. Antes de tocar el backend, lee también `docs/technical-discovery.md`, `docs/domain-model.md` y `docs/user-and-access-model.md` si la feature toca acceso o cuota. `CONTEXT.md` fija el lenguaje de dominio: usa esos términos.
+Guía práctica para trabajar en `:backend`. Antes de tocar el backend, lee
+`docs/technical-discovery.md`, `docs/domain-model.md` y `docs/roadmap.md`.
+`CONTEXT.md` fija el lenguaje de dominio: usa esos términos (**Publicación**,
+Norma, Empleo público, Becas y subvenciones, Fragmento, Resumen ciudadano,
+Consulta, Destacado).
 
-**Estado actual:** en `main` el backend todavía no existe (fase pre-bootstrap; el servidor Ktor llega con `backend-bootstrap`). El patrón que se describe aquí es el **objetivo acordado**, derivado del stack decidido en `docs/technical-discovery.md` y de la implementación de referencia previa en la rama `feat/backend-bootstrap`. No inventes una arquitectura distinta: sigue estas reglas y, cuando el código exista, deriva los detalles reales del propio código.
+**Estado actual:** el backend todavía **no existe** (fase pre-bootstrap; el
+esqueleto Ktor llega con `bootstrap-ktor-healthcheck`). El patrón de este
+documento es el **objetivo acordado**, derivado de `docs/technical-discovery.md`
+y `docs/roadmap.md`. No inventes una arquitectura distinta; cuando el código
+exista, deriva los detalles reales del propio código.
 
 ## Stack y topología de build (decidido)
 
-- Kotlin/JVM (toolchain **JDK 21**) + **Ktor 3.x con motor Netty**; `application` plugin de Gradle con `mainClass = es.aviferdev.vuelantis.backend.ApplicationKt`.
-- `:backend` es un módulo Gradle dentro del multi-proyecto de la raíz; DSL de Kotlin. No usa version catalog salvo que ya exista.
-- Serialización con `kotlinx.serialization` + `ktor-serialization-kotlinx-json`; corrutinas para I/O paralelo.
-- Persistencia **PostgreSQL** (JDBC + HikariCP; migraciones **Flyway**); caché **Redis** (Lettuce).
-- Infra local con **Docker Compose** (`postgres`, `redis`, `backend`) y `Dockerfile` multi-stage.
-- Gate estándar: `./init.sh` (no arranca servidores). Compilación/tests: `./gradlew :backend:build` y `./gradlew :backend:test`.
+- Kotlin/JVM (toolchain **JDK 21**) + **Ktor 3.x** con motor **Netty**;
+  `application` plugin de Gradle.
+- Multi-proyecto Gradle (Kotlin DSL) con **version catalog** y módulos
+  `shared`, `backend`, `composeApp`. `:backend` depende de `:shared`.
+- **Namespace raíz:** `es.aviferdev.datopublico` (compartido por todos los
+  módulos). El backend usa `es.aviferdev.datopublico.backend`.
+- Serialización `kotlinx.serialization` + `ktor-serialization-kotlinx-json`;
+  corrutinas para I/O paralelo.
+- Persistencia **PostgreSQL + pgvector** (JDBC + **HikariCP**; migraciones
+  **Flyway**). No hay Redis ni caché externa en la 1.0.0.
+- IA: **OpenAI-compatible** contra OpenCode; **embeddings locales** con
+  **ONNX Runtime (CPU)**.
+- Infra local con **Docker Compose** (`postgres` con pgvector + `backend`) y
+  `Dockerfile` multi-stage.
+- Gate estándar: `./init.sh` (desde `.harness/`). Compilar/tests desde la raíz
+  del repo público: `./gradlew build`, `./gradlew :backend:test`.
 
 ## Regla de dependencia (invariante)
 
@@ -24,170 +42,132 @@ Guía práctica para trabajar en `:backend`. Antes de tocar el backend, lee tamb
 plugins/ (HTTP Ktor)  ->  <feature>/ servicios de aplicación  ->  <feature>/ dominio puro
                                      |                                      ^
                                      v                                      |
-                         <feature>/ repositorios y clientes  -->  infra/ (config, pools, migraciones)
+                        <feature>/ repositorios y clientes  -->  infra/ (config, pools, migraciones)
 ```
 
-- La capa HTTP (`plugins/`) conoce Ktor y los DTOs de transporte; **no** contiene lógica de negocio.
-- Los **servicios** orquestan (validación de estado, coordinación de I/O, transacciones lógicas). No conocen tipos de Ktor (`ApplicationCall`, `Route`, `HttpStatusCode`).
-- La **lógica de dominio** es pura: sin E/S, sin Ktor, sin base de datos, sin Redis. Es lo más fácil de testear. Ejemplo de referencia: el cruce open-jaw (`combine/OpenJawCombiner`) es un `object` sin estado que recibe listas y devuelve combinaciones.
-- Los **repositorios y clientes** implementan interfaces declaradas por el consumidor (servicio); encapsulan SQL o HTTP y traducen a modelos de dominio.
-- Prohibido: una ruta que consulte la BD directamente; un servicio que importe `io.ktor.server.*`; dominio que dependa de JDBC, Redis o Ignav.
+- La capa HTTP (`plugins/`) conoce Ktor y los DTOs de transporte; **no** contiene
+  lógica de negocio.
+- Los **servicios** orquestan (validación, coordinación de I/O, transacciones
+  lógicas). No conocen tipos de Ktor (`ApplicationCall`, `Route`,
+  `HttpStatusCode`).
+- El **dominio** es puro: sin E/S, sin Ktor, sin BD, sin ONNX, sin OpenCode. Es lo
+  más fácil de testear.
+- Los **repositorios y clientes** implementan interfaces declaradas por el
+  consumidor (el servicio); encapsulan SQL o HTTP y traducen a modelos de dominio.
+- Prohibido: una ruta que consulte la BD directamente; un servicio que importe
+  `io.ktor.server.*`; dominio que dependa de JDBC, ONNX o HTTP.
 
 ## Layout de paquetes (feature-first con roles)
 
 ```
-backend/src/main/kotlin/es/vuelantis/backend/
+backend/src/main/kotlin/es/aviferdev/datopublico/backend/
   Application.kt          # composition root: config, wiring manual y arranque
-  plugins/                # Ktor: configureSerialization/Routing, routes por área, auth, CORS, health, observability, docs
-  <feature>/              # p. ej. access/, catalog/, search/, combine/, ignav/, cache/
-  infra/                  # InfraConfig, DataSource/Hikari, RedisClient, Migrations, Readiness
+  plugins/                # Ktor: serialization, routing por área, CORS, rate limit, health, errors, docs
+  ingesta/                # sumario BOE, parser por sección, job (9:30 + 2ª pasada), backfill, dedup
+  clasificacion/          # categoría (Norma/Empleo/Becas) y extracción de plazos
+  rag/                    # chunking, embeddings ONNX, indexado pgvector, recuperación híbrida
+  resumen/                # generación ciudadana, contrato, guardrails, caché, cola de revisión
+  destacados/             # ranking diario por señales objetivas
+  consulta/               # chat: pregunta/verificación contra el corpus
+  api/                    # endpoints de solo lectura (feed, detalle, búsqueda, chat)
+  infra/                  # config, DataSource/Hikari, migraciones, cliente OpenCode, runtime ONNX
 backend/src/main/resources/
   db/migration/           # Flyway: V1__descripcion.sql, V2__..., nunca editar una ya aplicada
-  openapi/openapi.json    # contrato OpenAPI servido por Swagger (bandera ENABLE_API_DOCS)
+  openapi/openapi.json
   logback.xml
-backend/src/test/kotlin/es/vuelantis/backend/   # tests espejo del paquete de producción
+backend/src/test/kotlin/es/aviferdev/datopublico/backend/   # tests espejo del paquete de producción
 ```
 
-Un paquete por feature, no por capa técnica. Dentro del paquete conviven su servicio, su(s) repositorio(s), sus modelos y sus clientes; las piezas transversales (config, DB, HTTP) van en `infra/` y `plugins/`.
+Un paquete por feature, no por capa técnica. Dentro del paquete conviven su
+servicio, su(s) repositorio(s), sus modelos y sus clientes; lo transversal
+(config, DB, HTTP, ONNX, OpenCode) va en `infra/` y `plugins/`.
 
-## Composition root y wiring (manual, sin framework de DI)
+## Composition root y wiring
 
-- Todo el cableado vive en `Application.kt`. No se usa Koin/Hilt/Spring en el backend.
-- Cada subsistema se construye **condicionalmente** según sus dependencias (configuración de entorno, `dataSource`, cliente de Ignav, etc.) y puede quedar a `null` si falta.
-- El arranque **solo registra las rutas cuyas dependencias existen**; el `configureRouting(...)` recibe colaboradores opcionales y decide qué montar. Así el servidor arranca en entornos parciales (p. ej. solo salud) sin `NullPointerException`.
-- Los recursos con ciclo de vida (pool JDBC, Redis, cliente HTTP de Ignav) se cierran en un `finally` al parar el servidor.
-- No inyectes dependencias por variables globales/mutable state: pásalas por constructor.
-- `configureRouting`/`configureX` reciben colaboradores (no `Application` mutable); las routes se declaran como `fun Route.xRoutes(dep)`.
+- Todo el cableado vive en `Application.kt`. **Sin framework de DI** (no
+  Koin/Hilt/Spring en el backend).
+- Los subsistemas se construyen **condicionalmente** según sus dependencias
+  (config de entorno, `dataSource`, clave de OpenCode, runtime ONNX) y pueden
+  quedar a `null`. El arranque **solo registra las rutas cuyas dependencias
+  existen**, para levantar en entornos parciales (p. ej. solo salud).
+- Los recursos con ciclo de vida (pool JDBC, runtime ONNX, cliente HTTP) se
+  cierran al parar el servidor. No uses estado global mutable: pasa por
+  constructor.
+- `configureRouting(...)` recibe colaboradores opcionales; las rutas se declaran
+  como `fun Route.xRoutes(dep)`.
 
-```kotlin
-// Patrón del composition root
-val infra = Infrastructure.fromEnv()
-infra.dataSource?.let { Migrations.migrate(it) }          // idempotente
-val repo = infra.dataSource?.let { JdbcXRepository(it) }
-val service = repo?.let { XService(it, someClient) }
-embeddedServer(Netty, port, host) {
-    configureSerialization()
-    configureRouting(xService = service)                  // la ruta se registra solo si no es null
-}.start(wait = true)
-```
+## Dominio
 
-## Configuración por entorno
+- Términos canónicos en `CONTEXT.md`. El feed es de **Publicaciones** con una
+  **Categoría** (enum curado de 11) y metadatos de **Sección/Epígrafe** del BOE;
+  "Norma" es solo la Sección I.
+- Estados: `Resumen ciudadano` (`pendiente → generado → validado_por_guardrails →
+  publicado | en_cola_revision`) y `Consulta` (`recibida → respondida |
+  refutada | sin_fundamento`). Ver `docs/domain-model.md`.
+- Regla dura: **trazabilidad**. Ningún resumen se publica sin enlace a la fuente
+  oficial.
 
-- Un `data class` por grupo de configuración, con `companion object` que declara las constantes de variable de entorno y un `fromEnv(env: Map<String, String> = System.getenv())`.
-- Dos variantes cuando tenga sentido:
-  - `fromEnvOrNull()`: devuelve `null` si falta lo esencial → el subsistema queda deshabilitado.
-  - `fromEnv()`: lanza `IllegalStateException` con mensaje claro si falta → obligatorio para una CLI/tarea.
-- **Nunca** secretos con valor por defecto en el repo ni en el código. Valores no secretos con default sí (p. ej. TTL, puerto).
-- Los tests deben poder inyectar `env` como `Map`, por eso el parámetro `env` es explícito y no lee `System.getenv()` directamente dentro de la lógica.
+## Persistencia y migraciones
 
-## Endpoints y Ktor
+- Tablas base: `publicacion` (con categoría y plazo), `fragmento` (con embedding),
+  `resumen`, `cola_revision`. Ver `docs/technical-discovery.md`.
+- `pgvector`: dimensión de embedding **384** (`multilingual-e5-small`), índice
+  **HNSW**; filtros SQL por metadatos (fecha, categoría, organismo).
+- Migraciones con Flyway versionadas; **nunca** edites una migración ya aplicada.
+- Idempotencia y deduplicación en la ingesta; el job puede reejecutarse sin
+  duplicar.
 
-- Un archivo de routes por área en `plugins/` (p. ej. `Search.kt`, `Auth.kt`, `Health.kt`), siempre como `fun Route.xRoutes(...)`.
-- `configureSerialization()` instala `ContentNegotiation` con `Json { ignoreUnknownKeys = true; encodeDefaults = true }`.
-- Valida y parsea en la frontera: `call.receive<T>()` en `try/catch` → `400` con `ErrorResponse`; los errores de validación del modelo también → `400`. No dejes escapar la excepción cruda.
-- Usa un `@Serializable data class ErrorResponse(@SerialName("error") val error: String)` común; responde siempre JSON.
-- Todo tipo `@Serializable` (DTOs de transporte, *requests*, *responses* y los de `:shared`) anota **todas** sus propiedades con `@SerialName` explícito, **aunque el nombre JSON coincida** con el de la propiedad Kotlin: fija el contrato de cable y evita que un renombrado Kotlin lo cambie por accidente. `@Transient` es la única exclusión, deliberada.
-- **Nunca** expongas mensajes internos de excepción, stacktraces ni datos sensibles. Traduce a un mensaje de dominio.
-- Códigos consistentes: `400` validación/JSON, `401` sin autenticar, `403` sin permiso, `404` no encontrado, `409` conflicto (p. ej. email duplicado), `429` rate limit, `5xx` fallo inesperado.
-- Rutas protegidas con `ktor-server-auth`: valida el token en el servidor (`JWT`), resuelve el usuario/plan en la BD, nunca confíes en datos que vengan del cliente.
-- El contrato HTTP vive en `resources/openapi/openapi.json`; actualízalo al añadir/cambiar endpoints y mantenlo cubierto por un test.
+## IA (abstracción de proveedor)
 
-## Servicios de aplicación
+- **Embeddings:** `intfloat/multilingual-e5-small` **int8** vía ONNX Runtime en
+  CPU (384 dims, 512 tokens, prefijos `query:`/`passage:`). El modelo vive tras
+  una interfaz de proveedor (`-base` como alternativa). Detalles en la skill
+  `rag-datopublico`.
+- **Generación y chat:** **OpenCode** (endpoint OpenAI-compatible, candidato
+  `deepseek-v4.1-flash`) tras una interfaz intercambiable. La **clave vive solo
+  en el servidor** (variable de entorno), nunca en el cliente ni en logs.
+- OpenCode **no** ofrece embeddings: por eso los embeddings son locales.
 
-- Clase con colaboradores por constructor; métodos `suspend` cuando hacen I/O.
-- Orquestan: resuelven entradas, coordinan repositorios/clientes, aplican reglas de estado y devuelven modelos de dominio o un resultado tipado.
-- **No** conocen Ktor ni el transporte. Si necesitan abortar por una regla, lanzan una excepción de dominio tipada y es la capa HTTP quien la mapea a un código.
-- Prefieren delegar la lógica pura en `object`/funciones de dominio sin E/S (testeables sin mocks).
+## Ingesta y operación
 
-## Persistencia (PostgreSQL + JDBC + Flyway)
+- Job diario a las **9:30** (cron) con **segunda pasada** por la tarde.
+- Ingesta de las **Secciones I, II.A, II.B, III y V.B** (fuera IV y V.A);
+  clasificación en las **11 categorías** curadas a partir de sección/epígrafe del
+  BOE y extracción de **plazos** de convocatorias.
+- Backfill del **último año** por lotes, en horario de baja carga.
+- Observabilidad: logs estructurados; alerta si falta la ingesta de las 9:30 o la
+  segunda pasada; métrica de tokens/consultas del chat. **Sin telemetría de uso.**
 
-- Declara una **interface** (`UserRepository`) y una implementación `JdbcXRepository(dataSource)`.
-- Todo acceso a JDBC va dentro de `withContext(Dispatchers.IO)`.
-- Usa `dataSource.connection.use { }`, `prepareStatement(...)` con parámetros (`?`, nunca concatenar SQL) y `executeQuery/executeUpdate`.
-- Mapea `ResultSet` → modelo de dominio en funciones privadas; no filtres filas de BD a la capa HTTP.
-- SQL en `private companion object` como constantes; nada de SQL suelto disperso.
-- Traduce errores de BD a excepciones tipadas (p. ej. violación de unicidad `SQLState 23505` → `EmailAlreadyExistsException`); no propagues `SQLException` a la API.
-- Migraciones **Flyway** en `resources/db/migration` con nombre `V<n>__descripcion.sql`. Se aplican idempotentemente al arrancar y con `./gradlew :backend:migrate`. **Nunca** edites una migración ya aplicada: añade una nueva.
-- Los tests de integración que tocan BD real se **saltan** si falta `DATABASE_URL` (`assumeTrue`) y limpian sus filas en `finally`.
+## API
 
-## Integraciones externas (Ignav y similares)
+- Solo lectura y pública: `feed` (con destacados y categorías), `detalle`,
+  `búsqueda` (filtros de categoría/fecha) y `chat` (pregunta/verificación).
+- Contratos **OpenAPI** versionados; **CORS**; **rate limiting**; errores JSON
+  consistentes.
+- Sin cuentas ni datos personales: el servidor solo trata información pública. El
+  chat no persiste historial.
 
-- Modela el proveedor como **interface** (`IgnavClient`) + implementación Ktor (`KtorIgnavClient(httpClient, config)`). El consumidor depende de la interface.
-- Inyecta el `HttpClient` para poder usar `MockEngine` en tests; no crees el cliente dentro de la función de negocio.
-- Cabeceras/secretos del proveedor (`X-Api-Key`) se añaden en el cliente del backend y **nunca** salen al cliente móvil.
-- Mapea el DTO del proveedor a un modelo de dominio propio en la frontera del cliente.
-- Envuelve fallos en una excepción tipada (`IgnavException`) con contexto útil, pero:
-  - **re-lanza siempre `CancellationException`** antes de capturar `Exception` (invariante de corrutinas);
-  - no incluyas la API key ni cuerpos sensibles en el mensaje ni en logs.
-- Tolera fallos parciales: un tramo que falla no debe tumbar toda la búsqueda cuando el negocio admita resultados parciales.
+## Tests
 
-## Caché (Redis) y decoradores
+- Unitarios de ingesta, parsers por sección, clasificación, guardrails y
+  destacados.
+- Fixtures reales del BOE de las tres secciones.
+- Evaluación de recuperación (precision/recall) y **golden set** de resúmenes.
+- Chat: respuestas con citas, refutación de afirmaciones falsas y `sin_fundamento`.
 
-- La caché se implementa como **decorador** sobre el cliente (`CachingIgnavClient(base, cache, ttl)`), no dentro del cliente base.
-- Clave explícita y estable por (origen, destino, fecha, mercado, clase); TTL configurable por entorno.
-- **Single-flight**: ante consultas concurrentes idénticas, una sola llamada al proveedor (p. ej. `Mutex` + `Deferred`).
-- La caché **degrada** de forma controlada: si Redis falla, se sigue funcionando contra el proveedor (o se reporta `cacheUnavailable`), nunca se rompe la petición.
-- Expón una operación de lectura sin red (p. ej. `lookup`) para cotizaciones/estimaciones que no deben gastar cuota del proveedor.
+## Docker y entorno local
 
-## Concurrencia
+- `docker compose up -d` levanta PostgreSQL con pgvector (+ el backend en prod).
+  Flyway aplica migraciones al arrancar.
+- En macOS el proyecto usa **Colima**; si se rompe la red host↔contenedor,
+  `colima restart` (los contenedores con `restart=unless-stopped` vuelven solos).
+- Servidor real: **Intel N100 / 8 GB**. Ajustes: `shared_buffers` PostgreSQL
+  ~1 GB, heap JVM ~1 GB, swap activado; el backfill se ejecuta por lotes.
 
-- Usa corrutinas y `coroutineScope`/`async` para I/O paralelo con **concurrencia acotada** (semáforo/límite configurable). El volumen del proveedor se controla en el backend.
-- I/O bloqueante (JDBC, Lettuce sync) siempre sobre `Dispatchers.IO`.
-- Re-lanza `CancellationException`; nunca la tragues. Nada de `GlobalScope`.
-- Trabajos largos (p. ej. una búsqueda asíncrona sobre muchos aeropuertos) se ejecutan fuera de la petición, con estado/progreso consultable y soporte de cancelación (ver `docs/technical-discovery.md`, sección Search Execution).
+## Anti-patrones (prohibido)
 
-## Observabilidad
-
-- `CallId` (cabecera `X-Request-Id` o UUID), `CallLogging` y métricas Micrometer/Prometheus.
-- Logs estructurados (logback) con correlación por petición/trabajo; **nunca** loguees contraseñas, hashes, tokens ni la API key.
-- Expón `GET /metrics` cuando la observabilidad esté configurada.
-
-## Seguridad (invariantes del proyecto)
-
-- La API key de Ignav y los secretos (`JWT_SECRET`, etc.) viven **solo** en el backend, leídos del entorno; nunca en el repo ni en el cliente.
-- Contraseñas siempre con hash fuerte; nunca en claro, nunca devueltas, nunca logueadas.
-- Valida el JWT en toda ruta protegida; resuelve identidad/permisos en el servidor.
-- No añadas una ruta nueva sin su test de rechazo (sin credenciales / credenciales inválidas).
-
-## Tests (JUnit 5 + kotlin.test)
-
-- Tests espejo en `src/test/kotlin`; ejecuta con `./gradlew :backend:test` (tarea con `useJUnitPlatform()`).
-- **Rutas/HTTP**: `testApplication { application { configureSerialization(); configureRouting(...) } }` con dependencias simuladas; comprueba código y cuerpo. Es el patrón para validación, auth y contratos.
-- **Dominio/servicios**: unit tests puros con dobles (fakes) de repositorio/cliente; sin red ni contenedores.
-- **Integración con proveedor**: `MockEngine` de Ktor; **nunca** Ignav real ni cuota real.
-- **Integración con BD/Redis**: `assumeTrue(env presente)` + limpieza; no fallan en local sin infraestructura.
-- Añade tests de regresión al arreglar un bug. Un endpoint nuevo sin test de camino feliz y de error no está terminado.
-
-## Reglas al cambiar el backend
-
-- **Crea el paquete/rol que falte.** Si el código pertenece a un paquete feature-first o a un rol (`plugins/`, `infra/`, `<feature>/`) que aún no existe, créalo y coloca ahí el código; no lo dejes suelto en otro paquete ni inventes una estructura nueva.
-- **Reutiliza y mantén las funciones pequeñas.** Extrae servicios/funciones reutilizables en vez de duplicar. Límite duro de **40 líneas** por función (objetivo 30; sin KDoc, comentarios ni blancos); una función con varias responsabilidades se divide.
-- **Un solo `return` por función.** Cada función tiene un único punto de salida: usa el cuerpo de expresión (`=`) o un `when`/`if` como expresión; sin `return` tempranos. Aplica al dominio, aplicación, infra y routes.
-- **Sin `else if`.** Las cadenas de guardas se escriben con un `when` (como expresión o sentencia), nunca con `if / else if / else`; un `if` simple de dos ramas sigue permitido.
-- Respeta la dirección de dependencias; no metas Ktor en dominio ni SQL en las routes.
-- Monta rutas y subsistemas **condicionalmente** según configuración; no asumas que PostgreSQL/Redis/Ignav están siempre presentes.
-- Toda configuración nueva se lee por `fromEnv`/`fromEnvOrNull`; documenta la variable en `.env.example` (sin valor secreto).
-- Esquema de BD: siempre una migración nueva, nunca editar una aplicada.
-- Mantén `openapi.json` alineado con los endpoints y con su test.
-- No introduzcas un framework de DI, ni estado global mutable, ni dependencias sin justificar.
-- No expongas secretos ni ignores `CancellationException`.
-- Si estableces o cambias módulos, capas, superficies de ejecución o la dirección de dependencias, actualiza `ARCHITECTURE.md`; si aparece una regla MUST/MUST NOT durable, añádela a `CONSTRAINTS.md`.
-
-## Cómo verificar antes de dar por hecho un cambio
-
-1. `./gradlew :backend:test` — tests unitarios, de routes e integración simulada.
-2. `./gradlew :backend:build` — compila todo el módulo (mismo gate que `./init.sh`).
-3. `./gradlew :backend:migrate` (con `DATABASE_URL`) — la migración aplica y reaplica sin errores.
-4. `docker compose up` + `curl -i localhost:8080/health` — el servidor arranca y responde (y `GET /health/ready` si hay infraestructura).
-5. Comprueba que no se ha consumido cuota real de Ignav durante los tests.
-
-## Errores comunes
-
-1. **Lógica de negocio en la route**: `post("/api/...")` con SQL o reglas dentro. Corrección: extrae a un servicio y deja la route como validación + mapeo.
-2. **Dominio acoplado a infraestructura**: el combinador importa Ktor/JDBC. Corrección: mantenlo puro y pasa modelos por parámetro.
-3. **Dependencia obligatoria de un subsistema**: la ruta se registra siempre y revienta si no hay BD/proveedor. Corrección: wiring condicional + colaboradores opcionales.
-4. **Editar una migración ya aplicada**: rompe entornos existentes. Corrección: añade `V<n+1>__...sql`.
-5. **Tragarse `CancellationException`** al capturar `Exception` en un cliente. Corrección: re-lanzarla primero.
-6. **Loguear o devolver secretos**: API key, tokens, hashes o contraseñas en logs/respuestas. Corrección: nunca loguear; mensajes genéricos.
-7. **Consumir Ignav real en tests**: coste y flakiness. Corrección: `MockEngine` y `assumeTrue` para integraciones.
-8. **Añadir un framework de DI** "porque Clean Architecture lo pide": aquí el wiring es manual y explícito. Corrección: respeta el composition root.
+- SQL en una ruta de Ktor; lógica de negocio en `plugins/`.
+- Dominio que importe Ktor/JDBC/ONNX/OpenCode.
+- Clave de OpenCode o del modelo en el cliente o en el repositorio.
+- Publicar un resumen sin enlace a la fuente oficial.
+- Añadir analítica de uso o almacenar datos personales.
