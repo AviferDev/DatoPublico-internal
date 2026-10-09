@@ -6,13 +6,23 @@
     "title": "Estructura del monorepo Gradle",
     "user_visible_behavior": "El repositorio público compila con un solo comando desde la raíz: existen los módulos shared, backend y composeApp definidos en un version catalog, y la CI ejecuta build + tests.",
     "depends_on": [],
-    "status": "not_started",
+    "status": "accepted",
     "verification": [
       "`./gradlew build` termina sin errores desde la raíz del repo público.",
       "`./gradlew test` pasa.",
       "El workflow de GitHub Actions de build + tests finaliza en verde."
     ],
-    "evidence": [],
+    "evidence": [
+      "FT00001 (2026-10-09, rama feat/ft00001-bootstrap-monorepo-gradle; reparado tras validación `revise`): `./gradlew --version` → Gradle 8.10.2, JVM 21.0.10 (JBR de Android Studio).",
+      "`./gradlew build` → BUILD SUCCESSFUL (15 tareas; configura y construye :shared/:backend/:composeApp, incluidos sus `allTests`).",
+      "`./gradlew test --rerun-tasks` → BUILD SUCCESSFUL; tras la reparación ejecuta `:shared:jvmTest`, `:backend:test` y `:composeApp:jvmTest` (task raíz `test` que los agrega) y regenera los 3 XML con tests=\"1\" failures=\"0\" errors=\"0\" por módulo (3 tests en total).",
+      "Corrección de evidencia: la afirmación previa de que `./gradlew test` ejecutaba los 3 tests era inexacta. En KMP no existe task `test` de proyecto, así que `./gradlew test` desde la raíz solo ejecutaba `:backend:test` (1 test); los 3 tests solo se cubrían con `./gradlew build` (vía `allTests`). Se añadió una task `test` raíz que depende de los tres módulos.",
+      "`./gradlew projects` → proyectos ':backend', ':composeApp', ':shared'. `./gradlew :backend:compileKotlin` → BUILD SUCCESSFUL, resuelve :shared:jvmJar.",
+      "Wrapper Gradle 8.10.2 commiteado y funcional sin Gradle del sistema: gradlew, gradlew.bat, gradle/wrapper/gradle-wrapper.{jar,properties}.",
+      "`init.sh` reparado: gate real no bloqueante que descubre el JDK (JAVA_HOME → /usr/libexec/java_home → JBR de Android Studio), ejecuta `./gradlew build --no-daemon` desde la raíz del producto y devuelve 0 en verde; no arranca servidores.",
+      "CI `.github/workflows/ci.yml` (ubuntu-latest, temurin JDK 21, checkout@v5, setup-java@v5, ./gradlew build --no-daemon): verde. Run 37993686508, job 'Build and test' SUCCESS para el head 3e83a7d (PR #1).",
+      "Aceptación independiente (validator, 2026-10-09): veredicto `accept` sobre el head 3e83a7d; regeneró los 3 XML de test tras la reparación, comprobó `init.sh` (exit 0) y el run de CI en verde. Sin hallazgos de seguridad."
+    ],
     "notes": "Bootstrap inicial: no existe app ejecutable todavía. Fuente: docs/roadmap.md 0.1-T01 y 0.1-T06, docs/technical-discovery.md (Gradle Kotlin DSL + version catalog). Las features se implementan en el repo público (`..`), no en `.harness/`."
   },
   {

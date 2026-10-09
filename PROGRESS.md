@@ -5,12 +5,16 @@
 - Harness (privado): `.harness/`
 - Repositorio de producto (código): `..` (repo público `DatoPublico`)
 - Camino de arranque estándar: `./init.sh` (desde `.harness/`)
-- Camino de verificación estándar: provisional — **aún no bootstrapped**
-  (pendiente `./gradlew build` y `./gradlew test` en `..`)
-- Siguiente feature lista: `bootstrap-monorepo-gradle`
+- Camino de verificación estándar: `./gradlew build` y `./gradlew test` desde la
+  raíz del repo público (`..`) — **bootstrapped** (Gradle 8.10.2 + JDK 21).
+- Siguiente feature lista: `bootstrap-shared-dtos` (FT00002)
 - Bloqueo actual: ninguno para el bootstrap. Pendiente de producto: **nombre y
   marca** (bloquea la fase de producción, no el bootstrap).
-- Última verificación: 2026-10-09
+- Última verificación: 2026-10-09. **FT00001 `bootstrap-monorepo-gradle`:
+  `accepted`** (validación independiente `accept`). Gate verde desde `..`:
+  `./gradlew build`, `./gradlew test` (los tres módulos, 3 tests), `./gradlew
+  projects`, `:backend:compileKotlin`; `init.sh` como gate real; **CI en verde**
+  (run 37993686508, head 3e83a7d). PR #1 abierto hacia `main`.
 - PoC exploratoria (no feature), **temporal y ya eliminada**: `poc/boe-rag`
   validó el RAG de punta a punta (embeddings locales ONNX + pgvector + generación
   con cita). Sus lecciones quedan en la skill `rag-datapublico`. Ver Session 002.
@@ -279,3 +283,113 @@
 - Riesgo o duda sin resolver: mapeo epígrafe→categoría en casos ambiguos;
   duplicidad III↔V.B; volumen de III/V.B en el N100.
 - Siguiente mejor paso: implementar `bootstrap-monorepo-gradle` (FT00001).
+
+### Session 008
+
+- Fecha: 2026-10-09
+- Objetivo: implementar `bootstrap-monorepo-gradle` (FT00001) en el repo público:
+  monorepo Gradle Kotlin DSL con version catalog, wrapper commiteado, tres
+  módulos mínimos y CI de build+tests.
+- Completado:
+  - `settings.gradle.kts`: `pluginManagement` + `dependencyResolutionManagement`
+    (Maven Central, Google, Plugin Portal, `FAIL_ON_PROJECT_REPOS`),
+    `rootProject.name = "datopublico"` e `include(":shared", ":backend",
+    ":composeApp")`.
+  - `build.gradle.kts` raíz con todos los plugins del catálogo `apply false`.
+  - `gradle/libs.versions.toml` con Kotlin 2.1.20 activo y AGP 8.7.3, Compose
+    Multiplatform 1.7.3, Ktor 3.0.3, kotlinx.serialization 1.8.0 y coroutines
+    1.10.1 predeclarados para FT00002/04/05.
+  - `gradle.properties` (jvmargs, parallel, caching, `kotlin.code.style`).
+  - Módulos mínimos (solo target `jvm()`, toolchain 21): `:shared` KMP,
+    `:composeApp` KMP y `:backend` Kotlin JVM con
+    `implementation(project(":shared"))`; un test smoke por módulo
+    (`commonTest`/`test`, 1 test cada uno).
+  - Wrapper Gradle 8.10.2 commiteable (`gradlew`, `gradlew.bat`,
+    `gradle/wrapper/gradle-wrapper.jar` y `.properties`).
+  - `.github/workflows/ci.yml`: ubuntu-latest, temurin JDK 21,
+    `gradle/actions/setup-gradle@v4` y `./gradlew build --no-daemon`.
+  - `.gitignore`: `.gradle/`, `build/`, `**/build/`, `.kotlin/`,
+    `local.properties`, `*.hprof`; el wrapper **no** se ignora.
+- Verificación ejecutada (desde `..` con `JAVA_HOME` del JBR 21):
+  - `./gradlew --version` → Gradle 8.10.2, JVM 21.0.10.
+  - `./gradlew build --no-daemon` → BUILD SUCCESSFUL (15 tareas).
+  - `./gradlew test --rerun-tasks` → BUILD SUCCESSFUL; 3 tests, 0 fallos.
+  - `./gradlew projects` → `:backend`, `:composeApp`, `:shared`.
+  - `./gradlew :backend:compileKotlin` → BUILD SUCCESSFUL (resuelve
+    `:shared:jvmJar`).
+- Evidencia capturada: salidas anteriores y XML de resultados
+  (`backend/build/test-results/test`, `shared`/`composeApp`
+  `build/test-results/jvmTest`, `tests="1" failures="0" errors="0"`).
+- Ficheros creados/modificados: `settings.gradle.kts`, `build.gradle.kts`,
+  `gradle.properties`, `gradle/libs.versions.toml`,
+  `gradle/wrapper/*`, `gradlew`, `gradlew.bat`, `shared/*`, `backend/*`,
+  `composeApp/*`, `.github/workflows/ci.yml`, `.gitignore`,
+  `.harness/feature_list.json`, `.harness/PROGRESS.md`.
+- Riesgo o duda sin resolver: el **run de CI en GitHub Actions** no puede
+  comprobarse en local; queda pendiente de push/PR (a cargo del orquestador).
+  `:backend:compileKotlin` es `NO-SOURCE` (aún sin `main`), lo que no rompe el
+  escenario de dependencia. Sin `main` en `:shared`/`:composeApp` hasta sus
+  features.
+- Siguiente mejor paso: validación independiente de FT00001 (`feature-validator`)
+  y, una vez aceptada, implementar `bootstrap-shared-dtos` (FT00002).
+
+### Session 009
+
+- Fecha: 2026-10-09
+- Objetivo: reparar FT00001 tras validación independiente con veredicto `revise`
+  (evidencia inexacta sobre `./gradlew test` y `init.sh` pre-bootstrap).
+- Diagnóstico: en KMP no existe una task `test` a nivel de proyecto, así que
+  `./gradlew test` desde la raíz solo ejecutaba `:backend:test` (1 test); los 3
+  tests solo se cubrían con `./gradlew build` (vía `allTests`). La evidencia
+  afirmaba lo contrario.
+- Completado:
+  - `build.gradle.kts` raíz: nueva task `test` que agrega
+    `:backend:test`, `:shared:jvmTest` y `:composeApp:jvmTest`.
+  - `.harness/init.sh`: deja de ser pre-bootstrap; es un gate real no bloqueante
+    que descubre el JDK (JAVA_HOME → `/usr/libexec/java_home` → JBR de Android
+    Studio), ejecuta `./gradlew build --no-daemon` desde la raíz y falla en error;
+    no arranca servidores.
+  - `.harness/feature_list.json` (FT00001): evidencia corregida y sin la
+    afirmación inexacta; sigue `passing`.
+  - `.harness/docs/feature-ids.md`: FT00001 pasa a `passing`.
+  - `.github/workflows/ci.yml`: `actions/checkout` y `actions/setup-java` a `@v5`.
+- Verificación ejecutada (desde `..`, `JAVA_HOME` del JBR 21):
+  - `./gradlew test --rerun-tasks` → BUILD SUCCESSFUL; ejecuta `:shared:jvmTest`,
+    `:backend:test` y `:composeApp:jvmTest`; 3 XML regenerados (`tests="1"
+    failures="0" errors="0"` por módulo).
+  - `./gradlew build` → BUILD SUCCESSFUL (15 tareas).
+  - `./gradlew projects` → `:backend`, `:composeApp`, `:shared`.
+  - `./gradlew :backend:compileKotlin` → BUILD SUCCESSFUL.
+  - `env -u JAVA_HOME .harness/init.sh` → descubre el JBR, ejecuta el gate y
+    devuelve 0.
+- Ficheros modificados: `build.gradle.kts`, `.harness/init.sh`,
+  `.harness/feature_list.json`, `.harness/PROGRESS.md`,
+  `.harness/docs/feature-ids.md`, `.github/workflows/ci.yml`.
+- Riesgo o duda sin resolver: el run de CI sigue pendiente de push/PR (a cargo
+  del orquestador). Sin cambios de alcance.
+- Siguiente mejor paso: revalidar FT00001 (`feature-validator`) con la evidencia
+  corregida.
+
+### Session 010
+
+- Fecha: 2026-10-09
+- Objetivo: cerrar FT00001 (`bootstrap-monorepo-gradle`): reparación → CI → PR →
+  aceptación.
+- Completado:
+  - Commits de producto en la rama `feat/ft00001-bootstrap-monorepo-gradle`:
+    `107ec63` (bootstrap) y `3e83a7d` (fix: `./gradlew test` cubre los tres
+    módulos + acciones CI `@v5`). Rama pusheada.
+  - **PR #1** hacia `main`: https://github.com/AviferDev/DatoPublico/pull/1
+  - **CI en verde**: run `37993686508`, job "Build and test" SUCCESS para el head
+    `3e83a7d`.
+  - **Validación independiente**: `revise` inicial → reparación → revalidación con
+    veredicto **`accept`**.
+  - `.harness/feature_list.json`: FT00001 → **`accepted`** (evidencia con ref. real
+    de CI y de la aceptación). `docs/feature-ids.md`: FT00001 → `accepted`.
+- Verificación: el validator reejecutó el gate (3 módulos, 3 tests verdes),
+  comprobó `init.sh` (exit 0) y el run de CI; árbol de producto limpio.
+- Ficheros: `.harness/feature_list.json`, `.harness/docs/feature-ids.md`,
+  `.harness/PROGRESS.md`.
+- Estado: **FT00001 `accepted`**. Siguiente feature lista: `bootstrap-shared-dtos`
+  (FT00002).
+- Siguiente mejor paso: implementar `bootstrap-shared-dtos` (FT00002) con el flujo.
