@@ -7,15 +7,17 @@
 - Camino de arranque estándar: `./init.sh` (desde `.harness/`)
 - Camino de verificación estándar: `./gradlew build` y `./gradlew test` desde la
   raíz del repo público (`..`) — **bootstrapped** (Gradle 8.10.2 + JDK 21).
-- Siguiente feature lista: `bootstrap-shared-dtos` (FT00002)
+- Siguiente feature lista: `bootstrap-postgres-pgvector` (FT00003). FT00002
+  (`bootstrap-shared-dtos`) queda `accepted` y habilita `contrato-resumen-ciudadano`
+  (FT00019) y `boe-sumario-cliente` (FT00006).
 - Bloqueo actual: ninguno para el bootstrap. Pendiente de producto: **nombre y
   marca** (bloquea la fase de producción, no el bootstrap).
-- Última verificación: 2026-10-09. **FT00001 `bootstrap-monorepo-gradle`:
-  `accepted`** (validación independiente `accept`). Gate verde desde `..`:
-  `./gradlew build`, `./gradlew test` (los tres módulos, 3 tests), `./gradlew
-  projects`, `:backend:compileKotlin`; `init.sh` como gate real; **CI en verde**
-  (run 37995689375, head 8ad45c4). **PR #1 fusionado** en `main` (merge
-  `912c328`); rama de feature eliminada (local y remota).
+- Última verificación: 2026-10-10. **FT00002 `bootstrap-shared-dtos`:
+  `accepted`** (validación independiente `accept`); PR #2 con CI en verde (run
+  37996544504, head 9bfeaf5). Gate verde desde `..` con JDK 21 (JBR):
+  `./gradlew :shared:jvmTest`, `./gradlew test` (3 módulos) y `./gradlew build`.
+  FT00001 `bootstrap-monorepo-gradle`: **`accepted`** (PR #1 fusionado, merge
+  `912c328`).
 - PoC exploratoria (no feature), **temporal y ya eliminada**: `poc/boe-rag`
   validó el RAG de punta a punta (embeddings locales ONNX + pgvector + generación
   con cita). Sus lecciones quedan en la skill `rag-datapublico`. Ver Session 002.
@@ -403,3 +405,70 @@
 - Estado: **FT00001 `accepted`**. Siguiente feature lista: `bootstrap-shared-dtos`
   (FT00002).
 - Siguiente mejor paso: implementar `bootstrap-shared-dtos` (FT00002) con el flujo.
+
+### Session 011
+
+- Fecha: 2026-10-09
+- Objetivo: implementar `bootstrap-shared-dtos` (FT00002) en el repo público:
+  contrato de datos base en `:shared` serializable con `kotlinx.serialization`.
+- Completado:
+  - `shared/build.gradle.kts`: aplica `libs.plugins.kotlin.serialization` y añade
+    `libs.kotlinx.serialization.json` a `commonMain`. Sin tocar raíz ni otros
+    módulos.
+  - `commonMain` (`es.aviferdev.datopublico.model`), todos `@Serializable`:
+    `Categoria` (11 valores, `@SerialName` snake_case), `SeccionBoe` (`I`,
+    `II.A`, `II.B`, `III`, `V.B`), `Plazo`, `Resumen`, `Publicacion`,
+    `DailySummary`. Fechas como `String` ISO-8601, sin `java.time`.
+  - `DatoPublicoJson` en `es.aviferdev.datopublico.serialization`
+    (`ignoreUnknownKeys = true`, `encodeDefaults = true`).
+  - `commonTest`: `SerializationTest` (7 tests: round-trip de cada DTO, opcionales
+    nulos, `Plazo` ISO, `ignoreUnknownKeys`) y `CategoriaWireTest` (3 tests:
+    tokens de `Categoria`/`SeccionBoe` y unicidad). `SmokeTest` intacto.
+- Verificación ejecutada (desde `..`, `JAVA_HOME` del JBR 21):
+  - `./gradlew :shared:jvmTest` → BUILD SUCCESSFUL; XML: SmokeTest 1/0/0,
+    CategoriaWireTest 3/0/0, SerializationTest 7/0/0.
+  - `./gradlew test` → BUILD SUCCESSFUL (agrega `:shared:jvmTest`,
+    `:backend:test`, `:composeApp:jvmTest`).
+  - `./gradlew build` → BUILD SUCCESSFUL (16 tareas).
+  - grep de `java.time`/`java.util`/`System.` en `commonMain`: solo en KDoc.
+- Ficheros creados/modificados: `shared/build.gradle.kts`,
+  `shared/src/commonMain/kotlin/es/aviferdev/datopublico/model/{Categoria,SeccionBoe,Plazo,Resumen,Publicacion,DailySummary}.kt`,
+  `shared/src/commonMain/kotlin/es/aviferdev/datopublico/serialization/DatoPublicoJson.kt`,
+  `shared/src/commonTest/kotlin/es/aviferdev/datopublico/model/{SerializationTest,CategoriaWireTest}.kt`,
+  `.harness/feature_list.json` (FT00002 → `passing`), `.harness/docs/feature-ids.md`,
+  `.harness/PROGRESS.md`.
+- Riesgo o duda sin resolver: la verificación de `feature_list.json` cita
+  `./gradlew :shared:test` (inexistente en KMP); se acepta `:shared:jvmTest` como
+  equivalencia según el spec. Commit/push/PR y CI quedan a cargo del orquestador
+  (el implementer no crea commits).
+- Siguiente mejor paso: validación independiente de FT00002 (`feature-validator`).
+
+### Session 012
+
+- Fecha: 2026-10-10
+- Objetivo: cerrar FT00002 (`bootstrap-shared-dtos`): commit → CI → PR →
+  aceptación.
+- Completado:
+  - Commit de producto en la rama `feat/ft00002-bootstrap-shared-dtos`:
+    `9bfeaf5 feat(FT00002): DTOs compartidos con kotlinx.serialization` (10
+    ficheros, +365). Rama pusheada.
+  - **PR #2** hacia `main`: https://github.com/AviferDev/DatoPublico/pull/2
+  - **CI en verde**: run `37996544504`, job "Build and test" SUCCESS para el head
+    `9bfeaf5`.
+  - **Validación independiente**: veredicto **`accept`** (sin hallazgos
+    bloqueantes; dos correcciones *Low* aplicadas al persistir).
+  - `.harness/feature_list.json`: FT00002 → **`accepted`**; corregida la
+    verificación (`:shared:jvmTest`) y la evidencia (commit/PR/CI + aceptación).
+    `docs/feature-ids.md`: FT00002 → `accepted`.
+- Verificación: el validator reejecutó `:shared:jvmTest`/`test`/`build`
+  (`--rerun-tasks`) y `init.sh` (exit 0); contrato de `Categoria` (11) y
+  `SeccionBoe` verificados; sin hallazgos de seguridad.
+- Ficheros: `.harness/feature_list.json`, `.harness/docs/feature-ids.md`,
+  `.harness/PROGRESS.md`.
+- Nota (no bloqueante): `organismo`/`epigrafe` en `Publicacion` no tienen valor por
+  defecto; si el backend omite claves nulas, habrá que añadir `= null` y valorar
+  `explicitNulls`.
+- Estado: **FT00002 `accepted`**. Siguiente feature lista:
+  `bootstrap-postgres-pgvector` (FT00003).
+- Siguiente mejor paso: implementar `bootstrap-postgres-pgvector` (FT00003) con el
+  flujo.

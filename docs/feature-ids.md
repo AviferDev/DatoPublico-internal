@@ -17,7 +17,7 @@
 | FT | Feature id | Título | Área | Estado |
 | --- | --- | --- | --- | --- |
 | FT00001 | bootstrap-monorepo-gradle | Estructura del monorepo Gradle | fundaciones | accepted |
-| FT00002 | bootstrap-shared-dtos | DTOs compartidos con kotlinx.serialization | fundaciones | not_started |
+| FT00002 | bootstrap-shared-dtos | DTOs compartidos con kotlinx.serialization | fundaciones | accepted |
 | FT00003 | bootstrap-postgres-pgvector | PostgreSQL + pgvector en docker-compose | fundaciones | not_started |
 | FT00004 | bootstrap-ktor-healthcheck | Esqueleto Ktor con healthcheck | fundaciones | not_started |
 | FT00005 | bootstrap-cmp-targets | Esqueleto Compose Multiplatform (Android, Web, iOS) | fundaciones | not_started |

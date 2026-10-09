@@ -34,12 +34,23 @@
     "depends_on": [
       "bootstrap-monorepo-gradle"
     ],
-    "status": "not_started",
+    "status": "accepted",
     "verification": [
       "Un test de ida y vuelta de serialización JSON de los DTO base pasa.",
-      "`./gradlew :shared:test` pasa."
+      "`./gradlew :shared:jvmTest` pasa (task raíz `test` la agrega)."
     ],
-    "evidence": [],
+    "evidence": [
+      "FT00002 (2026-10-09, rama feat/ft00002-bootstrap-shared-dtos): `:shared` aplica el plugin `org.jetbrains.kotlin.plugin.serialization` y añade `kotlinx-serialization-json` (1.8.0) a `commonMain`; no se toca la raíz del build ni otros módulos.",
+      "DTO/enums `@Serializable` en `commonMain` (`es.aviferdev.datopublico.model`): `Categoria` (11 valores con `@SerialName` snake_case), `SeccionBoe` (`I`,`II.A`,`II.B`,`III`,`V.B`), `Plazo`, `Resumen`, `Publicacion`, `DailySummary`; fechas como `String` ISO-8601, sin `java.time` (verificado por grep: solo aparece en KDoc).",
+      "`Json` compartido `DatoPublicoJson` en `es.aviferdev.datopublico.serialization` con `ignoreUnknownKeys = true` y `encodeDefaults = true`.",
+      "Tests en `commonTest`: `SerializationTest` (7) y `CategoriaWireTest` (3) — round-trip de cada DTO, tokens de enum, opcionales ausentes y `ignoreUnknownKeys`. SmokeTest existente intacto.",
+      "`./gradlew :shared:jvmTest` (JAVA_HOME del JBR 21) → BUILD SUCCESSFUL; XML: SmokeTest 1/0/0, CategoriaWireTest 3/0/0, SerializationTest 7/0/0 (failures/errors = 0).",
+      "`./gradlew test` → BUILD SUCCESSFUL; agrega `:shared:jvmTest`, `:backend:test` y `:composeApp:jvmTest` (3 módulos verdes).",
+      "`./gradlew build` → BUILD SUCCESSFUL (16 tareas; compila `:shared` y sus consumidores).",
+      "Equivalencia corregida: la verificación usa `./gradlew :shared:jvmTest` (tarea real en KMP; la task `test` raíz la agrega). Se corrige el original `:shared:test`, inexistente en KMP.",
+      "Commit `9bfeaf5` en `feat/ft00002-bootstrap-shared-dtos`; PR #2 (https://github.com/AviferDev/DatoPublico/pull/2); CI en verde: run 37996544504, job 'Build and test' SUCCESS para el head 9bfeaf5.",
+      "Aceptación independiente (validator): veredicto `accept`; reejecutó `:shared:jvmTest`, `test` y `build` con `--rerun-tasks` y `init.sh` (exit 0); contrato de `Categoria` (11 valores, tokens snake_case) y `SeccionBoe` verificados; sin hallazgos de seguridad."
+    ],
     "notes": "Fuente: docs/roadmap.md 0.1-T02, docs/domain-model.md."
   },
   {
