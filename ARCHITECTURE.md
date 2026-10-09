@@ -33,12 +33,13 @@
 
 ## Convenciones de nombres
 
-- En **`:shared`**, los **contenedores de datos** del contrato de transporte
-  llevan sufijo **`Dto`** (p. ej. `PublicacionDto`, `ResumenDto`, `PlazoDto`,
-  `ResumenDiarioDto`).
-- Los **enums de vocabulario/tokens de wire** van **sin sufijo** (`Categoria`,
-  `SeccionBoe`): su token es contrato y no debe disfrazarse de DTO.
-- La **configuración de serialización** (`DatoPublicoJson`) va sin `Dto`.
+- En **`:shared`**, **todos los tipos serializables del contrato** de transporte
+  llevan sufijo **`Dto`**: las `data class` (`PublicacionDto`, `ResumenDto`,
+  `PlazoDto`, `ResumenDiarioDto`) y también los **enums de wire**
+  (`CategoriaDto`, `SeccionBoeDto`). El sufijo `Dto` aplica a **cualquier** tipo
+  `@Serializable` del contrato, no solo a los contenedores.
+- La **configuración de serialización** (`DatoPublicoJson`) **no** es un tipo de
+  contrato y va **sin** `Dto`.
 - En las capas internas: entidades `...Entity`, filas `...Row`, modelos de UI
   `...Ui`.
 - **Sin prefijos** (nada de notación húngara).

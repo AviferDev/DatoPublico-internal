@@ -26,12 +26,12 @@
 
 ## Nombres y contratos
 
-- **MUST**: en `:shared`, los contenedores de datos del contrato llevan sufijo
-  `Dto` (`PublicacionDto`, `ResumenDto`, `PlazoDto`, `ResumenDiarioDto`); los
-  enums de vocabulario/tokens de wire van sin sufijo (`Categoria`, `SeccionBoe`),
-  la configuración de serialización sin `Dto` (`DatoPublicoJson`) y, en capas
-  internas, entidades `...Entity`, filas `...Row` y modelos de UI `...Ui`, sin
-  prefijos.
+- **MUST**: en `:shared`, **todos los tipos serializables del contrato** llevan
+  sufijo `Dto`: las `data class` (`PublicacionDto`, `ResumenDto`, `PlazoDto`,
+  `ResumenDiarioDto`) y los **enums de wire** (`CategoriaDto`, `SeccionBoeDto`);
+  la configuración de serialización no es un tipo de contrato y va sin `Dto`
+  (`DatoPublicoJson`) y, en capas internas, entidades `...Entity`, filas `...Row`
+  y modelos de UI `...Ui`, sin prefijos.
 
 ## Operación
 

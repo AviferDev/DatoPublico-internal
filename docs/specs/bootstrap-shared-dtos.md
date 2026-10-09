@@ -14,20 +14,23 @@
 
 Tras la aceptación inicial, se reabrió esta feature para aplicar la **convención
 de nombres** de `:shared` (ver `ARCHITECTURE.md` §Convenciones de nombres y la
-regla MUST de `CONSTRAINTS.md`). Los contenedores de datos del contrato llevan
-sufijo **`Dto`**:
+regla MUST de `CONSTRAINTS.md`). **Todos los tipos serializables del contrato**
+llevan sufijo **`Dto`**: las `data class` y también los **enums de wire**:
 
 - `Publicacion` → **`PublicacionDto`**
 - `Resumen` → **`ResumenDto`**
 - `Plazo` → **`PlazoDto`**
 - `DailySummary` → **`ResumenDiarioDto`**
+- `Categoria` → **`CategoriaDto`** (enum de wire de 11 valores)
+- `SeccionBoe` → **`SeccionBoeDto`** (enum de wire)
 
-Se mantienen **sin cambios** (no son contenedores DTO): `Categoria` y
-`SeccionBoe` (enums de vocabulario/tokens de wire) y `DatoPublicoJson`
-(configuración de serialización). Donde en el resto de este spec se lea
-`Publicacion`, `Resumen`, `Plazo` o `DailySummary`, debe entenderse el nombre
-`...Dto` correspondiente. El token de wire y el JSON no cambian: es un renombrado
-de tipos Kotlin, no del contrato.
+Se mantiene **sin cambios** y **sin** `Dto` la configuración de serialización
+`DatoPublicoJson` (no es un tipo de contrato). Donde en el resto de este spec se
+lea `Publicacion`, `Resumen`, `Plazo`, `DailySummary`, `Categoria` o `SeccionBoe`,
+debe entenderse el nombre `...Dto` correspondiente, y donde diga
+`Categoria.kt`/`SeccionBoe.kt` debe entenderse `CategoriaDto.kt`/`SeccionBoeDto.kt`.
+El token de wire y el JSON no cambian: es un renombrado de tipos Kotlin, no del
+contrato.
 
 ## Goal
 

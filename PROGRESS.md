@@ -8,20 +8,23 @@
 - Camino de verificación estándar: `./gradlew build` y `./gradlew test` desde la
   raíz del repo público (`..`) — **bootstrapped** (Gradle 8.10.2 + JDK 21).
 - Siguiente feature lista: `bootstrap-postgres-pgvector` (FT00003). FT00002
-  (`bootstrap-shared-dtos`) queda `accepted` tras aplicar la convención de nombres
-  `Dto` (2026-10-10); habilita `contrato-resumen-ciudadano` (FT00019) y
+  (`bootstrap-shared-dtos`) queda **`accepted`** y **fusionada** (PR #2, merge
+  `ca781f3`); habilita `contrato-resumen-ciudadano` (FT00019) y
   `boe-sumario-cliente` (FT00006).
 - Bloqueo actual: ninguno para el bootstrap. Pendiente de producto: **nombre y
   marca** (bloquea la fase de producción, no el bootstrap).
-- Convención de nombres (2026-10-10): los contenedores de datos del contrato en
-  `:shared` llevan sufijo **`Dto`**; enums de wire sin sufijo; sin prefijos. En
-  `ARCHITECTURE.md` §«Convenciones de nombres» y **MUST** en `CONSTRAINTS.md`.
+- Convención de nombres (2026-10-10): **todos los tipos serializables del
+  contrato** en `:shared` (data classes **y enums de wire**) llevan sufijo
+  **`Dto`**; la config de serialización (`DatoPublicoJson`) sin `Dto`; sin
+  prefijos. En `ARCHITECTURE.md` §«Convenciones de nombres» y **MUST** en
+  `CONSTRAINTS.md`.
 - Última verificación: 2026-10-10. **FT00002 `bootstrap-shared-dtos`:
-  `accepted`** (validación independiente `accept`, incluida la reparación de
-  nombres); PR #2 con CI en verde (run 37997372090, head 8320bfd). Gate verde
-  desde `..` con JDK 21 (JBR): `./gradlew :shared:jvmTest`, `./gradlew test`
-  (3 módulos) y `./gradlew build`. FT00001 `bootstrap-monorepo-gradle`:
-  **`accepted`** (PR #1 fusionado, merge `912c328`).
+  `accepted`** (validación independiente `accept` de los renombrados de
+  contenedores y de enums); PR #2 con CI en verde (run 37998033440, head
+  872fb2b) y **fusionado** (`ca781f3`). Gate verde desde `..` con JDK 21 (JBR):
+  `./gradlew :shared:jvmTest`, `./gradlew test` (3 módulos) y `./gradlew build`.
+  FT00001 `bootstrap-monorepo-gradle`: **`accepted`** (PR #1 fusionado, merge
+  `912c328`).
 - PoC exploratoria (no feature), **temporal y ya eliminada**: `poc/boe-rag`
   validó el RAG de punta a punta (embeddings locales ONNX + pgvector + generación
   con cita). Sus lecciones quedan en la skill `rag-datapublico`. Ver Session 002.
@@ -541,3 +544,70 @@
   `bootstrap-postgres-pgvector` (FT00003).
 - Siguiente mejor paso: implementar `bootstrap-postgres-pgvector` (FT00003) con el
   flujo (aplicando ya la convención de nombres).
+
+### Session 015
+
+- Fecha: 2026-10-10
+- Objetivo: **completar** la convención de nombres `Dto` en FT00002
+  (`bootstrap-shared-dtos`) para que también los **enums de wire** del contrato
+  lleven sufijo, y corregir la documentación durable que decía lo contrario.
+- Contexto: la reparación anterior (Session 013/014) dejó `Categoria` y
+  `SeccionBoe` sin sufijo y la convención documentada como "enums sin sufijo".
+  El orquestador pidió hacerla **consistente**: todo tipo serializable del
+  contrato (`:shared`) lleva `Dto`.
+- Completado:
+  - Renombrados con `git mv` (valores y tokens de wire invariantes):
+    `Categoria`→`CategoriaDto` (`CategoriaDto.kt`, 11 valores con `@SerialName`
+    snake_case) y `SeccionBoe`→`SeccionBoeDto` (`SeccionBoeDto.kt`, tokens `I`,
+    `II.A`, `II.B`, `III`, `V.B`).
+  - Referencias actualizadas: `PublicacionDto` (`seccion: SeccionBoeDto`,
+    `categoria: CategoriaDto`) y los tests `SerializationTest` y
+    `CategoriaWireTest`. `DatoPublicoJson` sin cambios (no es tipo de contrato).
+  - Convención durable corregida: `ARCHITECTURE.md` §«Convenciones de nombres» y
+    regla **MUST** en `CONSTRAINTS.md` §«Nombres y contratos» — todos los tipos
+    serializables del contrato (data classes **y enums de wire**) llevan `Dto`;
+    `DatoPublicoJson` sin `Dto`; `...Entity`/`...Row`/`...Ui`; sin prefijos. Nota
+    de reparación de `docs/specs/bootstrap-shared-dtos.md` actualizada (incluye
+    `CategoriaDto`/`SeccionBoeDto`).
+  - `.harness/feature_list.json`: FT00002 → **`in_progress`** con la evidencia
+    del renombrado de enums (descripción con `CategoriaDto`/`SeccionBoeDto`).
+- Verificación ejecutada (desde `..`, `JAVA_HOME` del JBR 21):
+  - `./gradlew :shared:jvmTest --rerun-tasks` → BUILD SUCCESSFUL; XML: SmokeTest
+    1/0/0, CategoriaWireTest 3/0/0, SerializationTest 7/0/0 (failures/errors = 0).
+  - `./gradlew test` → BUILD SUCCESSFUL (agrega `:shared:jvmTest`,
+    `:backend:test`, `:composeApp:jvmTest`).
+  - `./gradlew build` → BUILD SUCCESSFUL (16 tareas).
+  - grep en `*.kt` de producto: sin referencias stale a `Categoria`/`SeccionBoe`
+    como tipos (solo queda el nombre de la clase de test `CategoriaWireTest`).
+- Ficheros: `shared/src/commonMain/.../model/{CategoriaDto,SeccionBoeDto}.kt`
+  (renombrados con `git mv`), `.../model/PublicacionDto.kt`,
+  `.../commonTest/.../{SerializationTest,CategoriaWireTest}.kt`,
+  `.harness/{ARCHITECTURE.md,CONSTRAINTS.md,feature_list.json,PROGRESS.md}`,
+  `.harness/docs/specs/bootstrap-shared-dtos.md`.
+- Riesgo o duda sin resolver: el commit/push/PR y la CI los hace el orquestador;
+  queda pendiente la **validación independiente** de esta ampliación.
+- Siguiente mejor paso: validación independiente de FT00002 (`feature-validator`)
+  tras el renombrado de enums; después, `bootstrap-postgres-pgvector` (FT00003).
+
+### Session 016
+
+- Fecha: 2026-10-10
+- Objetivo: cerrar FT00002 tras ampliar la convención `Dto` a los enums y registrar
+  el merge del PR #2.
+- Completado:
+  - Commit de producto en `feat/ft00002-bootstrap-shared-dtos`:
+    `872fb2b refactor(FT00002): sufijo Dto en los enums del contrato`
+    (`CategoriaDto`/`SeccionBoeDto`, 2 ficheros con `git mv`). Pusheado.
+  - **CI en verde**: run `37998033440`, head `872fb2b` (PR #2).
+  - **Validación independiente**: veredicto **`accept`** (renombrado íntegro,
+    contrato de wire invariante, convención consistente y sin contradicciones).
+  - `.harness/feature_list.json`: FT00002 → **`accepted`** (evidencia alineada a
+    los nombres `...Dto` y al commit/PR/CI). `docs/feature-ids.md`: `accepted`.
+  - **PR #2 fusionado** en `main` (merge `ca781f3`); rama de feature eliminada
+    (local; la remota ya la borró GitHub al fusionar).
+- Nota: la entrada de Session 014 decía "enums sin sufijo"; quedó **superada** por
+  Session 015/016 (la convención final incluye los enums de wire).
+- Estado: **FT00002 `accepted` y fusionada**. Siguiente feature lista:
+  `bootstrap-postgres-pgvector` (FT00003).
+- Siguiente mejor paso: implementar `bootstrap-postgres-pgvector` (FT00003) con el
+  flujo (aplicando ya la convención `Dto`).
