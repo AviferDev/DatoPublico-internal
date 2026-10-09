@@ -158,7 +158,10 @@ servicio, su(s) repositorio(s), sus modelos y sus clientes; lo transversal
 ## Docker y entorno local
 
 - `docker compose up -d` levanta PostgreSQL con pgvector (+ el backend en prod).
-  Flyway aplica migraciones al arrancar.
+  En **local**, las migraciones se aplican con una tarea **explícita**
+  (`./gradlew :backend:flywayMigrate`; `flywayInfo` para inspeccionar), **no**
+  enganchada a `build`/`check` (la CI corre sin BD). El backend en producción
+  aplicará migraciones al arrancar (FT00004+).
 - En macOS el proyecto usa **Colima**; si se rompe la red host↔contenedor,
   `colima restart` (los contenedores con `restart=unless-stopped` vuelven solos).
 - Servidor real: **Intel N100 / 8 GB**. Ajustes: `shared_buffers` PostgreSQL

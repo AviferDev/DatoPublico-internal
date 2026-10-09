@@ -7,9 +7,10 @@
 - Camino de arranque estándar: `./init.sh` (desde `.harness/`)
 - Camino de verificación estándar: `./gradlew build` y `./gradlew test` desde la
   raíz del repo público (`..`) — **bootstrapped** (Gradle 8.10.2 + JDK 21).
-- Siguiente feature lista: `bootstrap-postgres-pgvector` (FT00003). FT00002
-  (`bootstrap-shared-dtos`) queda **`accepted`** y **fusionada** (PR #2, merge
-  `ca781f3`); habilita `contrato-resumen-ciudadano` (FT00019) y
+- Siguiente feature lista: `bootstrap-ktor-healthcheck` (FT00004, depende de
+  FT00001). FT00003 (`bootstrap-postgres-pgvector`) queda **`accepted`** (ver
+  Session 018). FT00002 (`bootstrap-shared-dtos`) **`accepted`** y **fusionada**
+  (PR #2, merge `ca781f3`); habilita `contrato-resumen-ciudadano` (FT00019) y
   `boe-sumario-cliente` (FT00006).
 - Bloqueo actual: ninguno para el bootstrap. Pendiente de producto: **nombre y
   marca** (bloquea la fase de producción, no el bootstrap).
@@ -24,7 +25,10 @@
   872fb2b) y **fusionado** (`ca781f3`). Gate verde desde `..` con JDK 21 (JBR):
   `./gradlew :shared:jvmTest`, `./gradlew test` (3 módulos) y `./gradlew build`.
   FT00001 `bootstrap-monorepo-gradle`: **`accepted`** (PR #1 fusionado, merge
-  `912c328`).
+  `912c328`). **FT00003 `bootstrap-postgres-pgvector`: `accepted`** (Session 018):
+  Docker Compose con pgvector + migración `V1` de Flyway verificadas de verdad,
+  `./gradlew build` verde sin base de datos (CI) y CI en verde (run 37999962253,
+  head 9231452); PR #3.
 - PoC exploratoria (no feature), **temporal y ya eliminada**: `poc/boe-rag`
   validó el RAG de punta a punta (embeddings locales ONNX + pgvector + generación
   con cita). Sus lecciones quedan en la skill `rag-datapublico`. Ver Session 002.
@@ -611,3 +615,79 @@
   `bootstrap-postgres-pgvector` (FT00003).
 - Siguiente mejor paso: implementar `bootstrap-postgres-pgvector` (FT00003) con el
   flujo (aplicando ya la convención `Dto`).
+
+### Session 017
+
+- Fecha: 2026-10-10
+- Objetivo: implementar `bootstrap-postgres-pgvector` (FT00003) en el repo
+  público: entorno local reproducible de PostgreSQL + pgvector con Docker Compose
+  y migración base de Flyway, sin romper la CI (que corre sin base de datos).
+- Completado:
+  - `docker-compose.yml` (raíz): servicio `postgres` con `pgvector/pgvector:pg17`,
+    volumen nombrado `pgdata`, healthcheck `pg_isready`, puerto configurable
+    `${POSTGRES_PORT:-5432}` y credenciales `${POSTGRES_*}` con valores por
+    defecto de desarrollo.
+  - `.env.example` con las claves `POSTGRES_*` (y `FLYWAY_*` opcionales); `.env`
+    en `.gitignore` (+ `!.env.example` para que la plantilla se versione).
+  - `gradle/libs.versions.toml`: `flyway = 11.20.3`, `postgresql = 42.7.14`;
+    plugin `org.flywaydb.flyway`, `org.flywaydb:flyway-database-postgresql` y
+    `org.postgresql:postgresql`.
+  - `backend/build.gradle.kts`: plugin Flyway; configuración `flyway` dedicada con
+    driver + módulo por motor; extensión `flyway` con `url`/`user`/`password` por
+    entorno (`FLYWAY_*`) y `locations` en `filesystem:` absoluto. Tareas
+    explícitas (`:backend:flywayMigrate`/`:backend:flywayInfo`), **no** enganchadas
+    a `build`/`check`.
+  - Migración `backend/src/main/resources/db/migration/V1__esquema_base.sql`:
+    `CREATE EXTENSION IF NOT EXISTS vector;` + tabla mínima `esquema_info` con
+    fila marcadora. Sin tablas de dominio (FT00008) ni embedding/HNSW (FT00016).
+- Verificación ejecutada (desde `..`, JDK 21 JBR; Docker Desktop 29.8.2 + Compose
+  v5.6.0):
+  - `docker compose up -d` → `postgres` `healthy` en ~2 s; `SELECT 1;` → `1`.
+  - `./gradlew :backend:flywayMigrate` → BUILD SUCCESSFUL; `:backend:flywayInfo` →
+    `V1 | esquema base | Success`.
+  - psql: `extversion` de `vector` = `0.8.7`; `esquema_info` → `(esquema_base,
+    FT00003)`; `flyway_schema_history` → `V1` `success=t`.
+  - CI sin BD: `docker compose down`; `./gradlew build --dry-run | grep -i flyway`
+    → sin resultados; `./gradlew build --no-daemon` → BUILD SUCCESSFUL (17
+    tareas). `./gradlew test` verde; `.harness/init.sh` (sin `JAVA_HOME`) → exit 0.
+  - `POSTGRES_PORT=55432 docker compose config` → puerto publicado `55432`.
+- Hallazgo de implementación: el plugin de Flyway 11 **no** crea una
+  configuración `flyway` (usa los classpaths por defecto), así que se crea
+  explícitamente y se referencia con `configurations = ["flyway"]`; además
+  `flyway-database-postgresql` debe ir en el `buildscript` classpath porque Flyway
+  lo resuelve por ServiceLoader desde el build classpath (documentado en el spec
+  y en `CONSTRAINTS.md`).
+- Ficheros creados/modificados: `docker-compose.yml`, `.env.example`, `.gitignore`,
+  `gradle/libs.versions.toml`, `backend/build.gradle.kts`,
+  `backend/src/main/resources/db/migration/V1__esquema_base.sql`,
+  `.harness/{CONSTRAINTS.md,PROGRESS.md,feature_list.json}`,
+  `.harness/docs/{feature-ids.md,specs/bootstrap-postgres-pgvector.md}`.
+- Riesgo o duda sin resolver: el commit/push/PR y el run de CI los hace el
+  orquestador; queda pendiente la **validación independiente** de FT00003.
+- Siguiente mejor paso: validación independiente de FT00003 (`feature-validator`);
+  después, `bootstrap-ktor-healthcheck` (FT00004).
+
+### Session 018
+
+- Fecha: 2026-10-10
+- Objetivo: cerrar FT00003 (`bootstrap-postgres-pgvector`): commit → CI → PR →
+  aceptación.
+- Completado:
+  - Commit de producto en `feat/ft00003-bootstrap-postgres-pgvector`:
+    `9231452 feat(FT00003): PostgreSQL + pgvector en docker-compose y migracion
+    base` (6 ficheros, +131/−4). Pusheado.
+  - **PR #3** hacia `main`: https://github.com/AviferDev/DatoPublico/pull/3
+  - **CI en verde**: run `37999962253`, head `9231452`.
+  - **Validación independiente**: veredicto **`accept`**; reejecutó los 4
+    escenarios con Docker real (BD `healthy`, `vector` 0.8.7, `V1` Success,
+    `./gradlew build` sin BD) y dejó el entorno limpio. Sin hallazgos bloqueantes.
+  - `.harness/feature_list.json`: FT00003 → **`accepted`** (evidencia con
+    commit/PR/CI/aceptación). `docs/feature-ids.md`: FT00003 → `accepted`.
+- Nota de claridad (hallazgo *Low* del validator, resuelto): se precisó en la skill
+  `ktor-backend-architecture` §«Docker y entorno local» que en **local** las
+  migraciones se aplican con `:backend:flywayMigrate` (tarea explícita, fuera de
+  `build`/`check`) y que el backend en producción aplicará al arrancar (FT00004+).
+- Estado: **FT00003 `accepted`**. Siguiente feature lista:
+  `bootstrap-ktor-healthcheck` (FT00004).
+- Siguiente mejor paso: implementar `bootstrap-ktor-healthcheck` (FT00004) con el
+  flujo.

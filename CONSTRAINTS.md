@@ -38,6 +38,10 @@
 - **MUST**: ingesta diaria a las **9:30** más una **segunda pasada**; alerta si no
   se ejecuta.
 - **MUST**: migraciones Flyway versionadas; **nunca** editar una ya aplicada.
+- **MUST**: el gate de build/tests (`./gradlew build`, `.harness/init.sh`) **no**
+  depende de servicios externos (base de datos). Las migraciones se ejecutan con
+  una tarea explícita (`./gradlew :backend:flywayMigrate`) y las tareas Flyway
+  **nunca** se enganchan a `build`/`check` (la CI corre sin PostgreSQL).
 - **MUST**: secretos por entorno (`.env` ignorado; nunca en el repositorio).
 - **N100 / 8 GB**: backfill por lotes en baja carga; `shared_buffers` ~1 GB,
   heap JVM ~1 GB, swap activado.

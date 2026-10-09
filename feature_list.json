@@ -70,13 +70,25 @@
     "depends_on": [
       "bootstrap-monorepo-gradle"
     ],
-    "status": "not_started",
+    "status": "accepted",
     "verification": [
       "`docker compose up -d` levanta la base y una consulta `SELECT 1` responde.",
       "`CREATE EXTENSION IF NOT EXISTS vector;` funciona.",
       "Flyway aplica la migración base sin errores."
     ],
-    "evidence": [],
+    "evidence": [
+      "FT00003 (2026-10-10, rama feat/ft00003-bootstrap-postgres-pgvector). `docker-compose.yml`: servicio `postgres` con imagen `pgvector/pgvector:pg17` (digest resuelto sha256:ac08538c6f8b9904c33c8224c5e5706dbe760aca29db1d096972b4052c22a75d), volumen nombrado `pgdata`, healthcheck `pg_isready`, puerto host configurable `${POSTGRES_PORT:-5432}` y credenciales `${POSTGRES_DB/USER/PASSWORD}` con valores por defecto de desarrollo. `.env.example` con las claves `POSTGRES_*` (y `FLYWAY_*` opcionales documentadas); `.env` añadido a `.gitignore` (+ `!.env.example` para que la plantilla sí se versione).",
+      "Version catalog (`gradle/libs.versions.toml`): `flyway = 11.20.3`, `postgresql = 42.7.14`; plugin `org.flywaydb.flyway`, librerías `org.flywaydb:flyway-database-postgresql` (módulo por motor que exige Flyway 10+) y `org.postgresql:postgresql`.",
+      "`:backend/build.gradle.kts`: aplica el plugin Flyway; configuración dedicada `flyway` (creada por el build) con el driver y el módulo por motor; extensión `flyway { url/user/password desde FLYWAY_* con defaults de desarrollo; locations = filesystem:<abs>/src/main/resources/db/migration; configurations = [flyway] }`. Hallazgo de implementación: el plugin de Flyway 11 **no** crea una configuración `flyway` (usa `compileClasspath`/`runtimeClasspath` por defecto), así que se crea explícitamente y se referencia; además el módulo `flyway-database-postgresql` debe ir en el `buildscript` classpath porque Flyway lo resuelve por ServiceLoader desde el build classpath (sin él: `No Flyway database plugin found to handle jdbc:postgresql...`).",
+      "Migración `backend/src/main/resources/db/migration/V1__esquema_base.sql`: `CREATE EXTENSION IF NOT EXISTS vector;` + tabla mínima `esquema_info (clave text PK, valor text NOT NULL, actualizado_en timestamptz NOT NULL DEFAULT now())` con fila marcadora `('esquema_base','FT00003')`. Sin tablas de dominio ni embedding/HNSW (FT00008/FT00016).",
+      "Escenario 1 (BD arriba): `docker compose up -d` → contenedor `datopublico-postgres` `healthy` en ~2 s; `docker compose ps` → `Up (healthy)`; `docker compose exec -T postgres psql -U datopublico -d datopublico -c 'SELECT 1;'` → `1`.",
+      "Escenario 2 (pgvector): `SELECT extversion FROM pg_extension WHERE extname='vector';` → `0.8.7`.",
+      "Escenario 3 (Flyway): `./gradlew :backend:flywayMigrate` → BUILD SUCCESSFUL; `./gradlew :backend:flywayInfo` → `V1 | esquema base | SQL | Success`; `flyway_schema_history` → `installed_rank=1, version=1, success=t`; `SELECT * FROM esquema_info;` → `(esquema_base, FT00003, …)`.",
+      "Escenario 4 (CI sin BD): `docker compose down` y después `./gradlew build --dry-run --no-daemon | grep -i flyway` → sin resultados (las tareas Flyway no están en el grafo de `build`); `./gradlew build --no-daemon` → BUILD SUCCESSFUL (17 tareas, 0 fallos). Gate estándar: `./gradlew test` → BUILD SUCCESSFUL (3 módulos); `.harness/init.sh` (sin `JAVA_HOME`, descubre el JBR) → exit 0.",
+      "Puerto configurable verificado: `POSTGRES_PORT=55432 docker compose config` → `published: \"55432\"`.",
+      "Commit `9231452` en `feat/ft00003-bootstrap-postgres-pgvector`; PR #3 (https://github.com/AviferDev/DatoPublico/pull/3); CI en verde: run 37999962253, job 'Build and test' SUCCESS (head 9231452).",
+      "Aceptación independiente (validator): veredicto `accept`; reejecutó los 4 escenarios (BD healthy, vector 0.8.7, V1 Success, build sin BD) y `init.sh` (exit 0); digest de imagen y puerto reproducidos; `.env` ignorado y sin secretos; sin hallazgos. Dejó el entorno limpio (`docker compose down -v`)."
+    ],
     "notes": "Fuente: docs/roadmap.md 0.1-T04, docs/technical-discovery.md (PostgreSQL + pgvector + Flyway)."
   },
   {
