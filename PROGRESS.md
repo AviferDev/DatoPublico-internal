@@ -33,7 +33,8 @@
   ampliada en el PR #6 a las 8 secciones y `@SerialName`).
 
 - Feature en curso: ninguna. **FT00008 `publicacion-persistencia`** implementada,
-  autoverificada y **validada de forma independiente (`accept`)** (Session 036):
+  autoverificada, **validada de forma independiente (`accept`) y fusionada en
+  `main`** (Session 036; PR #9, rebase → `6f3e856`+`305b344`):
   migración `V2` (tablas
   `publicacion`/`fragmento`/`resumen`/`cola_revision`), `infra/` (config derivada
   de `POSTGRES_*` + pool HikariCP: `DatabaseConfig`/`Database`) y `persistence/`
@@ -1725,4 +1726,8 @@
   run `38049632428`. Gate reejecutado en verde (61 tests/0 fallos; `build`,
   `detekt`+`:cpdCheck`, `init.sh` exit 0) y test opt-in `DB_LIVE_TEST=1` contra
   PostgreSQL real.
+- Merge: **PR #9 fusionado en `main`** por rebase → `6f3e856`
+  (`feat(FT00008): complete publicacion-persistencia`) + `305b344`
+  (`refactor(FT00008): rename … English`); CI en verde run `38049632428`; rama
+  remota eliminada. Estado final: **`accepted`** y fusionada.
 - Siguiente mejor paso: `ingesta-job-diario` (FT00009).
