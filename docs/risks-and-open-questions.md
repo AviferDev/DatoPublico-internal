@@ -90,7 +90,9 @@
 - Probar la extracción real del sumario y de textos de **todo el BOE** (secciones
   I, II.A, II.B, III, IV, V.A, V.B y V.C), y el mapeo a categorías.
 - Comparar `multilingual-e5-small` **int8** y `-base` sobre publicaciones reales
-  (calidad/coste de cómputo), incluyendo int8 vs fp32 de `small`.
+  (calidad/coste de cómputo), incluyendo int8 vs fp32 de `small`. FT00015 dejó la
+  **interfaz de proveedor** lista para cambiar de modelo sin tocar el resto del
+  pipeline; la comparación sigue **abierta**.
 - Medir tiempos de embedding y de backfill en el N100.
 - Definir y validar el **ranking de destacados** (señales y pesos).
 - Revisar en detalle las políticas de App Store para apps informativas con IA.

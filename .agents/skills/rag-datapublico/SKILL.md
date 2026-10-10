@@ -71,6 +71,28 @@ ingesta BOE → chunking → embeddings (ONNX) → pgvector → recuperación h�
   la columna y reindexar**.
 - Herramienta configurable por entorno; clave de OpenCode solo en el servidor.
 
+### Estado actual del producto (FT00015)
+
+- El proveedor de embeddings **ya está implementado** en `:backend`, paquete
+  `es.aviferdev.datopublico.backend.rag.embeddings`: interfaz pública
+  `EmbeddingProvider` (`dimensions`, `embedQuery`, `embedPassage`, `embedPassages`,
+  `AutoCloseable`) + implementación `E5EmbeddingProvider`
+  (`intfloat/multilingual-e5-small` int8 vía **ONNX Runtime en CPU**, tokenizador
+  XLM-R de DJL). Aplica los **prefijos obligatorios** `query: `/`passage: `,
+  *mean pooling* con máscara, **normaliza** (L2) y devuelve **384 dims**;
+  `VectorMath` (`meanPool`/`l2Normalize`/`cosineSimilarity`) es puro y lo
+  reutilizará la recuperación. Decisión durable en `docs/adr/0010`.
+- **Tokenizador real**: `E5Tokenizer.countTokens` cierra el **contador provisional**
+  de FT00014 (`ArticleChunker` se mantiene **puro**, sin dependencia nativa; la
+  inyección/calibración es de FT00016).
+- **Aprovisionamiento**: el modelo (~118 MB) y el `tokenizer.json` **no** se
+  versionan; se descargan con `backend/tools/download-embedding-model.sh` a
+  `backend/models/` (gitignored) y se referencian por **ruta absoluta**
+  (`EMBEDDING_MODEL_PATH`/`EMBEDDING_TOKENIZER_PATH`) con fail-fast. El gate no
+  descarga nada; el modelo real se prueba **opt-in**
+  (`EMBEDDING_LIVE_TEST=1`). No está cableado y **no** anticipa pgvector/HNSW
+  (FT00016) ni la recuperación (FT00017).
+
 ## 3. Almacenamiento vectorial
 
 - PostgreSQL + **pgvector**; columna de dimensión **384**; índice **HNSW**.

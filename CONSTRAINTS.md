@@ -85,14 +85,43 @@
   omitirlas.
 - **MUST**: cada fragmento respeta el presupuesto del modelo E5 (**≤512 tokens**),
   con una **estimación provisional documentada e inyectable** por constructor
-  (`charsPerToken = 3` por defecto) hasta que FT00015 integre el tokenizador real;
-  un párrafo que supere el presupuesto se parte por palabras y conserva la misma
+  (`charsPerToken = 3` por defecto) mientras el chunker se mantiene **puro**;
+  FT00015 **expone** el tokenizador real (`countTokens`) sin modificar
+  `ArticleChunker`, y la inyección/calibración en el chunker es de FT00016; un
+  párrafo que supere el presupuesto se parte por palabras y conserva la misma
   `reference`. `order` es **contiguo** `0..n-1` en orden de documento.
 - **MUST NOT**: la fragmentación **no anticipa lo diferido** — sin embeddings/ONNX
-  (FT00015), sin columna `embedding vector(384)` ni índice HNSW ni migración
-  (FT00016), sin recuperación (FT00017) — y **no** escribe en PostgreSQL ni se
-  cablea en `Application.kt`/job/backfill. El encaje con la persistencia es solo el
-  mapeo puro `Fragment.toEntity()` (`id = null`, sin abrir conexión).
+  en el propio chunker (FT00015), sin columna `embedding vector(384)` ni índice
+  HNSW ni migración (FT00016), sin recuperación (FT00017) — y **no** escribe en
+  PostgreSQL ni se cablea en `Application.kt`/job/backfill. El encaje con la
+  persistencia es solo el mapeo puro `Fragment.toEntity()` (`id = null`, sin abrir
+  conexión).
+
+## Embeddings locales
+
+- **MUST**: los embeddings son **locales** (`intfloat/multilingual-e5-small` int8)
+  vía **ONNX Runtime en CPU**, tras una **interfaz intercambiable**
+  (`EmbeddingProvider`); el resto del pipeline no conoce ONNX ni el modelo. El
+  tokenizador XLM-R es el de DJL (`HuggingFaceTokenizer`) sobre un
+  `tokenizer.json` local. Decisión durable en `docs/adr/0010`.
+- **MUST**: se aplican los **prefijos obligatorios** `query: ` (consulta) y
+  `passage: ` (fragmento); los vectores se **normalizan** (L2) y tienen **384
+  dimensiones**; la entrada se recorta a **≤512 tokens**; el proveedor expone el
+  **contador real** `countTokens` (cierre del provisional de FT00014).
+- **MUST NOT**: el modelo (`model.onnx`, ~118 MB) y el `tokenizer.json` **no** se
+  versionan ni se descargan en `build`/`test`/`init.sh`/CI; viven en
+  `backend/models/` (**gitignored**), se aprovisionan con
+  `backend/tools/download-embedding-model.sh` y se referencian por **ruta
+  absoluta** de entorno (`EMBEDDING_MODEL_PATH`/`EMBEDDING_TOKENIZER_PATH`) con
+  **fail-fast** (`EmbeddingException`) si faltan o no existen, **sin** *fallback*
+  ni descarga silenciosa.
+- **MUST**: la prueba contra el **modelo real** es **opt-in**
+  (`EMBEDDING_LIVE_TEST=1`), fuera de `build`/`test`/`init.sh`/CI; el gate cubre el
+  contrato y la aritmética con **dobles deterministas** (sin red ni artefactos).
+- **MUST NOT**: los embeddings **no** se cablean todavía en
+  `Application.kt`/job/backfill y **no** anticipan la columna `embedding
+  vector(384)`/HNSW (FT00016) ni la recuperación (FT00017); `ArticleChunker` y
+  `persistence/` quedan intactos.
 
 ## Persistencia y base de datos
 

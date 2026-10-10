@@ -56,6 +56,18 @@
   **no** genera embeddings (FT00015), **no** escribe en PostgreSQL ni anticipa la
   columna `embedding`/HNSW (FT00016) y **no** se cablea en el arranque. Ver
   `docs/adr/0009`.
+  FT00015 añade **`rag/embeddings/`**: el proveedor de embeddings locales tras
+  una **interfaz intercambiable** (`EmbeddingProvider` + `E5EmbeddingProvider`,
+  `intfloat/multilingual-e5-small` int8 vía **ONNX Runtime en CPU**), con los
+  **prefijos obligatorios** `query: `/`passage: `, *mean pooling* con máscara,
+  vectores **normalizados** de **384 dims** y el **tokenizador XLM-R real** (DJL)
+  que expone `countTokens` (cierra el contador provisional de FT00014). Es una
+  **librería**: **no** se cablea en el arranque ni en el job; el modelo y el
+  tokenizador **no** se versionan (se aprovisionan fuera del gate con
+  `backend/tools/download-embedding-model.sh`, `backend/models/` gitignored) y su
+  prueba contra el modelo real es **opt-in** (`EMBEDDING_LIVE_TEST=1`). No
+  anticipa pgvector/HNSW (FT00016) ni la recuperación (FT00017) y **no** toca
+  `ArticleChunker`/`persistence/`. Ver `docs/adr/0010`.
   Existe **`persistence/`** (FT00008): repositorios **JDBC**
   + entidades `...Entity` de `publicacion`, `fragmento`, `resumen` y
   `cola_revision`, más los helpers JDBC compartidos; la configuración de
@@ -123,7 +135,10 @@
 - **Backend:** `plugins/` (HTTP) → servicios → dominio puro → repositorios y
   clientes → `infra/`.
 - **IA:** embeddings **locales** (ONNX) y generación/chat **remoto** (OpenCode),
-  cada uno tras una interfaz intercambiable.
+  cada uno tras una interfaz intercambiable. Los embeddings están **implementados**
+  como librería en `rag/embeddings/` (FT00015, ADR 0010): E5 int8 vía ONNX Runtime
+  en CPU, tras `EmbeddingProvider`; **no** cableados aún y sin anticipar
+  pgvector/HNSW (FT00016).
 - **Datos:** PostgreSQL + pgvector; migraciones Flyway (`V1` esquema base, `V2`
   persistencia). Sin cuentas ni datos personales.
 

@@ -21,6 +21,18 @@
   identificadores del test); **PR #15 fusionado** en `main` por squash →
   `74181ad`. Siguiente feature lista: `embeddings-locales-onnx`
   (FT00015, depende de FT00014) o `english-identifiers-rename` (FT00047).
+- **FT00015 `embeddings-locales-onnx` → `accepted`** (Session 047): proveedor de
+  **embeddings locales** en `:backend` (`rag/embeddings/`: `EmbeddingProvider` +
+  `E5EmbeddingProvider`, `intfloat/multilingual-e5-small` int8 vía **ONNX
+  Runtime en CPU**, prefijos `query: `/`passage: `, *mean pooling* con máscara,
+  vectores normalizados de 384 dims, tokenizador XLM-R de DJL con `countTokens`).
+  Librería **sin wiring**; modelo/tokenizador fuera del repo
+  (`backend/models/` gitignored, script de descarga) con fail-fast por entorno;
+  gate verde sin red ni BD (`:backend` **173 tests**, 0 fallos) y modelo real
+  verificado **opt-in** (`EMBEDDING_LIVE_TEST=1`: `dims=384`, `cos(rel,par)=
+  0.9694 > cos(rel,unrel)=0.8499`). Decisión durable en **ADR 0010**;
+  validación independiente `accept` (`docs/validations/embeddings-locales-onnx.md`).
+  **`accepted`** (2026-10-10).
 - Última verificación: 2026-10-10 (Sessions 032–038). **Cambio de alcance 1.0.0 =
   TODO el BOE** (secciones I, II.A, II.B, III, IV, V.A, V.B y V.C; ningún campo ni
   sección se excluye) y nueva norma MUST de **`@SerialName` explícito** en cada
@@ -2372,3 +2384,61 @@
   `english-identifiers-rename` (FT00047).
 - Siguiente mejor paso: `embeddings-locales-onnx` (FT00015, depende de FT00014).
   Siguiente rol: `planner`.
+
+### Session 047
+
+- Fecha: 2026-10-10
+- Objetivo: ejecutar **FT00015 `embeddings-locales-onnx`** como **implementer**
+  (`feature-implementer`) sobre el spec `docs/specs/embeddings-locales-onnx.md`.
+- Claim: rama `feat/ft00015-embeddings-locales-onnx` con `121bfe7 chore(FT00015):
+  claim`. Sin commits ni push (los hace el orquestador).
+- Completado (producto): paquete nuevo
+  `backend/.../rag/embeddings/` — `EmbeddingProvider.kt` (interfaz pública
+  `AutoCloseable`), `E5EmbeddingProvider.kt` (prefijos `query: `/`passage: `,
+  *mean pooling* con máscara, L2, validación de 384 dims, `from(...)` fail-fast y
+  `close()` idempotente), `TextTokenizer.kt`/`EmbeddingModel.kt` (*seams*
+  internos), `VectorMath.kt` (puro), `E5Tokenizer.kt` (DJL
+  `HuggingFaceTokenizer` + `countTokens`), `OnnxEmbeddingModel.kt` (`OrtSession`)
+  y `EmbeddingConfig.kt` (`EMBEDDING_*` con fail-fast + `EmbeddingException`).
+  Catalog: `onnxruntime = 1.20.0`, `djl = 0.33.0`; `:backend` añade las tres
+  dependencias. Script `backend/tools/download-embedding-model.sh` y
+  `.gitignore` (`backend/models/`).
+- Tests (gate, sin red): `VectorMathTest` (6), `E5EmbeddingProviderTest` (7,
+  dobles deterministas), `EmbeddingConfigTest` (5) y `E5EmbeddingLiveTest` (1,
+  opt-in). **19 tests nuevos**.
+- Verificación: `./gradlew :backend:test --rerun-tasks` → **173 tests, 0 fallos**
+  (antes 154); `./gradlew build --no-daemon -PskipClient` → BUILD SUCCESSFUL;
+  `./gradlew test` → 3 módulos; `./gradlew detekt` (+`:cpdCheck`) → BUILD
+  SUCCESSFUL; `env -u JAVA_HOME .harness/init.sh` → exit 0. Sin red ni BD.
+- Opt-in del **modelo real**: descargado con el script a `backend/models/`
+  (gitignored; `model.onnx` 118.308.185 B, sha256 `f80102d3…f98c193`;
+  `tokenizer.json` 17.082.730 B, sha256 `0b44a9d7…ebdf4c39`).
+  `EMBEDDING_LIVE_TEST=1 ./gradlew :backend:test --tests '*E5EmbeddingLiveTest'`
+  → BUILD SUCCESSFUL; evidencia real `dims=384 norm=1.0 cos(rel,par)=0.9693954
+  cos(rel,unrel)=0.849925 cos(par,unrel)=0.8374902` y `countTokens(passage)=24`.
+- **Desviación del spec (justificada)**: el export ONNX real
+  `Xenova/multilingual-e5-small` exige `token_type_ids` (`[1, seq]`, ceros) como
+  tercera entrada (`Missing Input: token_type_ids`); `OnnxEmbeddingModel` lo
+  añade **solo** si el modelo lo declara. La salida real es `last_hidden_state`
+  (sin `sentence_embedding`) → *mean pooling* con máscara. El spec solo describía
+  `input_ids`/`attention_mask`.
+- Docs durables: `ARCHITECTURE.md` (`rag/embeddings/` + frontera IA), 
+  `CONSTRAINTS.md` §«Embeddings locales» (y ajuste de §«RAG / fragmentación»),
+  **ADR 0010** + índice, skill `rag-datapublico` §2, `docs/desarrollo-local.md`
+  (producto), `docs/feature-ids.md` (FT00015 → `accepted`), `feature_list.json`
+  (FT00015 → **`accepted`** + evidencia) y `docs/validations/embeddings-locales-onnx.md`.
+- **Validación independiente** (`feature-validator`, Session 047): veredicto
+  **`accept`**; reejecutó el gate (`:backend` 173 tests, 0 fallos;
+  `build -PskipClient`/`test`/`detekt`+`:cpdCheck`/`init.sh` exit 0) y el opt-in
+  real (`dims=384`, `cos(rel,par)=0.9693954 > cos(rel,unrel)=0.849925`),
+  confirmó alcance acotado, offline (modelo gitignored, sin sockets en el gate) y
+  calidad MUST. Hallazgos **Low** (no bloquean): `countTokens` trunca a 512
+  (llevar a FT00016), script de descarga sin verificación de hash y cierre del
+  tokenizador en el `from` si el modelo falla.
+- Riesgo o duda sin resolver: comparación int8 vs fp32/`-base` sigue abierta;
+  memoria en la máquina única por medir en FT00016/17.
+- Estado: **FT00015 `accepted`** (implementada, autoverificada y validada).
+  Siguiente feature lista: `pgvector-indexado` (FT00016) o
+  `english-identifiers-rename` (FT00047).
+- Siguiente mejor paso: implementar `pgvector-indexado` (FT00016). Siguiente rol:
+  `planner`.
