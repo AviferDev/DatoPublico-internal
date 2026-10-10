@@ -89,7 +89,8 @@
   persistir). Gate sin red ni BD verde (`:backend` 145 tests, 0 fallos;
   `HighlightRankerTest` 9/0/0; `build -PskipClient`/`test`/`detekt`+`:cpdCheck`/
   `init.sh` exit 0; `/health` 200 sin BD). Decisión durable en **ADR 0008**;
-  validación independiente `accept`. Siguiente feature lista: `chunking-articulos`
+  validación independiente `accept`. **Fusionada** (PR #14, squash → `6c8d2ac`;
+  CI run `38074664281` en verde). Siguiente feature lista: `chunking-articulos`
   (FT00014, depende de FT00008) o `english-identifiers-rename` (FT00047).
 - Bloqueo actual: ninguno para el bootstrap. Pendiente de producto: **nombre y
   marca** (bloquea la fase de producción, no el bootstrap).
@@ -2291,3 +2292,9 @@
   verde run `38074664281` (2m46s). Pendiente de revisión/fusión explícita del dueño.
 - Siguiente mejor paso: revisar/fusionar el PR #14; después, `chunking-articulos`
   (FT00014).
+- Merge (orquestador, Session 045): **PR #14 fusionado** en `main` por **squash** →
+  `6c8d2ac feat(FT00013): complete destacados-diarios` (2026-10-10); CI en verde
+  (run `38074664281`, 2m46s). Rama remota eliminada por GitHub y rama local
+  borrada; `main` local actualizado a `6c8d2ac`.
+- Siguiente mejor paso: `chunking-articulos` (FT00014, depende de FT00008
+  `accepted`). Siguiente rol: `planner`.
