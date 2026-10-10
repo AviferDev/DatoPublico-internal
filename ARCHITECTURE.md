@@ -36,6 +36,15 @@
   **puros** (sin IA, red, BD ni reloj); `PublicacionParser` los recibe como
   colaboradores con default y rellena `categoria`/`plazo`, sin tocar
   `Application.kt`. Ver `docs/adr/0007`.
+  FT00013 añade **`relevance/`**: el ranker puro y explicable
+  `HighlightRanker` (`Highlight` + `HighlightReason`) que, dada la lista de
+  publicaciones de un día (`PublicationRepository.listByDate`), marca un
+  subconjunto como destacado por **señales objetivas** (sección I, rango
+  normativo, categoría curada de FT00012, plazo abierto y organismo en una lista
+  curada y modesta) y expone el **motivo** de cada destacado. Es **puro** (sin
+  IA, red, BD, reloj ni estado), se **calcula *on-the-fly*** (sin persistencia)
+  y no se cablea en el arranque: lo consumirá el feed (FT00026). Ver
+  `docs/adr/0008`.
   Existe **`persistence/`** (FT00008): repositorios **JDBC**
   + entidades `...Entity` de `publicacion`, `fragmento`, `resumen` y
   `cola_revision`, más los helpers JDBC compartidos; la configuración de

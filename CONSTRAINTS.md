@@ -56,6 +56,21 @@
   fiable y **nunca** inventa una fecha. Los «días hábiles» cuentan solo sábados y
   domingos (sin calendario de festivos), límite documentado.
 
+## Relevancia y destacados
+
+- **MUST**: el ranking de destacados es **automático, objetivo, determinista y
+  explicable**: usa **señales objetivas documentadas** (sección normativa, rango
+  normativo, categoría curada, plazo abierto y organismo de una lista curada y
+  modesta), **sin IA/LLM ni señales editoriales o subjetivas**, y **cada
+  destacado expone su motivo** (`HighlightReason`, nunca vacío). Es **puro** (sin
+  red, BD, reloj, aleatoriedad ni estado) y su salida **no depende del orden de
+  entrada**; un día sin señales devuelve lista vacía. La señal de organismo es
+  **modesta** y **nunca** decide por sí sola un destacado. Decisión durable en
+  `docs/adr/0008`.
+- **MUST**: en la 1.0.0 los destacados se **calculan *on-the-fly*** sobre la lista
+  del día (`PublicationRepository.listByDate`), **no se persisten**: no hay
+  columna, migración, repositorio ni segunda pasada en el job/backfill.
+
 ## Persistencia y base de datos
 
 - **MUST**: el acceso a datos usa **JDBC + HikariCP**, **sin ORM** (nada de

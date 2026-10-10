@@ -80,6 +80,17 @@
   `09ae91d`; CI run `38072876836` en verde). Siguiente feature lista:
   `destacados-diarios` (FT00013, depende de FT00012) o `english-identifiers-rename`
   (FT00047).
+- **FT00013 `destacados-diarios` → `accepted`** (Sessions 044–045): paquete de
+  dominio nuevo `es.aviferdev.datopublico.backend.relevance` (`HighlightRanker` +
+  `Highlight`/`HighlightReason`) que marca un **subconjunto** del día como destacado
+  por **señales objetivas** (sección I, rango normativo, categoría curada de
+  FT00012, plazo abierto y organismo de una lista curada y modesta) y expone el
+  **motivo**; **puro, determinista y explicable**, **calculado *on-the-fly*** (sin
+  persistir). Gate sin red ni BD verde (`:backend` 145 tests, 0 fallos;
+  `HighlightRankerTest` 9/0/0; `build -PskipClient`/`test`/`detekt`+`:cpdCheck`/
+  `init.sh` exit 0; `/health` 200 sin BD). Decisión durable en **ADR 0008**;
+  validación independiente `accept`. Siguiente feature lista: `chunking-articulos`
+  (FT00014, depende de FT00008) o `english-identifiers-rename` (FT00047).
 - Bloqueo actual: ninguno para el bootstrap. Pendiente de producto: **nombre y
   marca** (bloquea la fase de producción, no el bootstrap).
 - Convención de nombres (aclarada 2026-10-10): **todo tipo `@Serializable`/de
@@ -2172,3 +2183,105 @@
   borrada; `main` local actualizado a `09ae91d`.
 - Siguiente mejor paso: `destacados-diarios` (FT00013, depende de FT00012
   `accepted`). Siguiente rol: `planner`.
+
+### Session 044
+
+- Fecha: 2026-10-10
+- Objetivo: implementar `destacados-diarios` (FT00013) en el repo público: ranker
+  **puro, determinista y explicable** de los destacados del día en `:backend`,
+  **calculado *on-the-fly*** (sin persistir), sin tocar el arranque, `:shared`, las
+  migraciones ni la CI. Rama de producto `feat/ft00013-destacados-diarios` (ya
+  reclamada); **sin crear commits** (los hace el orquestador).
+- Completado (producto):
+  - Paquete nuevo `es.aviferdev.datopublico.backend.relevance`:
+    - `Highlight.kt`: `HighlightReason` (5 motivos objetivos con KDoc) y
+      `Highlight` (`publication`, `score`, `reasons`; modelo de dominio interno, ni
+      `Dto` ni `@Serializable`).
+    - `HighlightRanker.kt`: `rank(List<Publicacion>): List<Highlight>` **puro**;
+      señales y pesos en el `companion object` con KDoc (sección I +2; rango
+      normativo +4/+3/+2/+1; categoría curada de FT00012 +2; plazo abierto +2;
+      organismo en lista curada y modesta +1); `MIN_SCORE = 4`, `MAX_HIGHLIGHTS = 12`;
+      orden `score` desc / `id` asc; día sin señales → lista vacía; salida
+      independiente del orden de entrada. Reutiliza la categoría de FT00012 (no
+      duplica la tabla de reglas); normaliza rango/organismo (minúsculas, sin
+      acentos, espacios colapsados) con una función propia documentada.
+  - Test `HighlightRankerTest` (9 tests, sin red ni BD): escenarios 1–6 del spec +
+    empate por `id` + tope.
+  - `docs/desarrollo-local.md` (producto): sección «Destacados del día» con señales,
+    umbral, motivos y ruta de integración con el feed (FT00026).
+  - Sin cambios en `Application.kt`, `:shared`, `:composeApp`, `persistence/`,
+    migraciones, `libs.versions.toml`, `backend/build.gradle.kts`, raíz del build,
+    `settings.gradle.kts` ni CI. **Sin** migración `V3`, columnas ni cableado en el
+    job/backfill (decisión *on-the-fly* del spec).
+- Verificación ejecutada (desde `..`, `JAVA_HOME` del JBR 21):
+  - `./gradlew :backend:test --rerun-tasks` → BUILD SUCCESSFUL; XML
+    `HighlightRankerTest` `tests="9" skipped="0" failures="0" errors="0"`;
+    `:backend` **145 tests**, 0 fallos.
+  - Ejemplos del ranking (in-memory): `Ley Orgánica` (I) → `score=6`
+    `[NORMATIVE_SECTION, NORMATIVE_RANK]`; `Real Decreto` (I) → 5; `Orden` (I) → 4;
+    convocatoria II.B `OPOSICIONES_Y_EMPLEO_PUBLICO` con plazo → 4
+    `[THEMATIC_KEYWORD, OPEN_DEADLINE]`; anuncio V.C sin señales → 0 (fuera);
+    organismo de referencia → +1; día vacío → lista vacía.
+  - Gate estándar sin red ni BD: `./gradlew build --no-daemon -PskipClient` → BUILD
+    SUCCESSFUL (23 tareas, incluye `:backend:detekt` + `:cpdCheck`); `./gradlew test`
+    → BUILD SUCCESSFUL; `./gradlew detekt` → BUILD SUCCESSFUL;
+    `env -u JAVA_HOME .harness/init.sh` → exit 0 («Gate OK»).
+  - Arranque sin BD: `SERVER_PORT=8090 ./gradlew :backend:run` → `curl /health` →
+    HTTP 200, `Content-Type: application/json`, cuerpo `{"status":"ok"}`; proceso
+    detenido y puerto 8090 libre.
+- Documentación durable: `ARCHITECTURE.md` (paquete `relevance/`), `CONSTRAINTS.md`
+  (nueva sección «Relevancia y destacados» con los MUST), **ADR 0008**
+  (`docs/adr/0008-destacados-on-the-fly-ranker-puro.md`) + índice
+  (`docs/adr/README.md`), `docs/desarrollo-local.md`, `docs/feature-ids.md`
+  (FT00013 → `passing`), `feature_list.json` (FT00013 → `passing` + evidencia) y
+  este `PROGRESS.md`. `init.sh` sin modificar.
+- Ficheros de producto: `backend/src/main/kotlin/.../relevance/{Highlight,HighlightRanker}.kt`
+  (nuevos), `backend/src/test/kotlin/.../relevance/HighlightRankerTest.kt` (nuevo) y
+  `docs/desarrollo-local.md`. Harness: `.harness/{ARCHITECTURE.md,CONSTRAINTS.md,
+  PROGRESS.md,feature_list.json}`, `.harness/docs/{feature-ids.md,adr/README.md}`,
+  `.harness/docs/adr/0008-destacados-on-the-fly-ranker-puro.md` (nuevo).
+- Riesgo o duda sin resolver: commit/push/PR y CI los gestiona el orquestador; queda
+  pendiente la **validación independiente**. Deuda aceptada: pesos, umbral y lista de
+  organismos son una semilla afinable con datos reales; la lista curada se compara por
+  prefijo normalizado; la normalización se duplica de forma acotada respecto al
+  clasificador (el spec lo permite; extraerla sería una refactorización posterior).
+- Estado: **FT00013 `passing`** (implementada y autoverificada), pendiente de
+  validación independiente. Nunca `accepted` desde el implementer.
+- Siguiente mejor paso: validación independiente de FT00013 (`feature-validator`);
+  después, `english-identifiers-rename` (FT00047) o `chunking-articulos` (FT00014).
+
+### Session 045
+
+- Fecha: 2026-10-10
+- Objetivo: cerrar `destacados-diarios` (FT00013): validación independiente,
+  aceptación y commit/PR de producto.
+- Completado (orquestador):
+  - **Claim** antes de planificar: rama `feat/ft00013-destacados-diarios` desde
+    `origin/main` con `chore(FT00013): claim` (`0ddb734`) y push inmediato.
+  - **Planner**: spec `docs/specs/destacados-diarios.md` (atómico, ~4 ficheros;
+    decisión **on-the-fly**, sin persistencia).
+  - **Implementer**: paquete `relevance/` (`Highlight`/`HighlightReason` +
+    `HighlightRanker` puro) + `HighlightRankerTest`; ADR 0008 + índice,
+    `ARCHITECTURE.md`, `CONSTRAINTS.md` §«Relevancia y destacados»,
+    `docs/desarrollo-local.md`, `PROGRESS.md` (Session 044) y `feature_list.json`
+    (`passing`).
+  - **Validación independiente** (`feature-validator`): veredicto **`accept`**.
+    Reejecutó el gate (`:backend:test --rerun-tasks` → 145 tests, 0 fallos;
+    `HighlightRankerTest` 9/0/0; `build -PskipClient` 23 tareas; `test` 3 módulos;
+    `detekt`+`:cpdCheck`; `init.sh` exit 0). Verificó escenarios 1–7 (orden/razones,
+    rango, convocatoria vs anuncio, organismo modesto con test que prueba que nunca
+    decide por sí solo, día vacío, determinismo e independencia del orden,
+    contratos/arranque intactos sin V3). MUST de estilo OK. Sin hallazgos
+    Critical/High/Medium; deuda Low (normalización duplicada acotada; nit de
+    redacción del organismo en `docs/desarrollo-local.md`).
+  - **Aceptación persistida**: `feature_list.json` (FT00013 → `accepted` + evidencia
+    del validator), `docs/feature-ids.md` (FT00013 → `accepted`), cabecera del spec
+    y este `PROGRESS.md`.
+- Verificación: la del validator (gate sin red ni BD, 145 tests) y el ranking con
+  ejemplos reales in-memory.
+- Riesgo o duda sin resolver: deuda aceptada (pesos/umbral/lista de organismos como
+  semilla; normalización duplicada), documentada en ADR 0008 y `CONSTRAINTS.md`.
+- Estado: **FT00013 `accepted`**. Siguiente feature lista: `chunking-articulos`
+  (FT00014, depende de FT00008) o `english-identifiers-rename` (FT00047).
+- Siguiente mejor paso: commit del harness y commit/PR de producto (orquestador);
+  después, `chunking-articulos` (FT00014).

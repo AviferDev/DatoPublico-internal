@@ -28,7 +28,7 @@
 | FT00010 | ingesta-observabilidad | Observabilidad de la ingesta diaria | ingesta-boe | accepted |
 | FT00011 | backfill-historico | Backfill del histórico reciente | ingesta-boe | accepted |
 | FT00012 | categorizacion-publicaciones | Clasificación por categoría y extracción de plazos | ingesta-boe | accepted |
-| FT00013 | destacados-diarios | Destacados del día por ranking objetivo | relevancia | not_started |
+| FT00013 | destacados-diarios | Destacados del día por ranking objetivo | relevancia | accepted |
 | FT00014 | chunking-articulos | Fragmentación por artículo o sección | rag | not_started |
 | FT00015 | embeddings-locales-onnx | Servicio de embeddings locales (ONNX) | rag | not_started |
 | FT00016 | pgvector-indexado | Almacenamiento vectorial en pgvector | rag | not_started |
