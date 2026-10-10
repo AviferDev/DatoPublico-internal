@@ -70,6 +70,15 @@
   limitación aceptada). **Fusionada** (PR #12, squash → `bd3b39e`; CI run
   `38070095920` en verde). Siguiente feature lista: `categorizacion-publicaciones`
   (FT00012, depende de FT00008) o `english-identifiers-rename` (FT00047).
+- **FT00012 `categorizacion-publicaciones` → `accepted`** (Sessions 042–043):
+  clasificación curada determinista (`ingesta/categorizacion/PublicationClassifier`)
+  y extracción acotada de plazos (`DeadlineExtractor`) cableadas en
+  `PublicacionParser` con colaboradores por defecto; sin IA/red/BD ni cambios en
+  `:shared`/`Application.kt`/CI. Gate sin red ni BD verde (`:backend` 136 tests, 0
+  fallos; `build`/`test`/`detekt`+`:cpdCheck`/`init.sh` exit 0). Decisión durable en
+  **ADR 0007**; validación independiente `accept`. Siguiente feature lista:
+  `destacados-diarios` (FT00013, depende de FT00012) o `english-identifiers-rename`
+  (FT00047).
 - Bloqueo actual: ninguno para el bootstrap. Pendiente de producto: **nombre y
   marca** (bloquea la fase de producción, no el bootstrap).
 - Convención de nombres (aclarada 2026-10-10): **todo tipo `@Serializable`/de
@@ -2071,3 +2080,83 @@
   rama local borrada; `main` local actualizado a `bd3b39e`.
 - Siguiente mejor paso: `categorizacion-publicaciones` (FT00012, depende de
   FT00008 `accepted`). Siguiente rol: `planner`.
+
+### Session 042
+
+- Fecha: 2026-10-10
+- Objetivo: implementar `categorizacion-publicaciones` (FT00012) en el repo
+  público siguiendo el spec `docs/specs/categorizacion-publicaciones.md`
+  (veredicto del orquestador: crear ADR 0007; alcance exacto).
+- Completado (implementer):
+  - Paquete nuevo `es.aviferdev.datopublico.backend.ingesta.categorizacion`:
+    `PublicationClassifier` (reglas ordenadas sección/epígrafe/título → una de las
+    11 `CategoriaDto` + categoría por defecto por sección; siempre devuelve
+    categoría, conserva el epígrafe) y `DeadlineExtractor` (días hábiles/naturales
+    + fecha explícita + puerta de contexto y descarte de ejecución/resolución/
+    recurso/subsanación/alegaciones/informe; `null` si no es fiable). Puros, sin
+    IA/red/BD/reloj.
+  - Cableado **aditivo** en `PublicacionParser` con colaboradores por defecto
+    (`categoria`/`plazo`); KDoc de `Publicacion` alineado. **Sin** cambios en
+    `Application.kt`, `:shared`, `:composeApp`, `libs.versions.toml`,
+    `backend/build.gradle.kts`, migraciones, raíz, `settings.gradle.kts` ni CI.
+  - Tests: `PublicationClassifierTest` (6) y `DeadlineExtractorTest` (10) nuevos;
+    `PublicacionParserTest` y `BoePublicacionParserTest` actualizados al nuevo
+    contrato (ya no afirman `categoria == null` y comprueban categoría/plazo por
+    fixture). Se usan los **fixtures reales ya versionados**.
+  - Docs durables: **ADR 0007** + índice, `ARCHITECTURE.md`, `CONSTRAINTS.md`
+    §«Categorización y plazos» y `docs/desarrollo-local.md`.
+- Verificación ejecutada (desde `..`, JDK 21 JBR):
+  - `./gradlew :backend:test --rerun-tasks` → BUILD SUCCESSFUL, **136 tests**, 0
+    fallos (`PublicationClassifierTest` 6/0/0, `DeadlineExtractorTest` 10/0/0,
+    `PublicacionParserTest` 5/0/0, `BoePublicacionParserTest` 4/0/0).
+  - `./gradlew build --no-daemon -PskipClient` → BUILD SUCCESSFUL (23 tareas);
+    `./gradlew test` → BUILD SUCCESSFUL (3 módulos); `./gradlew detekt` → BUILD
+    SUCCESSFUL (Detekt + `:cpdCheck`); `env -u JAVA_HOME .harness/init.sh` →
+    exit 0 («Gate OK»).
+- Ficheros de producto: `ingesta/categorizacion/{PublicationClassifier,DeadlineExtractor}.kt`
+  (nuevos), `ingesta/publicacion/{PublicacionParser,Publicacion}.kt`,
+  `.../ingesta/categorizacion/{PublicationClassifierTest,DeadlineExtractorTest}.kt`
+  (nuevos), `.../ingesta/publicacion/{PublicacionParserTest,BoePublicacionParserTest}.kt`,
+  `docs/desarrollo-local.md`.
+- Harness: `.harness/docs/adr/0007-clasificacion-curada-plazos.md` + índice,
+  `.harness/{ARCHITECTURE.md,CONSTRAINTS.md,feature_list.json,PROGRESS.md}`.
+- Riesgo o duda sin resolver: commit/push/PR/CI a cargo del orquestador; queda
+  **pendiente la validación independiente**. Límites documentados: mapeo
+  epígrafe→categoría heurístico, plazos parciales y festivos no modelados.
+- Estado: **FT00012 `passing`** (implementada y autoverificada, lista para
+  validación independiente). Siguiente rol: `validator`.
+
+### Session 043
+
+- Fecha: 2026-10-10
+- Objetivo: cerrar `categorizacion-publicaciones` (FT00012): validación
+  independiente, aceptación y commit/PR de producto.
+- Completado (orquestador):
+  - **Claim** antes de planificar: rama `feat/ft00012-categorizacion-publicaciones`
+    desde `origin/main` con commit vacío `chore(FT00012): claim` (`627647a`) y push
+    inmediato.
+  - **Planner**: spec `docs/specs/categorizacion-publicaciones.md` (atómico, ~14
+    ficheros; sin partes).
+  - **Implementer**: paquete `ingesta/categorizacion/` + cableado aditivo en
+    `PublicacionParser`; tests nuevos/actualizados; ADR 0007 + índice,
+    `ARCHITECTURE.md`, `CONSTRAINTS.md`, `docs/desarrollo-local.md`, `PROGRESS.md`
+    (Session 042) y `feature_list.json` (`passing`).
+  - **Validación independiente** (`feature-validator`): veredicto **`accept`**.
+    Reejecutó el gate (`:backend:test --rerun-tasks` → 136 tests, 0 fallos;
+    `build -PskipClient` 23 tareas; `test` 3 módulos; `detekt`+`:cpdCheck`;
+    `init.sh` exit 0). Verificó escenarios 1–6 con los fixtures reales, pureza
+    (sin `java.net`/`java.sql`/`Random`/`Clock`/`LocalDate.now`), MUST de estilo y
+    contratos/arranque intactos. Sin hallazgos Critical/High/Medium; deuda Low
+    (L1 cabecera del spec — corregida; L2 redacción preexistente en
+    `ARCHITECTURE.md`; L3 test de contrato con tabla duplicada).
+  - **Aceptación persistida**: `feature_list.json` (FT00012 → `accepted` + evidencia
+    del validator), `docs/feature-ids.md` (FT00012 → `accepted`), cabecera del spec
+    y este `PROGRESS.md`.
+- Verificación: la del validator (gate sin red ni BD, 136 tests) y los escenarios
+  con fixtures reales.
+- Riesgo o duda sin resolver: deuda aceptada (clasificación heurística; plazos
+  parciales; festivos no modelados), documentada en ADR 0007 y `CONSTRAINTS.md`.
+- Estado: **FT00012 `accepted`**. Siguiente feature lista: `destacados-diarios`
+  (FT00013, depende de FT00012).
+- Siguiente mejor paso: commit del harness y commit/PR de producto (orquestador);
+  después, `destacados-diarios` (FT00013).

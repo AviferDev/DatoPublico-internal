@@ -42,6 +42,20 @@
 - **MUST NOT**: publicar afirmaciones fuera del contexto recuperado (si el corpus
   no lo sustenta, se declara `sin_fundamento`/`refutada`).
 
+## Categorización y plazos
+
+- **MUST**: la categoría de una publicación es una **regla curada determinista**
+  a partir de la **sección** y el **epígrafe** (con el título como respaldo), sin
+  IA/LLM ni embeddings; el clasificador es **puro** y **siempre** devuelve una
+  `CategoriaDto` (nunca `null`), cayendo en la categoría por defecto de la
+  sección, y **conserva** el epígrafe original como metadato. Decisión durable en
+  `docs/adr/0007`.
+- **MUST**: la extracción del plazo de solicitud es **heurística y acotada**
+  (patrones concretos + puerta de contexto y descarte de ejecución/resolución/
+  recurso/subsanación/alegaciones/informe); devuelve **vacío** (`null`) si no es
+  fiable y **nunca** inventa una fecha. Los «días hábiles» cuentan solo sábados y
+  domingos (sin calendario de festivos), límite documentado.
+
 ## Persistencia y base de datos
 
 - **MUST**: el acceso a datos usa **JDBC + HikariCP**, **sin ORM** (nada de

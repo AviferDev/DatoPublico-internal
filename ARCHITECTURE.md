@@ -28,6 +28,14 @@
   con **checkpoint local en fichero** (`FileBackfillCheckpointStore`) para
   reanudar y ritmo pausado (`BackfillRunner`); **no** se cablea en el arranque del
   servidor ni se engancha a `build`/`check`. Ver `docs/adr/0006`.
+  FT00012 añade **`ingesta/categorizacion/`**: el clasificador curado
+  determinista `PublicationClassifier` (sección + epígrafe + título → una de las
+  11 `CategoriaDto`, con reglas ordenadas y categoría por defecto por sección) y
+  el extractor acotado de plazos `DeadlineExtractor` (`plazo de <N> días
+  [hábiles|naturales]` y fechas explícitas, con puerta de contexto), ambos
+  **puros** (sin IA, red, BD ni reloj); `PublicacionParser` los recibe como
+  colaboradores con default y rellena `categoria`/`plazo`, sin tocar
+  `Application.kt`. Ver `docs/adr/0007`.
   Existe **`persistence/`** (FT00008): repositorios **JDBC**
   + entidades `...Entity` de `publicacion`, `fragmento`, `resumen` y
   `cola_revision`, más los helpers JDBC compartidos; la configuración de
@@ -90,7 +98,8 @@
   pool **solo** si la ingesta está habilitada y la config de BD resuelve, y lo
   cierra en `ApplicationStopped`. Lo diferido no se anticipa: la columna
   `embedding vector(384)` y su índice HNSW llegan con FT00016, y los valores de
-  categoría/plazo con FT00012.
+  categoría/plazo los produce la ingesta desde FT00012
+  (`ingesta/categorizacion/`, ver `docs/adr/0007`).
 - **Backend:** `plugins/` (HTTP) → servicios → dominio puro → repositorios y
   clientes → `infra/`.
 - **IA:** embeddings **locales** (ONNX) y generación/chat **remoto** (OpenCode),
