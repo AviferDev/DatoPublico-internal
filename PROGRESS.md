@@ -7,26 +7,24 @@
 - Camino de arranque estándar: `./init.sh` (desde `.harness/`)
 - Camino de verificación estándar: `./gradlew build` y `./gradlew test` desde la
   raíz del repo público (`..`) — **bootstrapped** (Gradle 8.10.2 + JDK 21).
-- Última verificación: 2026-10-10 (Session 032). **Cambio de alcance 1.0.0 =
+- Última verificación: 2026-10-10 (Sessions 032–034). **Cambio de alcance 1.0.0 =
   TODO el BOE** (secciones I, II.A, II.B, III, IV, V.A, V.B y V.C; ningún campo ni
   sección se excluye) y nueva norma MUST de **`@SerialName` explícito** en cada
   propiedad `@Serializable`. **FT00002** (`bootstrap-shared-dtos`) y **FT00006**
-  (`boe-sumario-cliente`) reabiertas e implementadas → **`passing`** (pendientes de
-  validación independiente).
-- Última feature cerrada: `boe-sumario-cliente` (FT00006) → **`accepted`**
-  (Sessions 029–031; validación independiente `accept` y revalidación `accept`
-  tras aplicar el MUST de **retorno único** y aclarar la convención de nombres;
-  detalle en `docs/validations/boe-sumario-cliente.md`; commit de reparación
-  `87af9dc`, PR #6, pendiente de fusión). Hito anterior:
+  (`boe-sumario-cliente`) reabiertas, implementadas, **validadas (`accept`) y
+  fusionadas** (PR #6).
+- Última feature cerrada: `boe-sumario-cliente` (FT00006) → **`accepted` y
+  fusionada** (Sessions 029–034; validación + revalidación `accept`; retorno único,
+  convención de nombres, y cambio de alcance a todo el BOE + `@SerialName`; detalle
+  en `docs/validations/boe-sumario-cliente.md`). **PR #6 fusionado** (merge por
+  rebase → `main`: `a7b3749` FT00002, `a347e72` FT00006). Hito anterior:
   `bootstrap-cmp-targets` (FT00005) → **`accepted` y fusionada** (Sessions
-  026–027; CI en verde run `38037289572`, PR #5 fusionado, merge `136eedf`).
-  Siguiente feature lista: `boe-parser-publicacion` (FT00007, depende de
-  `boe-sumario-cliente`, `accepted`). FT00003
-  (`bootstrap-postgres-pgvector`) queda **`accepted`** (Session
-  023) tras la reparación de seguridad, la derivación de la conexión y la limpieza
-  de comentarios. FT00002 (`bootstrap-shared-dtos`) **`accepted`** y **fusionada**
-  (PR #2, merge `ca781f3`); habilita `contrato-resumen-ciudadano` (FT00019) y
-  `boe-sumario-cliente` (FT00006).
+  026–027; run `38037289572`, PR #5 fusionado, merge `136eedf`). Siguiente feature
+  lista: `boe-parser-publicacion` (FT00007, depende de `boe-sumario-cliente`).
+  FT00003 (`bootstrap-postgres-pgvector`) queda **`accepted`** (Session 023) tras
+  la reparación de seguridad y la derivación de la conexión. FT00002
+  (`bootstrap-shared-dtos`) **`accepted` y fusionada** (PR #2, merge `ca781f3`;
+  ampliada en el PR #6 a las 8 secciones y `@SerialName`).
 
 - Bloqueo actual: ninguno para el bootstrap. Pendiente de producto: **nombre y
   marca** (bloquea la fase de producción, no el bootstrap).
@@ -1544,3 +1542,44 @@
   la CI sigue con `./gradlew build` (incluye `:composeApp`).
 - Siguiente mejor paso: revisar/commitear Fase 1 (harness `main`) y Fase 2 (rama de
   producto + PR); validar FT00002/FT00006 pendientes.
+
+### Session 034
+
+- Fecha: 2026-10-10
+- Objetivo: aplicar el **cambio de alcance 1.0.0 = todo el BOE** (todas las
+  secciones y todos los campos) y la nueva norma de **`@SerialName` explícito** en
+  los DTOs; reabrir y cerrar **FT00002** y **FT00006**.
+- Decisiones del owner:
+  - El corpus de la 1.0.0 es **todo el sumario del BOE** (secciones I, II.A, II.B,
+    III, IV, V.A, V.B y V.C); **ninguna** sección ni campo se excluye. El principio
+    «sin datos personales» aplica a **quien usa la app**, no al BOE (corrige
+    `CONTEXT.md` §IV/§V.A, `build-brief.md`, `CONSTRAINTS.md` y `roadmap.md`).
+  - **MUST**: en todo `@Serializable`, **cada propiedad lleva `@SerialName`**
+    explícito aunque el nombre coincida (`CONSTRAINTS.md` §«Serialización»,
+    `ARCHITECTURE.md`).
+- Completado (producto, rama `feat/ft00006-boe-sumario-cliente`, PR #6):
+  - `:shared`: `SeccionBoeDto` a **8** valores; `@SerialName` explícito en todas
+    las propiedades de `PublicacionDto`/`ResumenDto`/`PlazoDto`/`ResumenDiarioDto`.
+    Commit `5fbedd2` (→ `main` `a7b3749`).
+  - `:backend`: `seccionBoeDe` mapea los 8 códigos (sin descartes); nueva envoltura
+    `BoeTextoDto` para `departamento.texto.item[]` de IV/V.C; `EntradaSumario.urlPdf`
+    y `urlOficial = urlHtml ?: urlPdf?.texto`; `BoeUrlPdfDto` completo;
+    `@SerialName` en `SumarioWireDto`/`HealthDto`. Commit `bb0b185` (→ `main`
+    `a347e72`).
+  - Tests con fixtures reales: 20261009 → **237** (V.A incluida); 20240102 →
+    **143** (II.A/II.B/III/**IV/V.A**/V.B/**V.C**); nuevo test de **unión de las 8
+    secciones**. `:shared:jvmTest` 11 y `:backend:test` **20** tests, 0 fallos.
+  - Docs de producto: `ROADMAP.md`, `docs/desarrollo-local.md`.
+- Validación: `revise` (integridad de árbol por la **Session 033** concurrente) →
+  reparado (L1 unión 8 secciones, L2 cuerpos de spec, B1 evidencia) → **`accept`**.
+- Cierre: **PR #6 fusionado** en `main` (merge por rebase). CI en verde run
+  `38043750790` (head `bb0b185`). `feature_list.json` FT00002 y FT00006 →
+  **`accepted`**; `docs/feature-ids.md` igual; `docs/validations/boe-sumario-cliente.md`
+  ampliado.
+- Nota de coordinación: el workstream de tooling **Session 033** (detekt/CPD,
+  `-PskipClient`, `opencode.json`) es **ajeno**; sus cambios de producto siguen sin
+  commitear (rama propia).
+- Estado: **FT00002 y FT00006 `accepted` y fusionadas**. Siguiente feature lista:
+  `boe-parser-publicacion` (FT00007), que debe cubrir las **8 secciones** y **todos
+  los campos** (incluido `urlPdf` y la envoltura `texto`).
+- Siguiente mejor paso: implementar `boe-parser-publicacion` (FT00007) con el flujo.
