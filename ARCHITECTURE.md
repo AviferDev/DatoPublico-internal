@@ -107,6 +107,20 @@
   (reutiliza FT00017 **sin modificarla**). Sigue siendo **sin wiring**; la prueba
   real es **opt-in** (`DB_LIVE_TEST=1` + `EMBEDDING_LIVE_TEST=1`) y **no** se
   persiste el histórico (log JSON + stdout, sin migración). Ver `docs/adr/0013`.
+  FT00020 añade **`rag/generation/`** y **`rag/summary/`**: el proveedor de texto
+  **intercambiable** (`TextGenerationProvider` + `GenerationRequest`/
+  `GenerationResponse`) con la implementación OpenCode
+  (`OpenCodeTextGenerationProvider`, DTOs de wire con sufijo `Dto`, factory
+  `openCodeHttpClient`, `Bearer` y parseo de `choices[0].message.content`) y su
+  config por entorno con fail-fast de `OPENCODE_API_KEY` (`OpenCodeConfig`); y el
+  **servicio de resumen ciudadano** (`CitizenSummaryGenerator`) que recupera con
+  `HybridSearch`, construye el prompt puro (`CitizenSummaryPromptBuilder`), parsea
+  la salida (`SummaryOutputParser`, quita *fences* de Markdown) e **inyecta la
+  fuente oficial** desde `Publicacion.urlOficial` (nunca la produce el modelo) antes
+  de **validar el contrato** con `CitizenSummaryValidator` (FT00019): devuelve
+  `CitizenSummaryResult.Valid` o `Invalid` (un resumen inválido **no** se publica;
+  no es una excepción). Sigue siendo una **librería sin wiring** y la prueba real es
+  **opt-in** (`OPENCODE_LIVE_TEST=1`). Ver `docs/adr/0015`.
   Existe **`persistence/`** (FT00008): repositorios **JDBC**
   + entidades `...Entity` de `publicacion`, `fragmento`, `resumen` y
   `cola_revision`, más los helpers JDBC compartidos; la configuración de
@@ -173,13 +187,23 @@
   parametrizados (fecha/categoría/sección/organismo) junto a la distancia coseno;
   los valores de categoría/plazo los produce la ingesta desde FT00012
   (`ingesta/categorizacion/`, ver `docs/adr/0007`). Ver `docs/adr/0012`.
+- **Backend → OpenCode** (API OpenAI-compatible, **solo salida**, con **clave
+  solo en el servidor** por entorno `OPENCODE_API_KEY`, nunca versionada ni en
+  logs): el proveedor de texto (`rag/generation/`, FT00020) envía el prompt con el
+  contexto recuperado y lee `choices[0].message.content`; los clientes HTTP fijan
+  `HttpTimeout` explícito. Es una dependencia **externa en tiempo de ejecución**, no
+  del gate: los tests del gate usan un doble/`MockEngine` sin red y la prueba real
+  es **opt-in** (`OPENCODE_LIVE_TEST=1`). La **fuente oficial** no la produce el
+  modelo: se inyecta desde `Publicacion.urlOficial` (ver `docs/adr/0015`).
 - **Backend:** `plugins/` (HTTP) → servicios → dominio puro → repositorios y
   clientes → `infra/`.
 - **IA:** embeddings **locales** (ONNX) y generación/chat **remoto** (OpenCode),
   cada uno tras una interfaz intercambiable. Los embeddings están **implementados**
   como librería en `rag/embeddings/` (FT00015, ADR 0010): E5 int8 vía ONNX Runtime
   en CPU, tras `EmbeddingProvider`; **no** cableados aún y sin anticipar
-  pgvector/HNSW (FT00016).
+  pgvector/HNSW (FT00016). La **generación** está implementada como librería en
+  `rag/generation/` + `rag/summary/` (FT00020, ADR 0015), tras
+  `TextGenerationProvider`, **sin** wiring ni endpoints.
 - **Datos:** PostgreSQL + pgvector; migraciones Flyway (`V1` esquema base, `V2`
   persistencia, `V3` embedding + HNSW). Sin cuentas ni datos personales.
 

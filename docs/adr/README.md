@@ -72,3 +72,4 @@ Aceptado (<AAAA-MM-DD>). [Quién decide y, si aplica, qué ADR supersede/ajusta.
 | [0012](0012-recuperacion-hibrida-filtros.md) | Recuperación híbrida: filtros SQL parametrizados por metadatos + similitud e indexado mínimo | Aceptado |
 | [0013](0013-evaluacion-recuperacion-golden-set.md) | Evaluación de la recuperación con golden set versionado, métricas puras y CLI one-shot opt-in | Aceptado |
 | [0014](0014-validacion-contrato-resumen-shared.md) | Validación del contrato del resumen ciudadano en `:shared` | Aceptado |
+| [0015](0015-generacion-resumen-proveedor-intercambiable.md) | Generación del resumen ciudadano tras un proveedor de texto intercambiable, con la fuente inyectada | Aceptado |

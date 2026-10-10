@@ -97,6 +97,31 @@
   pendiente de validación independiente. Siguiente feature lista:
   `generacion-resumen-go` (FT00020, depende de FT00017 + FT00019) o
   `english-identifiers-rename` (FT00047).
+- **FT00020 `generacion-resumen-go` → `passing`** (Session 052): **generación del
+  resumen ciudadano** en `:backend` como **librería sin wiring**, en dos paquetes
+  nuevos. `rag/generation/`: interfaz `suspend` `TextGenerationProvider` +
+  `GenerationRequest`/`GenerationResponse` internos (sin sufijo) +
+  `TextGenerationException`; `OpenCodeConfig` (fail-fast de `OPENCODE_API_KEY`, base
+  `https://opencode.ai/zen/go/v1`, modelo `deepseek-v4.1-flash`, temperatura `0.0`) e
+  `OpenCodeTextGenerationProvider` (Ktor + DTOs de wire con sufijo `Dto` y
+  `@SerialName`, `Bearer`, `POST {baseUrl}/chat/completions`, parseo de
+  `choices[0].message.content`, factory `openCodeHttpClient`). `rag/summary/`:
+  `SummaryGenerationDto.toResumenDto(source)` que **inyecta** `fuenteOficial` y
+  `avisoIA = true`; `SummaryOutputParser` (quita *fences*; vacío/JSON inválido ⇒
+  `SummaryGenerationException`); `CitizenSummaryPromptBuilder` (contexto delimitado
+  como **datos, no instrucciones**; variante empleo/beca pide plazo);
+  `CitizenSummaryResult.Valid`/`Invalid` y `CitizenSummaryGenerator` (recupera con
+  `HybridSearch` → prompt → proveedor → parser → inyecta fuente →
+  `CitizenSummaryValidator`; fail-fast si `categoria` nula). Gate sin red ni BD
+  verde (`:backend` **253 tests**, 0 fallos; nuevos 28: `OpenCodeConfigTest` 5,
+  `OpenCodeTextGenerationProviderTest` 5, `SummaryOutputParserTest` 7,
+  `CitizenSummaryPromptBuilderTest` 6, `CitizenSummaryGeneratorTest` 5;
+  `build -PskipClient` 23 tareas, `test` 3 módulos, `detekt`+`:cpdCheck`,
+  `init.sh` exit 0). Prueba real **opt-in** `CitizenSummaryGeneratorLiveTest`
+  (`OPENCODE_LIVE_TEST=1`, sin PostgreSQL ni ONNX) **no ejecutada** por falta de
+  `OPENCODE_API_KEY`; el fail-fast sin clave lo cubre `OpenCodeConfigTest`. Decisión
+  durable en **ADR 0015**; pendiente de validación independiente. Siguiente feature
+  lista: `cacheo-resumenes` (FT00021) o `english-identifiers-rename` (FT00047).
 - Última verificación: 2026-10-10 (Sessions 032–038). **Cambio de alcance 1.0.0 =
   TODO el BOE** (secciones I, II.A, II.B, III, IV, V.A, V.B y V.C; ningún campo ni
   sección se excluye) y nueva norma MUST de **`@SerialName` explícito** en cada
@@ -2759,3 +2784,65 @@
   validación independiente (`feature-validator`). **No** se marca `accepted`.
 - Siguiente mejor paso: validar `contrato-resumen-ciudadano` (FT00019). Siguiente
   rol: `validator`.
+
+### Session 052
+
+- Fecha: 2026-10-10
+- Objetivo: implementar `generacion-resumen-go` (FT00020) en `:backend`: la
+  generación del resumen ciudadano tras un proveedor de texto intercambiable.
+- Completado (solo ficheros nuevos + docs; sin tocar `ResumenDto`,
+  `CitizenSummaryValidator`, `HybridSearch`, `Application.kt`, `ingesta/`,
+  `persistence/`, migraciones, `:shared`, `:composeApp`, CI ni `init.sh`):
+  - `rag/generation/TextGenerationProvider.kt`: interfaz `suspend` +
+    `GenerationRequest`/`GenerationResponse` internos (sin sufijo) +
+    `TextGenerationException` tipada.
+  - `rag/generation/OpenCodeConfig.kt`: config por entorno con **fail-fast** de
+    `OPENCODE_API_KEY`; `OPENCODE_BASE_URL` (default
+    `https://opencode.ai/zen/go/v1`), `OPENCODE_MODEL` (`deepseek-v4.1-flash`) y
+    `OPENCODE_TEMPERATURE` (`0.0`).
+  - `rag/generation/OpenCodeTextGenerationProvider.kt`: impl Ktor con DTOs de wire
+    `@Serializable` (sufijo `Dto`, `@SerialName` explícito), `Bearer`, `POST
+    {baseUrl}/chat/completions`, parseo de `choices[0].message.content`, errores
+    tipados y factory `openCodeHttpClient()` (CIO + `ContentNegotiation` +
+    `HttpTimeout`).
+  - `rag/summary/SummaryGenerationDto.kt`: DTO de salida + `toResumenDto(source)`
+    que **inyecta** `fuenteOficial` y `avisoIA = true`.
+  - `rag/summary/SummaryOutputParser.kt`: puro; quita *fences*; vacío/JSON inválido
+    ⇒ `SummaryGenerationException`.
+  - `rag/summary/CitizenSummaryPromptBuilder.kt`: puro; contexto delimitado como
+    **datos, no instrucciones**; variante empleo/beca pide plazo; contexto acotado.
+  - `rag/summary/CitizenSummaryResult.kt`: `sealed interface` `Valid`/`Invalid` +
+    `SummaryGenerationException`.
+  - `rag/summary/CitizenSummaryGenerator.kt`: servicio que recupera con
+    `HybridSearch`, construye prompt, invoca proveedor, parsea, inyecta fuente y
+    valida con `CitizenSummaryValidator`; devuelve `Valid`/`Invalid`; fail-fast si
+    `categoria` nula.
+- Verificación ejecutada (desde `..`, `JAVA_HOME` del JBR 21):
+  - `./gradlew :backend:test --rerun-tasks` → BUILD SUCCESSFUL; XML de `:backend`
+    **253 tests, 0 fallos/errores**; nuevos 28: `OpenCodeConfigTest` 5/0/0,
+    `OpenCodeTextGenerationProviderTest` 5/0/0, `SummaryOutputParserTest` 7/0/0,
+    `CitizenSummaryPromptBuilderTest` 6/0/0, `CitizenSummaryGeneratorTest` 5/0/0;
+    `CitizenSummaryGeneratorLiveTest` omitido lógicamente.
+  - `./gradlew build --no-daemon -PskipClient` → BUILD SUCCESSFUL (23 tareas,
+    incluye `:backend:detekt` y `:cpdCheck`).
+  - `./gradlew test` → BUILD SUCCESSFUL (`:backend` 253, `:shared:jvmTest` 26,
+    `:composeApp:jvmTest` 1; 0 fallos).
+  - `./gradlew detekt` → BUILD SUCCESSFUL (`cpdCheck` + detekt de los 3 módulos);
+    `env -u JAVA_HOME .harness/init.sh` → **exit 0** («Gate OK»).
+  - Escenario 9 **opt-in NO ejecutado**: no hay `OPENCODE_API_KEY` en el entorno;
+    no se inventan salidas. Sin `OPENCODE_LIVE_TEST` el test se omite sin abrir
+    sockets; el fail-fast sin clave lo cubre `OpenCodeConfigTest`.
+- Docs durables: `ARCHITECTURE.md` (`rag/generation/`+`rag/summary/` y nueva
+  frontera **Backend → OpenCode**), `CONSTRAINTS.md` §«Generación de resumen
+  ciudadano», **ADR 0015**
+  (`docs/adr/0015-generacion-resumen-proveedor-intercambiable.md`) + índice, skill
+  `rag-datapublico` §5 («Estado actual del producto (FT00020)») y
+  `docs/desarrollo-local.md` (sección de generación + comando opt-in).
+  `feature_list.json` FT00020 → **`passing`** con evidencia real.
+- Riesgo o duda sin resolver: recuperación no acotada a la publicación (filtro
+  heurístico por metadatos), inyección de prompt solo mitigada (guardrails FT00022),
+  contexto acotado por constantes y coste/latencia sin caché (FT00021).
+- Estado: **FT00020 `passing`** (implementada y autoverificada). Pendiente:
+  validación independiente (`feature-validator`). **No** se marca `accepted`.
+- Siguiente mejor paso: validar `generacion-resumen-go` (FT00020). Siguiente rol:
+  `validator`.

@@ -63,6 +63,39 @@
   las afirmaciones fuera del contexto recuperado son **guardrails de contenido**
   (FT00022). Tampoco cambia el **contrato de wire** de `ResumenDto` (congelado).
 
+## Generación de resumen ciudadano
+
+- **MUST**: el **proveedor de texto** va tras una **interfaz intercambiable**
+  (`rag/generation/TextGenerationProvider`, `suspend`); OpenCode la implementa
+  (`OpenCodeTextGenerationProvider`) y es la **única** pieza que conoce Ktor/HTTP.
+  La **clave** vive **solo en el servidor** (`OPENCODE_API_KEY` por entorno; nunca
+  versionada ni en logs) y su ausencia es **fail-fast** (`TextGenerationException`).
+  Decisión durable en `docs/adr/0015`.
+- **MUST**: la **fuente oficial se inyecta** de forma determinista desde
+  `Publicacion.urlOficial` (`SummaryGenerationDto.toResumenDto`) y `avisoIA = true`;
+  **nunca** la produce el modelo. La salida del modelo solo aporta «¿Qué cambia?»,
+  «¿A quién afecta?», «Cifras clave» y, si procede, el plazo.
+- **MUST**: la salida se **valida** con `CitizenSummaryValidator` (FT00019); un
+  resumen que no cumple el contrato **no se publica**: el servicio devuelve
+  `CitizenSummaryResult.Invalid` con las violaciones (resultado tipado, **no** una
+  excepción). Una salida **no parseable** (vacía o JSON inválido) es un fallo
+  distinto: lanza `SummaryGenerationException` tipada.
+- **MUST**: el prompt trabaja **solo** con el contexto recuperado y lo delimita
+  como **datos, no instrucciones**; la variante de empleo/beca
+  (`OPOSICIONES_Y_EMPLEO_PUBLICO`, `BECAS_SUBVENCIONES_Y_AYUDAS`) pide **plazo**.
+  `publication.categoria` nula es **fail-fast** (`IllegalArgumentException`) antes
+  de recuperar o invocar al proveedor.
+- **MUST NOT**: la generación es una **librería sin wiring**: **no** se construye
+  en `Application.kt`/job/backfill, no añade endpoints/UI ni migración, y **no**
+  anticipa lo diferido — **sin** cacheo ni control de coste (FT00021), **sin**
+  guardrails de contenido/alcanzabilidad (FT00022), **sin** cola de revisión ni
+  aviso de IA (FT00022/FT00023) y **sin** chat (FT00025). No se modifican
+  `ResumenDto`/`CitizenSummaryValidator`/`HybridSearch` (se reutilizan).
+- **MUST**: la prueba real contra OpenCode es **opt-in**
+  (`OPENCODE_LIVE_TEST=1`, fail-fast sin clave), fuera de `build`/`test`/`init.sh` y
+  de la CI; el gate cubre config, proveedor (`MockEngine`), parser, prompt y servicio
+  con **dobles deterministas**, sin red ni BD.
+
 ## Categorización y plazos
 
 - **MUST**: la categoría de una publicación es una **regla curada determinista**

@@ -35,7 +35,7 @@
 | FT00017 | recuperacion-hibrida | Recuperación híbrida de fragmentos | rag | accepted |
 | FT00018 | evaluacion-recuperacion | Evaluación de recuperación (precision/recall) | rag | accepted |
 | FT00019 | contrato-resumen-ciudadano | Contrato del resumen ciudadano | simplificacion-ia | accepted |
-| FT00020 | generacion-resumen-go | Generación de resumen con OpenCode | simplificacion-ia | not_started |
+| FT00020 | generacion-resumen-go | Generación de resumen con OpenCode | simplificacion-ia | accepted |
 | FT00021 | cacheo-resumenes | Cacheo de resúmenes y control de coste | simplificacion-ia | not_started |
 | FT00022 | guardrails-anti-alucinacion | Guardrails anti-alucinación y trazabilidad | simplificacion-ia | not_started |
 | FT00023 | cola-revision-confianza | Cola de revisión por baja confianza | simplificacion-ia | not_started |

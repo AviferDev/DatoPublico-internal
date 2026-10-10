@@ -184,6 +184,33 @@ ingesta BOE → chunking → embeddings (ONNX) → pgvector → recuperación h�
   el **aviso de IA** se exige en FT00023. La **generación** (prompts, OpenCode) es
   FT00020.
 
+### Estado actual del producto (FT00020)
+
+- La **generación del resumen ciudadano** ya está implementada en `:backend` como
+  **librería sin wiring**, en dos paquetes: `rag/generation/` (interfaz
+  `TextGenerationProvider` `suspend` + `GenerationRequest`/`GenerationResponse` +
+  `TextGenerationException`; config `OpenCodeConfig` con **fail-fast** de
+  `OPENCODE_API_KEY`, base URL `https://opencode.ai/zen/go/v1`, modelo
+  `deepseek-v4.1-flash` y temperatura `0.0`; impl `OpenCodeTextGenerationProvider`
+  con DTOs de wire sufijo `Dto`, `Bearer`, `POST {baseUrl}/chat/completions` y
+  factory `openCodeHttpClient`) y `rag/summary/` (`CitizenSummaryPromptBuilder`
+  puro que delimita el contexto como **datos, no instrucciones** y pide plazo en
+  empleo/beca; `SummaryOutputParser` puro que quita *fences* y falla con
+  `SummaryGenerationException`; `SummaryGenerationDto.toResumenDto` que **inyecta**
+  `fuenteOficial` desde `Publicacion.urlOficial` y `avisoIA = true`;
+  `CitizenSummaryResult.Valid`/`Invalid` y `CitizenSummaryGenerator`, que compone
+  `HybridSearch` → prompt → proveedor → parser → `CitizenSummaryValidator`).
+  Decisión durable en `docs/adr/0015`.
+- **La fuente oficial no la produce el modelo**: se inyecta de forma determinista;
+  un resumen que no cumple el contrato **no se publica** (`Invalid` con las
+  violaciones, no una excepción). `publication.categoria` nula es fail-fast.
+- **Sin wiring** (`Application.kt`/job/backfill, migraciones, `:shared` y
+  `:composeApp` intactos) y **sin** cacheo (FT00021), guardrails (FT00022) ni chat
+  (FT00025). **Verificación**: el gate cubre config, proveedor (`MockEngine`),
+  parser, prompt y generador con **dobles deterministas**, sin red ni BD; la prueba
+  real es **opt-in** (`OPENCODE_LIVE_TEST=1`, sin PostgreSQL ni ONNX; fail-fast sin
+  clave).
+
 ## 6. Guardrails (anti-alucinación y trazabilidad)
 
 - Ningún resumen se publica sin **enlace válido** a la fuente oficial.
