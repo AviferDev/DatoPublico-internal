@@ -53,6 +53,20 @@ wire:
 Evidencia en `feature_list.json` (FT00002) y `PROGRESS.md`; tests actualizados en
 `CategoriaWireTest` (8 secciones) sin tocar el JSON de wire.
 
+## Nota de reparación: integridad de árbol y evidencia (2026-10-10, `revise`)
+
+El validator confirmó el **contenido funcional** (8 valores, `@SerialName` completo,
+`CategoriaWireTest` con 8 secciones, gate verde) y devolvió `revise` por integridad
+de árbol/evidencia. Reparación acotada, sin cambios de código:
+
+- **Technical Approach (deuda L2)**: alineado con el alcance real — `SeccionBoeDto`
+  con los **8** valores (`I`, `II.A`, `II.B`, `III`, `IV`, `V.A`, `V.B`, `V.C`) y
+  `@SerialName` explícito en **toda** propiedad.
+- **Cuerda de evidencia (bloqueante B1)**: `feature_list.json` (FT00002) deja de
+  afirmar que la raíz del build queda intacta, ya que este cambio **sí** toca
+  `:shared`; se anota que el árbol de trabajo convive con el workstream de tooling
+  **Session 033**, ajeno a FT00002.
+
 ## Goal
 
 Dotar al módulo `:shared` del **contrato de datos base** que backend y cliente
@@ -169,9 +183,15 @@ Contrato de datos puro, sin lógica, en `:shared`:
    `es.aviferdev.datopublico.model`, todos anotados `@Serializable`:
    - `Categoria` (enum, 11 valores) con `@SerialName` en `snake_case`: tokens
      estables de wire (p. ej. `normas_y_legislacion`). **El token es contrato**:
-     no renombrar sin migración.
-   - `SeccionBoe` (enum: `I`, `II_A`, `II_B`, `III`, `V_B`) con `@SerialName`
-     `"I"`, `"II.A"`, `"II.B"`, `"III"`, `"V.B"`.
+     no renombrar sin migración. (Tras la convención de nombres: `CategoriaDto`.)
+   - `SeccionBoeDto` (enum, **8 valores**: `I`, `II_A`, `II_B`, `III`, `IV`, `V_A`,
+     `V_B`, `V_C`) con `@SerialName` `"I"`, `"II.A"`, `"II.B"`, `"III"`, `"IV"`,
+     `"V.A"`, `"V.B"`, `"V.C"`. **Ninguna sección se excluye** (alcance 1.0.0 =
+     todo el sumario del BOE).
+   - **Toda propiedad** de un `@Serializable` lleva `@SerialName` explícito —en los
+     DTO y en los valores de enum—, aunque el nombre Kotlin coincida con la clave
+     JSON (norma MUST de `CONSTRAINTS.md` §«Serialización»). El token de wire no
+     cambia: la anotación redundante es deliberada.
    - `Plazo` (`data class`): `fechaLimite: String` (ISO-8601) y
      `descripcion: String?`. Sin `java.time` (rompe iOS/Wasm).
    - `Resumen` (`data class`): `queCambia: String`, `aQuienAfecta: String`,

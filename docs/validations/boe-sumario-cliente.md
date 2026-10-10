@@ -1,5 +1,7 @@
 # Validación — boe-sumario-cliente (FT00006)
 
+> **Nota (2026-10-10):** este documento recoge la validación **original** (alcance de 5 secciones: I, II.A, II.B, III, V.B) y la revalidación del refactor de **retorno único**. Ambas quedan **superadas** por el **cambio de alcance** a todo el BOE (8 secciones) y la norma de `@SerialName`; ver la sección **«Revalidación del cambio de alcance y `@SerialName`»** al final.
+
 - Fecha: 2026-10-10
 - Rol: `validator` (independiente del implementador)
 - Feature: `boe-sumario-cliente` (FT00006), estado de entrada: `passing`
@@ -87,3 +89,31 @@ Tras la duda «¿por qué `EntradaSumario` no tiene sufijo?» (decisión del own
   anteriores ni serializables → `EntradaSumario` es correcto tal cual.
 - Documentado en `CONSTRAINTS.md` §«Nombres y contratos» y `ARCHITECTURE.md`
   §«Convenciones de nombres». Sin cambios de código.
+
+## Revalidación del cambio de alcance y `@SerialName` — 2026-10-10
+
+- Veredicto: **`accept`** (revalidación independiente, `feature-validator`), tras una primera pasada `revise` (integridad de árbol/evidencia) reparada.
+- **Alcance nuevo**: la 1.0.0 cubre **todo el sumario del BOE** — secciones I, II.A, II.B, III, IV, V.A, V.B y V.C (códigos `1`, `2A`, `2B`, `3`, `4`, `5A`, `5B`, `5C`); **ninguna sección se excluye** y se usan **todos los campos** (incluida `urlPdf`).
+- **`@SerialName` explícito** en **toda** propiedad de los DTOs `@Serializable` de `:shared` (`PublicacionDto` 10, `ResumenDto` 6, `PlazoDto` 2, `ResumenDiarioDto` 2) y de `:backend` (`SumarioWireDto` 36, `HealthDto` 1); 0 propiedades y 0 valores de enum sin `@SerialName`. `SeccionBoeDto` pasa a **8** valores. JSON de wire invariante.
+
+### Checks reejecutados (evidencia real)
+
+| Check | Resultado |
+| --- | --- |
+| `:shared:jvmTest --rerun-tasks` | BUILD SUCCESSFUL — SmokeTest 1, CategoriaWireTest 3, SerializationTest 7 (**11 tests**) |
+| `:backend:test --rerun-tasks` | BUILD SUCCESSFUL — SmokeTest 1, AppConfigTest 6, HealthTest 2, **SumarioParsingTest 5**, BoeSumarioClientTest 5, BoeSumarioLiveTest 1 (**20 tests, 0 fallos**) |
+| Recuentos por sección | `20261009` → **237** (I 5/II.A 16/II.B 31/III 69/**V.A 32**/V.B 84); `20240102` → **143** (II.A 6/II.B 24/III 18/**IV 24**/**V.A 51**/V.B 16/**V.C 4**) |
+| `departamento.texto.item` (IV/V.C) | Modelado (`BoeTextoDto`); `BOE-B-2024-1` (IV) y `BOE-B-2024-92` (V.C) extraídos correctamente |
+| Unión de las 8 secciones | Nuevo test `la union de las secciones de ambos fixtures cubre las ocho del BOE` (`SeccionBoeDto.entries`) |
+| Gate | `./gradlew build --no-daemon` (**201 tareas**, con detekt/CPD de Session 033), `./gradlew test` (3 módulos), `env -u JAVA_HOME .harness/init.sh` **exit 0** |
+| API real (`curl` 20240102) | HTTP 200; incluye IV 24/V.A 51/V.C 4 (total 143) |
+| Retorno único | 5 salidas únicas; 0 `return@` |
+
+### Alcance / integridad de árbol
+
+- La feature **sí** toca `:shared` (8 secciones + `@SerialName`). El **árbol de trabajo** convive con el workstream de tooling **Session 033** (detekt/CPD, `settings.gradle.kts`, `libs.versions.toml`, `opencode.json`, `config/`), **ajeno** a FT00002/FT00006 y que el orquestador commitea por separado.
+- Pendiente de cierre (no bloqueante, ajeno a la funcionalidad): refrescar/registrar en `PROGRESS.md` (fichero compartido con Session 033) y marcar como históricas las líneas de evidencia superadas en `feature_list.json`.
+
+### Seguridad
+
+Sin hallazgos: API pública de solo lectura, sin credenciales ni datos personales de usuarios; URL construida solo desde constante + `LocalDate.format(BASIC_ISO_DATE)`; errores tipados; sin red en el gate (test opt-in guardado por `BOE_LIVE_TEST`).

@@ -7,7 +7,7 @@
 - `parts`: none (atomic — 1 integración + 1 modelo + tests)
 - `area`: ingesta-boe
 - `depends_on`: bootstrap-shared-dtos (FT00002, `accepted`), bootstrap-ktor-healthcheck (FT00004, `accepted`)
-- `status`: accepted (implementada, validada y revalidada tras el MUST de retorno único y la aclaración de la convención de nombres — ver *Nota de reparación* y `docs/validations/boe-sumario-cliente.md`; rama `feat/ft00006-boe-sumario-cliente`, claim `03b00b8`)
+- `status`: passing (implementada y autoverificada; el **cambio de alcance** a todo el sumario del BOE está pendiente de validación independiente — ver *Nota de reparación* y `docs/validations/boe-sumario-cliente.md`; rama `feat/ft00006-boe-sumario-cliente`, claim `03b00b8`)
 - `source`: `feature_list.json`
 
 ## Nota de reparación: retorno único (2026-10-10, reapertura)
@@ -54,11 +54,35 @@ I 5/II.A 16/II.B 31/III 69/V.A 32/V.B 84; 20240102: 143 = II.A 6/II.B 24/III 18/
 IV 24/V.A 51/V.B 16/V.C 4) y `urlPdf`. El test opt-in usa un día con las ocho
 secciones (2024-01-09). Sin cambiar el formato de wire.
 
+## Nota de reparación: integridad de árbol y evidencia (2026-10-10, `revise`)
+
+El validator confirmó el **contenido funcional** (recuentos 237/143, `@SerialName`
+completo, `texto.item` de IV/V.C, gate verde) y devolvió `revise` por integridad
+del árbol y de la evidencia. Reparación acotada, sin tocar el cliente:
+
+- **Cobertura de las 8 secciones (deuda L1)**: ningún fixture individual trae las
+  ocho secciones (`20261009` → I, II.A, II.B, III, V.A, V.B; `20240102` → II.A,
+  II.B, III, IV, V.A, V.B, V.C). `SumarioParsingTest` añade una aserción de que la
+  **unión** de las secciones de ambos fixtures cubre las 8
+  (`SeccionBoeDto.entries`), sin crear fixtures nuevos.
+- **Cuerpos de spec (deuda L2)**: este Goal, los Non-Goals, el Scenario 1, el
+  Technical Approach y el Validator Checklist se alinean con el alcance real
+  (todas las secciones I, II.A, II.B, III, IV, V.A, V.B y V.C; **todos** los
+  campos, incluida `url_pdf`; sin exclusiones). El cambio **sí** toca `:shared`
+  (8 valores de `SeccionBoeDto`, `@SerialName` en cada propiedad), algo que las
+  secciones antiguas daban por intacto.
+- **Cuerda de evidencia (bloqueante B1)**: `feature_list.json` deja de afirmar que
+  `:shared`/la raíz/`settings.gradle.kts` quedan intactos y anota que el árbol de
+  trabajo convive con el workstream de tooling separado **Session 033**, que **no**
+  forma parte de FT00002/FT00006. Sin cambios de código.
+
 ## Goal
 
 Añadir en `:backend` un **cliente de la API de datos abiertos del BOE** que, dada
-una fecha, obtiene el **sumario diario** y devuelve las **entradas** de las
-Secciones **I, II.A, II.B, III y V.B** (excluyendo IV y V.A). Es la base de
+una fecha, obtiene el **sumario diario** y devuelve las **entradas de todas las
+secciones** del sumario (**I, II.A, II.B, III, IV, V.A, V.B y V.C**), con **todos
+los campos** de cada entrada (identificador, control, título, fecha, organismo,
+epígrafe y URLs html/xml/pdf, incluida `urlPdf`). Es la base de
 `docs/roadmap.md` 0.2-T01: el parser de publicaciones (FT00007), la persistencia
 (FT00008) y el job diario (FT00009) consumirán estas entradas.
 
@@ -75,7 +99,6 @@ sus tests, lista para ser invocada por features posteriores.
 - **Job programado**, reintentos, backoff, segunda pasada y backfill → FT00009/FT00011.
 - **Endpoint HTTP** que exponga el sumario: no es una API pública → FT00026+.
 - **Observabilidad/alertas de ingesta** → FT00010.
-- **Secciones IV (Justicia) y V.A (licitaciones)**: excluidas (MUST en `CONSTRAINTS.md`).
 - **Formato XML** del sumario y **caché** de respuestas: fuera de alcance (se usa JSON).
 
 ## Job Story
@@ -94,13 +117,14 @@ respuesta cruda de la fuente en cada feature.
 
 ## Acceptance Scenarios
 
-### Scenario 1: parseo de un fixture real (secciones objetivo)
+### Scenario 1: parseo de un fixture real (todas las secciones)
 
 Given un fixture real del sumario del BOE en JSON (`200`),
 When el cliente lo procesa,
-Then devuelve las entradas de las Secciones **I, II.A, II.B, III y V.B** con
-identificador, título, control, fecha, organismo, epígrafe y URLs, y **no**
-devuelve ninguna entrada de la Sección **V.A** (ni de la **IV**).
+Then devuelve las entradas de **todas** las Secciones del BOE (**I, II.A, II.B,
+III, IV, V.A, V.B y V.C**) con identificador, título, control, fecha, organismo,
+epígrafe y URLs html/xml/pdf (incluida `urlPdf`), **sin descartar ninguna
+sección**.
 
 ### Scenario 2: `item` como objeto o como array
 
@@ -148,8 +172,8 @@ objetivo. **Fuera del gate y de la CI** (ver *Verification Plan*).
 - `.harness/docs/roadmap.md` §0.2.0 (`0.2-T01`) y
   `docs/technical-discovery.md` (BOE: sumario diario, secciones, fixtures reales).
 - `.harness/docs/domain-model.md` (Sección/Epígrafe, Fuente oficial), `CONTEXT.md`,
-  `ARCHITECTURE.md`, `CONSTRAINTS.md` (secciones excluidas, gate sin servicios
-  externos, sin credenciales versionadas, fail-fast) y skill
+  `ARCHITECTURE.md`, `CONSTRAINTS.md` (gate sin servicios externos, sin
+  credenciales versionadas, fail-fast) y skill
   `ktor-backend-architecture` (layout `ingesta/`, regla de dependencia, wiring
   condicional, tests con fixtures reales).
 - Producto `..`: `backend/build.gradle.kts` (Kotlin JVM, `kotlin.serialization`,
@@ -189,7 +213,9 @@ objetivo. **Fuera del gate y de la CI** (ver *Verification Plan*).
    `:backend`, `implementation` de `ktor-client-core`, `ktor-client-cio`,
    `ktor-client-content-negotiation` (`ktor-serialization-kotlinx-json` ya está)
    y `testImplementation` de `ktor-client-mock` y `kotlinx-coroutines-test`.
-   **Sin** tocar Flyway, `:shared` ni la raíz.
+   **Sin** tocar Flyway ni la raíz; **sí** se amplía `:shared` (8 valores de
+   `SeccionBoeDto` y `@SerialName` explícito en cada propiedad, ver el spec
+   `bootstrap-shared-dtos`), porque el alcance pasa a ser todo el sumario del BOE.
 2. **Modelo de wire** (`ingesta/sumario/SumarioWireDto.kt`, `@Serializable` con
    `@SerialName` para las claves del BOE: `fecha_publicacion`, `sumario_diario`,
    `url_html`, `url_xml`, `url_pdf`…): `BoeSumarioResponseDto`, `…DataDto`,
@@ -203,16 +229,19 @@ objetivo. **Fuera del gate y de la CI** (ver *Verification Plan*).
    serialización ni sufijo `Dto`): `identificador`, `control`, `titulo`,
    `fechaPublicacion` (ISO-8601 `String`, coherente con `PublicacionDto`),
    `seccion: SeccionBoeDto`, `organismo: String?`, `epigrafe: String?`,
-   `urlOficial: String` (HTML `txt.php?id=…`), `urlXml: String?` (para FT00007).
+   `urlOficial: String` (HTML `txt.php?id=…`, con respaldo de `urlPdf.texto`),
+   `urlXml: String?` (para FT00007) y `urlPdf: String?` (URL del PDF).
 5. **Cliente** (`ingesta/sumario/BoeSumarioClient.kt` +
    `BoeSumarioHttpClient.kt`): interfaz
    `BoeSumarioClient { suspend fun obtenerSumario(fecha: LocalDate): List<EntradaSumario> }`.
    Implementación con `HttpClient` **inyectado** y
    `baseUrl = "https://www.boe.es/datosabiertos/api"`; pide
    `GET {base}/boe/sumario/{BASIC_ISO_DATE}` con `Accept: application/json` y
-   `expectSuccess = false`. **Filtro** por `codigo`: `1→I`, `2A→II_A`, `2B→II_B`,
-   `3→III`, `5B→V_B`; `4` y `5A` se descartan. `404` → lista vacía; otro estado o
-   fallo de red → `BoeSumarioException` (tipada). Factory
+   `expectSuccess = false`. **Mapeo** de `codigo` a las **ocho** secciones
+   (`1→I`, `2A→II.A`, `2B→II.B`, `3→III`, `4→IV`, `5A→V.A`, `5B→V.B`, `5C→V.C`);
+   ninguna se descarta (solo un código ajeno al sumario → `null`). Las Secciones
+   IV y V.C llegan bajo `departamento.texto.item`. `404` → lista vacía; otro estado
+   o fallo de red → `BoeSumarioException` (tipada). Factory
    `boeSumarioHttpClient(baseUrl: String): HttpClient` (CIO + `ContentNegotiation`
    con `DatoPublicoJson`).
 6. **Sin wiring en el arranque:** `Application.kt` **no** crea ni invoca el
@@ -237,9 +266,13 @@ Rutas en el repo de producto (`..`):
 - `backend/src/test/resources/boe/sumario-20261009.json` — create (fixture real, `item` objeto; incluye `5A`).
 - `backend/src/test/resources/boe/sumario-20240102.json` — create (fixture real, `item` array).
 - `docs/desarrollo-local.md` — update (opcional, ligero): endpoint del BOE y check opt-in.
+- `shared/src/commonMain/kotlin/es/aviferdev/datopublico/model/SeccionBoeDto.kt` —
+  modify (alcance): 8 valores (`I`…`V.C`), sin exclusiones.
+- `shared/src/commonMain/kotlin/es/aviferdev/datopublico/model/{PublicacionDto,ResumenDto,PlazoDto,ResumenDiarioDto}.kt` — modify (norma): `@SerialName` explícito en cada propiedad.
 
-No se toca la raíz del build, `:shared`, `:composeApp`, `.github/workflows/ci.yml`,
-`Application.kt` ni las migraciones Flyway.
+No se toca la raíz del build, `:composeApp`, `.github/workflows/ci.yml`,
+`Application.kt` ni las migraciones Flyway. **`:shared` sí se modifica** (alcance a
+todo el sumario + `@SerialName`), a diferencia del planteamiento original.
 
 ## Visual Design Impact
 
@@ -264,7 +297,7 @@ No se toca la raíz del build, `:shared`, `:composeApp`, `.github/workflows/ci.y
 2. Definir los wire DTOs `@Serializable` del sobre del BOE.
 3. Implementar el serializador «objeto o array» para `item`.
 4. Crear `EntradaSumario` y el cliente (interfaz + implementación Ktor + factory),
-   con filtro de secciones y manejo de `404`/errores.
+   con mapeo de secciones y manejo de `404`/errores.
 5. Capturar dos fixtures reales (objeto y array) y escribir los tests con
    `MockEngine`; añadir el test opt-in contra la API real.
 6. Verificar `:backend:test` y el gate sin red; actualizar
@@ -279,9 +312,9 @@ No se toca la raíz del build, `:shared`, `:composeApp`, `.github/workflows/ci.y
 - [ ] Wire DTOs del sobre del sumario (`@SerialName`, campos opcionales).
 - [ ] Serializador `item` objeto/array (y defensivo para contenedores).
 - [ ] `EntradaSumario` (identificador, control, título, fecha, sección, organismo,
-      epígrafe, `urlOficial`, `urlXml`).
-- [ ] `BoeSumarioClient` + `BoeSumarioHttpClient` + factory; filtro `1/2A/2B/3/5B`,
-      exclusión `4`/`5A`, `404`→vacío, error tipado.
+      epígrafe, `urlOficial`, `urlXml`, `urlPdf`).
+- [ ] `BoeSumarioClient` + `BoeSumarioHttpClient` + factory; mapeo de las **ocho**
+      secciones (`1/2A/2B/3/4/5A/5B/5C`), sin exclusiones, `404`→vacío, error tipado.
 - [ ] Fixtures reales `20261009` (objeto) y `20240102` (array).
 - [ ] Tests con `MockEngine`: parseo, filtrado, `item` objeto/array, `404`, error.
 - [ ] Test opt-in `BoeSumarioLiveTest` (env-gated) fuera del gate.
@@ -295,8 +328,9 @@ Desde la raíz del producto (`..`, JDK 21 vía JBR/`JAVA_HOME`):
 - **Fixtures (verificación 1, en el gate):**
   `./gradlew :backend:test --rerun-tasks` → BUILD SUCCESSFUL, XML sin
   failures/errors. `BoeSumarioClientTest`/`SumarioParsingTest` con `MockEngine`
-  (sin red) comprueban: entradas de I/II.A/II.B/III/V.B, exclusión de V.A, parseo
-  de `item` objeto y array, `404`→lista vacía y error no-2xx → excepción.
+  (sin red) comprueban: entradas de **todas** las secciones (I, II.A, II.B, III,
+  IV, V.A, V.B, V.C; la **unión** de ambos fixtures cubre las ocho), parseo de
+  `item` objeto y array, `404`→lista vacía y error no-2xx → excepción.
 - **Llamada real (verificación 2, manual/opt-in, fuera del gate):**
   `BOE_LIVE_TEST=1 ./gradlew :backend:test --tests '*BoeSumarioLiveTest'` contra
   una fecha laborable conocida (p. ej. `20261009`) → 200 y entradas no vacías; o
@@ -314,7 +348,8 @@ Desde la raíz del producto (`..`, JDK 21 vía JBR/`JAVA_HOME`):
 
 - Salida de `./gradlew :backend:test` con `BoeSumarioClientTest`,
   `SumarioParsingTest` y `BoeSumarioLiveTest` (opt-in), y recuento de entradas por
-  sección + exclusión de V.A sobre los fixtures.
+  sección (todas las secciones; la unión de los dos fixtures cubre las ocho) sobre
+  los fixtures.
 - Salida real de la llamada a la API (HTTP 200 y entradas no vacías) con la fecha
   usada.
 - Prueba de `404` (día sin publicación) → lista vacía.
@@ -324,12 +359,14 @@ Desde la raíz del producto (`..`, JDK 21 vía JBR/`JAVA_HOME`):
 
 ## Validator Checklist
 
-- [ ] Alcance acotado: solo el cliente del sumario + su modelo + tests; sin BD,
-      sin endpoint, sin clasificación, sin texto completo, sin job, sin descargar
-      el sumario en el arranque (`Application.kt` intacto).
+- [ ] Alcance acotado: solo el cliente del sumario + su modelo + tests y el ajuste
+      de contrato en `:shared` (8 secciones y `@SerialName`); sin BD, sin endpoint,
+      sin clasificación, sin texto completo, sin job, sin descargar el sumario en
+      el arranque (`Application.kt` intacto).
 - [ ] Escenarios 1–6 pasan (fixture real; `item` objeto/array; `404`→vacío; fecha
       `YYYYMMDD` + `Accept: application/json`; error tipado; llamada real opt-in).
-- [ ] El cliente devuelve **solo** I, II.A, II.B, III y V.B (excluye IV y V.A).
+- [ ] El cliente devuelve **todas** las secciones del BOE (I, II.A, II.B, III, IV,
+      V.A, V.B y V.C) con todos los campos (incluida `urlPdf`), sin exclusiones.
 - [ ] Los fixtures son respuestas **reales** del BOE y cubren ambas formas de `item`.
 - [ ] El gate `./gradlew build`/`init.sh` sigue verde **sin red** ni servicios
       externos; los tests de red son opt-in.
