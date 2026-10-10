@@ -193,6 +193,11 @@
 
 - **MUST**: ingesta diaria a las **9:30** más una **segunda pasada**; alerta si no
   se ejecuta.
+- **MUST**: la observabilidad de la ingesta usa **eventos de log JSON con clave
+  `event` estable** (ejecución: `ingestion.run.completed`/`ingestion.run.failed`;
+  ventana perdida: `ingestion.missed`) y la alerta de ingesta ausente es un log
+  `ERROR`; **sin** alertas externas (email, push, webhooks) ni telemetría. La
+  gracia tras una ventana se configura con `INGESTA_GRACE_MINUTES` (default 30).
 - **MUST**: migraciones Flyway versionadas; **nunca** editar una ya aplicada.
 - **MUST**: el gate de build/tests (`./gradlew build`, `.harness/init.sh`) **no**
   depende de servicios externos (base de datos). Las migraciones se ejecutan con

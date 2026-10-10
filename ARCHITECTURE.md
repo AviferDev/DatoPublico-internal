@@ -17,7 +17,11 @@
   oficial `xml.php`, cliente de texto, modelo `Publicacion` y combinador
   sumario + texto) e `ingesta/job/` (FT00009: config del horario `IngestionConfig`,
   cálculo puro del siguiente disparo `IngestionSchedule`, orquestador
-  `IngestionJob`/`DailyIngestionJob` y scheduler por corrutina `IngestionScheduler`).
+  `IngestionJob`/`DailyIngestionJob` y scheduler por corrutina `IngestionScheduler`;
+  FT00010 añade **observabilidad**: evento de log estructurado por ejecución
+  `IngestionLog`, estado en memoria de ventanas intentadas `IngestionRunState`,
+  detector puro de ventanas perdidas `MissedIngestionDetector`, sumidero de alerta
+  `IngestionAlertSink`/`LoggingAlertSink` y vigilante `IngestionWatchdog`).
   Existe **`persistence/`** (FT00008): repositorios **JDBC**
   + entidades `...Entity` de `publicacion`, `fragmento`, `resumen` y
   `cola_revision`, más los helpers JDBC compartidos; la configuración de
@@ -27,7 +31,10 @@
   condicional y no bloqueante**: solo si `INGESTA_ENABLED` está activo y la
   configuración de BD resuelve; un fallo al construirla se registra y el
   servidor sigue sirviendo `/health`; al parar se cancela el bucle y se cierran
-  el pool y los clientes HTTP.
+  el pool y los clientes HTTP. El **mismo scope** arranca el scheduler y el
+  vigilante de ventanas perdidas (`IngestionWatchdog`); la alerta es un log
+  `ERROR` estructurado (`event=ingestion.missed`), **sin** alertas externas ni
+  telemetría.
 - **`:composeApp`** — cliente Compose Multiplatform (Android, iOS, Web).
   Namespace `es.aviferdev.datopublico`. Ya **existe y compila** para
   `androidTarget`, `iosArm64`/`iosSimulatorArm64` (framework `ComposeApp`) y

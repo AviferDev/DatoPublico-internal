@@ -45,6 +45,19 @@
   anterior: **FT00008 `publicacion-persistencia` → `accepted` y fusionada** (Session
   036; PR #9, `6f3e856`+`305b344`). Siguiente feature lista:
   `ingesta-observabilidad` (FT00010).
+- Última feature cerrada: **FT00010 `ingesta-observabilidad` → `accepted`**
+  (Session 039): evento de log JSON estructurado por ejecución
+  (`IngestionLog`), vigilante interno de ventanas perdidas
+  (`IngestionWatchdog` + `MissedIngestionDetector` puro + `IngestionRunState` +
+  `IngestionAlertSink`), gracia configurable `INGESTA_GRACE_MINUTES` (default 30)
+  y cableado del vigilante en el mismo scope condicional de `Application.kt`.
+  Decisión durable en **ADR 0005**. Gate sin red ni BD verde (`:backend` 91
+  tests, 0 fallos; `build`/`test`/`detekt`+`:cpdCheck`/`init.sh` exit 0) y JSON
+  real de Logstash verificado (`event=ingestion.run.completed|failed|missed`);
+  validación independiente `accept` (`docs/validations/ingesta-observabilidad.md`);
+  commit `ee1ab2d` y **PR #11** (`feat/ft00010-ingesta-observabilidad`) hacia
+  `main`. Siguiente feature lista: `backfill-historico` (FT00011) o
+  `categorizacion-publicaciones` (FT00012).
 - Bloqueo actual: ninguno para el bootstrap. Pendiente de producto: **nombre y
   marca** (bloquea la fase de producción, no el bootstrap).
 - Convención de nombres (aclarada 2026-10-10): **todo tipo `@Serializable`/de
@@ -1853,3 +1866,81 @@
   `INGESTA_*`.
 - Siguiente mejor paso: `ingesta-observabilidad` (FT00010, depende de FT00009
   `accepted`) — rol `planner`.
+
+### Session 039
+
+- Fecha: 2026-10-10
+- Objetivo: implementar `ingesta-observabilidad` (FT00010) en el repo público:
+  log estructurado por ejecución y alerta si una ventana de ingesta no se
+  ejecuta, sin telemetría ni alertas externas.
+- Completado (rama `feat/ft00010-ingesta-observabilidad`, solo el commit de claim):
+  - `IngestionSchedule`: expuesto `zone` y nuevo `runsOn(date)` (ventanas del día,
+    ordenadas, puro).
+  - `IngestionConfig`: nueva `grace: Duration` desde `INGESTA_GRACE_MINUTES`
+    (default 30, entero > 0, fail-fast).
+  - `IngestionLog` (nuevo): `runFields` puro + `logRun`; eventos
+    `ingestion.run.completed` (INFO) / `ingestion.run.failed` (ERROR) con
+    `ingestion_date`, `total_entries`, `publications_saved`,
+    `publications_failed` y `error` (solo si falla), vía
+    `StructuredArguments.entries`.
+  - `IngestionRunState` (nuevo): ventanas intentadas en memoria seguro para
+    concurrencia.
+  - `MissedIngestionDetector` (nuevo): función `detect` **pura** (gracia, ventana
+    posterior al arranque y no intentada).
+  - `IngestionAlertSink`/`LoggingAlertSink` (nuevo): interfaz inyectable + alerta
+    `event=ingestion.missed` a `ERROR` (fecha, ventana, `grace_minutes`).
+  - `IngestionWatchdog` (nuevo): bucle de corrutina con reloj/`delay` inyectables
+    (intervalo 5 min), dedupe por ventana, no muere por excepción.
+  - `IngestionScheduler`: recibe `runState` y `logger`, marca la ventana
+    **antes** de ejecutar y emite el evento estructurado (sustituye el
+    log-resumen plano); el `catch` sigue sin matar el bucle.
+  - `Application.kt`: crea `IngestionRunState`, lo comparte con el scheduler y
+    arranca el `IngestionWatchdog` en el **mismo** scope condicional; log de
+    arranque con la gracia (`gracia=30min`). Sin recursos nuevos que cerrar.
+- Tests de gate: `IngestionLogTest` (2), `MissedIngestionDetectorTest` (4),
+  `IngestionWatchdogTest` (2, tiempo virtual y resiliencia), `IngestionConfigTest`
+  ampliado a `grace` (+1 → 8) e `IngestionSchedulerTest` (marca de ventana);
+  `IngestionScheduleTest` ampliado a `runsOn`/`zone` (+2 → 7). Sin red ni BD.
+- Verificación ejecutada (desde `..`, JAVA_HOME del JBR 21):
+  - `./gradlew :backend:test --rerun-tasks -PskipClient` → BUILD SUCCESSFUL;
+    XML sin failures/errors: **91 tests**, 0 fallos (nuevos: IngestionLogTest 2,
+    MissedIngestionDetectorTest 4, IngestionWatchdogTest 2; IngestionConfigTest 8,
+    IngestionScheduleTest 7, IngestionSchedulerTest 1; `IngestionJobLiveTest`
+    omitido sin `DB_LIVE_TEST`).
+  - `./gradlew build --no-daemon -PskipClient` → BUILD SUCCESSFUL (23 tareas).
+  - `./gradlew test` → BUILD SUCCESSFUL (agrega `:shared:jvmTest`, `:backend:test`,
+    `:composeApp:jvmTest`).
+  - `./gradlew detekt --rerun-tasks` → BUILD SUCCESSFUL (Detekt + `:cpdCheck`, sin
+    hallazgos).
+  - `env -u JAVA_HOME .harness/init.sh` → exit 0 («Gate OK»).
+  - **JSON real de Logstash** (verificación temporal sin red/BD, ejecutada y luego
+    eliminada: un test de usar y tirar que llama a `IngestionLog.logRun` y
+    `LoggingAlertSink.alert` con el `logback.xml` real): líneas
+    `{"level":"INFO",..."event":"ingestion.run.completed","ingestion_date":"2026-10-09","total_entries":205,"publications_saved":205,"publications_failed":0}`,
+    `{"level":"ERROR",..."event":"ingestion.run.failed",..."error":"BOE caído"}` y
+    `{"level":"ERROR",..."event":"ingestion.missed",..."window":"18:00","grace_minutes":30}`.
+- Documentación durable: **ADR 0005** (`docs/adr/0005-observabilidad-ingesta-logs-watchdog.md`)
+  + índice, `ARCHITECTURE.md` (`ingesta/job/` y cableado del vigilante en el mismo
+  scope), `CONSTRAINTS.md` §«Operación» (MUST de eventos de log con clave `event`
+  estable y alerta `ERROR`, sin alertas externas ni telemetría) y
+  `docs/desarrollo-local.md` (`INGESTA_GRACE_MINUTES`, eventos y cómo leerlos).
+  `feature_list.json` lo actualiza el orquestador (`in_progress`/`passing`), no el
+  implementer.
+- Riesgo o duda sin resolver: el manual `:backend:run` con PostgreSQL de
+  `docker-compose` no se ejecutó (Docker no disponible en esta sesión; sin `.env`);
+  el spec lo marca como comprobación manual recomendada y la prueba del disparo es
+  unitaria con tiempo virtual. El JSON real se verificó por el encoder de Logback
+  sin red/BD. Persisten las limitaciones conocidas: la alerta depende de un monitor
+  de logs y el vigilante solo cubre ventanas mientras el proceso vive (FT00011).
+- Siguiente mejor paso: validación independiente de FT00010 (`feature-validator`);
+  después, `backfill-historico` (FT00011) o `categorizacion-publicaciones`
+  (FT00012).
+- Cierre (orquestador, Session 039): validación independiente (`feature-validator`)
+  con veredicto **`accept`** (reejecutó el gate: `:backend:test` 91 tests/0 fallos,
+  `build -PskipClient`, `test` 3 módulos, `detekt`+`:cpdCheck`, `init.sh` exit 0;
+  escenarios 1–8, alcance acotado, MUST de estilo y cableado condicional conformes;
+  sin hallazgos de seguridad; registro en `docs/validations/ingesta-observabilidad.md`).
+  Commit de producto `ee1ab2d feat(FT00010): complete ingesta-observabilidad` en
+  `feat/ft00010-ingesta-observabilidad`; **PR #11** abierto hacia `main`
+  (https://github.com/AviferDev/DatoPublico/pull/11). `feature_list.json`:
+  FT00010 → **`accepted`**; `docs/feature-ids.md`: FT00010 → `accepted`.
