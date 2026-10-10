@@ -66,3 +66,4 @@ Aceptado (<AAAA-MM-DD>). [Quién decide y, si aplica, qué ADR supersede/ajusta.
 | [0006](0006-backfill-one-shot-lotes.md) | Backfill histórico como herramienta CLI one-shot por lotes | Aceptado |
 | [0007](0007-clasificacion-curada-plazos.md) | Clasificación curada determinista y extracción acotada de plazos (sin IA) | Aceptado |
 | [0008](0008-destacados-on-the-fly-ranker-puro.md) | Destacados calculados *on-the-fly* por un ranker puro y explicable (sin persistencia ni IA) | Aceptado |
+| [0009](0009-chunking-determinista-articulo-seccion.md) | Fragmentación determinista por artículo/disposición con variante por sección | Aceptado |

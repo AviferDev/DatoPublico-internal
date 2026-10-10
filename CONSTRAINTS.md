@@ -71,6 +71,29 @@
   del día (`PublicationRepository.listByDate`), **no se persisten**: no hay
   columna, migración, repositorio ni segunda pasada en el job/backfill.
 
+## RAG / fragmentación
+
+- **MUST**: el **chunking es puro y determinista** sobre `Publicacion.texto`
+  (paquete `rag/` de `:backend`; `rag/chunking/ArticleChunker`): sin IA/LLM, red,
+  base de datos, reloj, aleatoriedad ni estado; la misma `Publicacion` produce
+  siempre la misma lista. Decisión durable en `docs/adr/0009`.
+- **MUST**: se fragmenta por **artículo/disposición** conservando su
+  **referencia** (la línea de encabezado) y con **variante por sección** para las
+  secciones sin artículos (II.A/II.B/IV/V.A/V.B/V.C: `reference = "Sección " +
+  seccion.name`). El texto se cubre **sin solapamiento**: la concatenación de los
+  fragmentos reproduce las líneas del texto de origen, en orden, sin repetirlas ni
+  omitirlas.
+- **MUST**: cada fragmento respeta el presupuesto del modelo E5 (**≤512 tokens**),
+  con una **estimación provisional documentada e inyectable** por constructor
+  (`charsPerToken = 3` por defecto) hasta que FT00015 integre el tokenizador real;
+  un párrafo que supere el presupuesto se parte por palabras y conserva la misma
+  `reference`. `order` es **contiguo** `0..n-1` en orden de documento.
+- **MUST NOT**: la fragmentación **no anticipa lo diferido** — sin embeddings/ONNX
+  (FT00015), sin columna `embedding vector(384)` ni índice HNSW ni migración
+  (FT00016), sin recuperación (FT00017) — y **no** escribe en PostgreSQL ni se
+  cablea en `Application.kt`/job/backfill. El encaje con la persistencia es solo el
+  mapeo puro `Fragment.toEntity()` (`id = null`, sin abrir conexión).
+
 ## Persistencia y base de datos
 
 - **MUST**: el acceso a datos usa **JDBC + HikariCP**, **sin ORM** (nada de

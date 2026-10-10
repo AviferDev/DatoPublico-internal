@@ -45,6 +45,17 @@
   IA, red, BD, reloj ni estado), se **calcula *on-the-fly*** (sin persistencia)
   y no se cablea en el arranque: lo consumirá el feed (FT00026). Ver
   `docs/adr/0008`.
+  FT00014 añade **`rag/`**: el modelo de dominio `Fragment` (sin sufijo) y el
+  chunker **puro, determinista y sin red/BD** `rag/chunking/ArticleChunker`
+  (`chunk(Publicacion): List<Fragment>`). Fragmenta `Publicacion.texto` por
+  **artículo/disposición** conservando la **referencia**, con **variante por
+  sección** para las secciones sin artículos (II.A/II.B/IV/V.A/V.B/V.C),
+  cobertura **sin solapamiento** y presupuesto **≤512 tokens** (estimación
+  provisional `charsPerToken = 3`, inyectable por constructor). El mapeo a
+  persistencia es la extensión pura `Fragment.toEntity()` en `persistence/`;
+  **no** genera embeddings (FT00015), **no** escribe en PostgreSQL ni anticipa la
+  columna `embedding`/HNSW (FT00016) y **no** se cablea en el arranque. Ver
+  `docs/adr/0009`.
   Existe **`persistence/`** (FT00008): repositorios **JDBC**
   + entidades `...Entity` de `publicacion`, `fragmento`, `resumen` y
   `cola_revision`, más los helpers JDBC compartidos; la configuración de

@@ -7,6 +7,19 @@
 - Camino de arranque estándar: `./init.sh` (desde `.harness/`)
 - Camino de verificación estándar: `./gradlew build` y `./gradlew test` desde la
   raíz del repo público (`..`) — **bootstrapped** (Gradle 8.10.2 + JDK 21).
+- **FT00014 `chunking-articulos` → `accepted`** (Session 046): chunking **puro,
+  determinista y sin red/BD** en `:backend` — paquete nuevo `rag/` (`Fragment` +
+  `ArticleChunker`, `chunk(Publicacion): List<Fragment>`, presupuesto
+  `maxTokens=512`/`charsPerToken=3` inyectable) y mapeo `Fragment.toEntity()` en
+  `persistence/`; fragmenta `Publicacion.texto` por **artículo/disposición**
+  conservando la referencia, con variante por sección y cobertura sin
+  solapamiento. Sin embeddings (FT00015), sin pgvector/HNSW (FT00016), sin
+  recuperación (FT00017), sin wiring ni endpoints. Gate sin red ni BD verde
+  (`:backend` **154 tests**, 0 fallos; `ArticleChunkerTest` 9/0/0;
+  `build -PskipClient`/`test`/`detekt`+`:cpdCheck`/`init.sh` exit 0). Decisión
+  durable en **ADR 0009**; validación independiente `accept` (tras un `revise` por
+  identificadores del test). Siguiente feature lista: `embeddings-locales-onnx`
+  (FT00015, depende de FT00014) o `english-identifiers-rename` (FT00047).
 - Última verificación: 2026-10-10 (Sessions 032–038). **Cambio de alcance 1.0.0 =
   TODO el BOE** (secciones I, II.A, II.B, III, IV, V.A, V.B y V.C; ningún campo ni
   sección se excluye) y nueva norma MUST de **`@SerialName` explícito** en cada
@@ -2298,3 +2311,51 @@
   borrada; `main` local actualizado a `6c8d2ac`.
 - Siguiente mejor paso: `chunking-articulos` (FT00014, depende de FT00008
   `accepted`). Siguiente rol: `planner`.
+
+### Session 046
+
+- Fecha: 2026-10-10
+- Objetivo: ejecutar **FT00014 `chunking-articulos`** con el flujo completo
+  (`planner` → `implementer` → `validator`) y cerrarla como `accepted`.
+- Claim: rama `feat/ft00014-chunking-articulos` creada desde `origin/main`
+  (`6c8d2ac`) y reclamada con `d586536 chore(FT00014): claim` (push inmediato);
+  sin PRs ni ramas abiertas previas (`gh pr list` vacío).
+- Planner (`feature-spec`): spec `docs/specs/chunking-articulos.md` (atómica,
+  ~4–5 ficheros; sin partes `FT00014-PTn`). Alcance: chunking puro en un paquete
+  nuevo `rag/`, sin embeddings/HNSW/recuperación/IA ni wiring.
+- Implementer (`feature-implementer`): producto `backend/.../rag/Fragment.kt`,
+  `backend/.../rag/chunking/ArticleChunker.kt` (puro/determinista; encabezados
+  `^(Artículo|Disposición)\b` anclados a inicio de línea; bloques por
+  encabezado + bloque introductorio o bloque único por sección; empaquetado por
+  presupuesto `ceil(len/3) ≤ 512`; párrafo indivisible partido por palabras con
+  la misma referencia; `order` contiguo; texto nulo → lista vacía), extensión
+  `Fragment.toEntity()` en `persistence/FragmentRepository.kt` y
+  `ArticleChunkerTest` (9 tests con los 8 fixtures reales). Docs durables:
+  `ARCHITECTURE.md`, `CONSTRAINTS.md` (§«RAG / fragmentación»), **ADR 0009** +
+  índice, skill `rag-datapublico` §1 y `docs/desarrollo-local.md` (producto).
+- Verificación (`:backend:test --rerun-tasks` → **154 tests, 0 fallos**;
+  `ArticleChunkerTest` 9/0/0; `build --no-daemon -PskipClient` 23 tareas;
+  `test` 3 módulos; `detekt`+`:cpdCheck`; `env -u JAVA_HOME .harness/init.sh`
+  exit 0). Sin red ni BD.
+- Validación independiente (`feature-validator`): primer veredicto **`revise`**
+  (Medium: MUST de identificadores en inglés incumplido en el test nuevo —
+  nombres en castellano; Low: KDoc desactualizado de `FragmentRepository.kt`).
+  El implementer renombró los identificadores locales del test y corrigió el
+  KDoc (sin cambio de comportamiento ni firmas); **revalidación `accept`**
+  (revisó 154/0/0, `detekt` sin hallazgos, `init.sh` exit 0, 0 identificadores
+  nuevos en castellano, 20/15/0 encabezados y 0 falsos positivos en fixtures).
+  Sin hallazgos de seguridad. Detalle en
+  `docs/validations/chunking-articulos.md`. Deuda Low opcional: el chunker no
+  valida `maxTokens`/`charsPerToken` inyectados.
+- Aceptación persistida: `feature_list.json` (FT00014 → **`accepted`** +
+  evidencia), `docs/feature-ids.md` (FT00014 → `accepted`) y este `PROGRESS.md`.
+- Riesgo o duda sin resolver: la estimación de tokens (`charsPerToken = 3`) es
+  **provisional** hasta el tokenizador real de FT00015 (inyectable por
+  constructor); la detección de encabezados es heurística por texto (mitigada por
+  el anclaje a inicio de línea y validada con datos reales); secciones
+  irregulares producen fragmentos heterogéneos (aceptado para la 1.0.0).
+- Estado: **FT00014 `accepted`**. Siguiente feature lista:
+  `embeddings-locales-onnx` (FT00015, depende de FT00014) o
+  `english-identifiers-rename` (FT00047).
+- Siguiente mejor paso: commit del harness y commit/PR de producto (orquestador);
+  después, `embeddings-locales-onnx` (FT00015).

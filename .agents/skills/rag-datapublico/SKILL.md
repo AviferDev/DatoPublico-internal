@@ -39,6 +39,26 @@ ingesta BOE → chunking → embeddings (ONNX) → pgvector → recuperación h�
 - Cada fragmento guarda metadatos de metadatos de filtrado: publicación,
   categoría, fecha, organismo y referencia de artículo/sección.
 
+### Estado actual del producto (FT00014)
+
+- La fragmentación **ya está implementada** en `:backend`:
+  `es.aviferdev.datopublico.backend.rag.chunking.ArticleChunker`
+  (`chunk(Publicacion): List<Fragment>`) y el modelo de dominio
+  `rag.Fragment` (`publicationId`, `order`, `reference`, `content`, sin sufijo).
+  Es **pura, determinista y sin red/BD**, con variante por sección y cobertura sin
+  solapamiento; el mapeo a persistencia es la extensión pura `Fragment.toEntity()`
+  en `persistence/FragmentRepository.kt`. Decisión durable en
+  `docs/adr/0009`.
+- **Estimación de tokens provisional**: `ArticleChunker` usa
+  `ceil(length / charsPerToken)` con `charsPerToken = 3` y `maxTokens = 512`
+  (ambos inyectables por constructor) porque el tokenizador real E5 llega con
+  **FT00015**. Es conservadora; FT00015 deberá recalibrarla o inyectar el
+  contador real sin cambiar la firma.
+- La detección de encabezados es **heurística por texto** (la `Publicacion` no
+  conserva el `class="articulo"`): una línea que empiece por «Artículo»/
+  «Disposición» se trata como encabezado. Validado con los fixtures reales de las
+  ocho secciones.
+
 ## 2. Embeddings (locales)
 
 - Modelo por defecto: **`intfloat/multilingual-e5-small` cuantizado int8** vía
