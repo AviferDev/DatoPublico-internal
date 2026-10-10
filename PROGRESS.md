@@ -32,7 +32,10 @@
   verificado **opt-in** (`EMBEDDING_LIVE_TEST=1`: `dims=384`, `cos(rel,par)=
   0.9694 > cos(rel,unrel)=0.8499`). Decisión durable en **ADR 0010**;
   validación independiente `accept` (`docs/validations/embeddings-locales-onnx.md`).
-  **`accepted`** (2026-10-10).
+  **`accepted`** (2026-10-10). **PR #16 fusionado** en `main` por squash →
+  `ea8ad16` (CI de rama `38079118216` en verde; run de `main` `38079602119`);
+  rama remota eliminada. Siguiente feature lista: `pgvector-indexado` (FT00016,
+  depende de FT00003 + FT00015) o `english-identifiers-rename` (FT00047).
 - Última verificación: 2026-10-10 (Sessions 032–038). **Cambio de alcance 1.0.0 =
   TODO el BOE** (secciones I, II.A, II.B, III, IV, V.A, V.B y V.C; ningún campo ni
   sección se excluye) y nueva norma MUST de **`@SerialName` explícito** en cada
@@ -2438,6 +2441,8 @@
 - Riesgo o duda sin resolver: comparación int8 vs fp32/`-base` sigue abierta;
   memoria en la máquina única por medir en FT00016/17.
 - Estado: **FT00015 `accepted`** (implementada, autoverificada y validada).
+  **PR #16 fusionado** en `main` por squash → `ea8ad16` (CI de rama
+  `38079118216` en verde; run de `main` `38079602119`); rama remota eliminada.
   Siguiente feature lista: `pgvector-indexado` (FT00016) o
   `english-identifiers-rename` (FT00047).
 - Siguiente mejor paso: implementar `pgvector-indexado` (FT00016). Siguiente rol:
