@@ -7,6 +7,21 @@
 - Camino de arranque estándar: `./init.sh` (desde `.harness/`)
 - Camino de verificación estándar: `./gradlew build` y `./gradlew test` desde la
   raíz del repo público (`..`) — **bootstrapped** (Gradle 8.10.2 + JDK 21).
+- **Stack RAG/resumen 0.3–0.4 (Sessions 048–052): 5 features `accepted`, apiladas
+  en 5 PRs encadenados (sin fusionar).** Orden del stack y base de cada PR:
+  `FT00016 pgvector-indexado` (PR #17 → `main`), `FT00017 recuperacion-hibrida`
+  (PR #18 → FT00016), `FT00018 evaluacion-recuperacion` (PR #19 → FT00017),
+  `FT00019 contrato-resumen-ciudadano` (PR #20 → FT00018) y
+  `FT00020 generacion-resumen-go` (PR #21 → FT00019). Cada feature se planificó
+  (spec), implementó y **validó de forma independiente** (`feature-validator`,
+  veredicto `accept` en las cinco); el gate se reejecutó en verde en cada punta
+  (`:backend` 184 → 202 → 224 → 253 tests, 0 fallos; `:shared` 26; `build
+  -PskipClient`/`test`/`detekt`+`:cpdCheck`/`init.sh` exit 0). La punta del stack
+  (FT00020) contiene las cinco y está verde. **La CI de GitHub solo se dispara en
+  PRs hacia `main`**, así que solo el PR #17 tiene run; los PR #18–#21 se revisan
+  por diff incremental contra su base (su gate ya se validó en local). ADR 0011,
+  0012, 0013, 0014 y 0015. Siguiente feature lista: `cacheo-resumenes` (FT00021,
+  depende de FT00020) o `english-identifiers-rename` (FT00047).
 - **FT00014 `chunking-articulos` → `accepted`** (Session 046): chunking **puro,
   determinista y sin red/BD** en `:backend` — paquete nuevo `rag/` (`Fragment` +
   `ArticleChunker`, `chunk(Publicacion): List<Fragment>`, presupuesto
@@ -36,7 +51,7 @@
   `ea8ad16` (CI de rama `38079118216` en verde; run de `main` `38079602119`);
   rama remota eliminada. Siguiente feature lista: `pgvector-indexado` (FT00016,
   depende de FT00003 + FT00015) o `english-identifiers-rename` (FT00047).
-- **FT00016 `pgvector-indexado` → `passing`** (Session 048): **almacenamiento
+- **FT00016 `pgvector-indexado` → `accepted`** (Session 048): **almacenamiento
   vectorial** en `:backend` como **librería sin wiring** — migración `V3`
   (`fragmento.embedding vector(384)` **nullable** + índice HNSW coseno
   `vector_cosine_ops`), `persistence/PgVector` (puro, 384 dims, fail-fast,
@@ -47,11 +62,11 @@
   `:cpdCheck`/`init.sh` exit 0) y prueba **opt-in real ejecutada** con
   PostgreSQL/Docker (`DB_LIVE_TEST=1`: vecino más cercano `distance=0.0`, índice
   `fragmento_embedding_hnsw_idx` usado). Decisión durable en **ADR 0011**;
-  pendiente de validación independiente. Contador real de tokens en
+  validación independiente `accept`. Contador real de tokens en
   `ArticleChunker` **diferido** (Non-Goal). Siguiente feature lista:
   `recuperacion-hibrida` (FT00017, depende de FT00016) o
   `english-identifiers-rename` (FT00047).
-- **FT00017 `recuperacion-hibrida` → `passing`** (Session 049): **recuperación
+- **FT00017 `recuperacion-hibrida` → `accepted`** (Session 049): **recuperación
   híbrida** + **indexado mínimo** en `:backend` como **librería sin wiring** —
   `rag/retrieval/` (`SearchFilter` valor interno sin sufijo, `SearchFilterSql`
   puro con cláusula parametrizada ` AND …`/parámetros en orden documentado y
@@ -65,10 +80,10 @@
   `detekt`+`:cpdCheck`/`init.sh` exit 0) y pruebas **opt-in reales ejecutadas** con
   PostgreSQL/Docker y modelo E5 (`HybridSearchLiveTest` 1/0/0;
   `FragmentIndexerLiveTest` 1/0/0, `first=0.104… second=0.214…`). Decisión durable
-  en **ADR 0012**; pendiente de validación independiente. Siguiente feature lista:
+  en **ADR 0012**; validación independiente `accept`. Siguiente feature lista:
   `evaluacion-recuperacion` (FT00018, depende de FT00017) o
   `english-identifiers-rename` (FT00047).
-- **FT00018 `evaluacion-recuperacion` → `passing`** (Session 050): **evaluación de
+- **FT00018 `evaluacion-recuperacion` → `accepted`** (Session 050): **evaluación de
   la recuperación** en `:backend` como **librería y CLI one-shot sin wiring** —
   paquete nuevo `rag/evaluation/` (`RetrievalMetrics` puro: `precision@k`/`recall@k`/
   MRR; golden set versionado `rag/eval/golden-set.json` + `RetrievalGoldenSetLoader`
@@ -81,10 +96,10 @@
   `RetrievalEvaluatorTest` 5; `build -PskipClient`/`test`/`detekt`+`:cpdCheck`/
   `init.sh` exit 0) y ejecución real **opt-in ejecutada** con PostgreSQL + modelo E5
   (`precision=0.6 recall=1.0 mrr=1.0`; `RetrievalEvaluationLiveTest` 1/0/0). Decisión
-  durable en **ADR 0013**; pendiente de validación independiente. Sin migración ni
+  durable en **ADR 0013**; validación independiente `accept`. Sin migración ni
   persistencia del histórico. Siguiente feature lista: `contrato-resumen-ciudadano`
   (FT00019) o `english-identifiers-rename` (FT00047).
-- **FT00019 `contrato-resumen-ciudadano` → `passing`** (Session 051): validación
+- **FT00019 `contrato-resumen-ciudadano` → `accepted`** (Session 051): validación
   **pura del contrato** del resumen ciudadano en **`:shared`** (paquete nuevo
   `es.aviferdev.datopublico.validation`) — `CitizenSummaryVariant` +
   `CitizenSummaryVariantResolver` (variante general vs. empleo/beca),
@@ -94,10 +109,10 @@
   ni `:backend`/`:composeApp`/migraciones/CI/`init.sh`. Gate verde (`:shared:jvmTest`
   **26 tests**, 0 fallos —15 nuevos—; `test` 3 módulos; `build -PskipClient` 23
   tareas; `detekt`+`:cpdCheck`; `init.sh` exit 0). Decisión durable en **ADR 0014**;
-  pendiente de validación independiente. Siguiente feature lista:
+  validación independiente `accept`. Siguiente feature lista:
   `generacion-resumen-go` (FT00020, depende de FT00017 + FT00019) o
   `english-identifiers-rename` (FT00047).
-- **FT00020 `generacion-resumen-go` → `passing`** (Session 052): **generación del
+- **FT00020 `generacion-resumen-go` → `accepted`** (Session 052): **generación del
   resumen ciudadano** en `:backend` como **librería sin wiring**, en dos paquetes
   nuevos. `rag/generation/`: interfaz `suspend` `TextGenerationProvider` +
   `GenerationRequest`/`GenerationResponse` internos (sin sufijo) +
@@ -120,7 +135,7 @@
   `init.sh` exit 0). Prueba real **opt-in** `CitizenSummaryGeneratorLiveTest`
   (`OPENCODE_LIVE_TEST=1`, sin PostgreSQL ni ONNX) **no ejecutada** por falta de
   `OPENCODE_API_KEY`; el fail-fast sin clave lo cubre `OpenCodeConfigTest`. Decisión
-  durable en **ADR 0015**; pendiente de validación independiente. Siguiente feature
+  durable en **ADR 0015**; validación independiente `accept`. Siguiente feature
   lista: `cacheo-resumenes` (FT00021) o `english-identifiers-rename` (FT00047).
 - Última verificación: 2026-10-10 (Sessions 032–038). **Cambio de alcance 1.0.0 =
   TODO el BOE** (secciones I, II.A, II.B, III, IV, V.A, V.B y V.C; ningún campo ni
