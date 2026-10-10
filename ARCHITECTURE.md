@@ -7,7 +7,14 @@
 ## Módulos (monorepo Gradle)
 
 - **`:shared`** — DTOs y lógica compartida con `kotlinx.serialization`.
-  Namespace `es.aviferdev.datopublico`.
+  Namespace `es.aviferdev.datopublico`. FT00019 añade **`validation/`**: la
+  validación **pura del contrato** del resumen ciudadano (`CitizenSummaryValidator`
+  + `CitizenSummaryVariant`/`CitizenSummaryVariantResolver` y
+  `CitizenSummaryValidation`), que **acumula violaciones y no lanza** (un resumen
+  inválido es un estado esperado, no una excepción de programación) y **no cambia**
+  el contrato de wire de `ResumenDto`. Es el **contrato** (estructura y presencia
+  de la fuente); los **guardrails de contenido** (alcanzabilidad del enlace y
+  afirmaciones fuera del contexto recuperado) son de FT00022. Ver `docs/adr/0014`.
 - **`:backend`** — Ktor: ingesta del BOE, RAG, resúmenes, destacados y API.
   Namespace `es.aviferdev.datopublico.backend`. Ya existe el **esqueleto**
   (composition root `Application.kt`, `plugins/` e `infra/`, `GET /health`,

@@ -42,6 +42,27 @@
 - **MUST NOT**: publicar afirmaciones fuera del contexto recuperado (si el corpus
   no lo sustenta, se declara `sin_fundamento`/`refutada`).
 
+## Contrato del resumen ciudadano
+
+- **MUST**: todo resumen ciudadano cumple el **contrato** validado en `:shared`
+  (`validation/CitizenSummaryValidator`, FT00019): **fuente oficial obligatoria**
+  como enlace absoluto `http(s)://`, «¿Qué cambia?» y «¿A quién afecta?» no vacíos
+  y «Cifras clave» sin entradas en blanco (la lista **puede** estar vacía). Decisión
+  durable en `docs/adr/0014`.
+- **MUST**: la **variante** de empleo público y becas
+  (`OPOSICIONES_Y_EMPLEO_PUBLICO`, `BECAS_SUBVENCIONES_Y_AYUDAS`) exige **plazo**
+  con `fechaLimite` no vacía; el resto de categorías no lo exigen. La variante es un
+  **valor interno** (sin `Dto`, no `@Serializable`).
+- **MUST**: el validador del contrato es **puro** (sin red, BD, reloj ni estado),
+  **acumula violaciones y no lanza**: un resumen inválido es un resultado esperado
+  (lo consumirán FT00022/FT00023), no un error de programación. Se distingue del
+  *fail-fast* de configuración (`PgVector`, `SearchFilterSql`), que sí son errores
+  de programación.
+- **MUST NOT**: este validador comprueba solo el **contrato** (estructura y
+  presencia de la fuente), **no la veracidad**: la **alcanzabilidad** del enlace y
+  las afirmaciones fuera del contexto recuperado son **guardrails de contenido**
+  (FT00022). Tampoco cambia el **contrato de wire** de `ResumenDto` (congelado).
+
 ## Categorización y plazos
 
 - **MUST**: la categoría de una publicación es una **regla curada determinista**

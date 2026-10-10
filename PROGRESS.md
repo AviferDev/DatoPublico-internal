@@ -84,6 +84,19 @@
   durable en **ADR 0013**; pendiente de validación independiente. Sin migración ni
   persistencia del histórico. Siguiente feature lista: `contrato-resumen-ciudadano`
   (FT00019) o `english-identifiers-rename` (FT00047).
+- **FT00019 `contrato-resumen-ciudadano` → `passing`** (Session 051): validación
+  **pura del contrato** del resumen ciudadano en **`:shared`** (paquete nuevo
+  `es.aviferdev.datopublico.validation`) — `CitizenSummaryVariant` +
+  `CitizenSummaryVariantResolver` (variante general vs. empleo/beca),
+  `CitizenSummaryViolation` + `CitizenSummaryValidation` (`isValid` derivado) y
+  `CitizenSummaryValidator` (`object` puro, acumula violaciones, **no lanza**).
+  Reutiliza `ResumenDto`/`CategoriaDto`/`PlazoDto` **sin** tocar el wire (congelado)
+  ni `:backend`/`:composeApp`/migraciones/CI/`init.sh`. Gate verde (`:shared:jvmTest`
+  **26 tests**, 0 fallos —15 nuevos—; `test` 3 módulos; `build -PskipClient` 23
+  tareas; `detekt`+`:cpdCheck`; `init.sh` exit 0). Decisión durable en **ADR 0014**;
+  pendiente de validación independiente. Siguiente feature lista:
+  `generacion-resumen-go` (FT00020, depende de FT00017 + FT00019) o
+  `english-identifiers-rename` (FT00047).
 - Última verificación: 2026-10-10 (Sessions 032–038). **Cambio de alcance 1.0.0 =
   TODO el BOE** (secciones I, II.A, II.B, III, IV, V.A, V.B y V.C; ningún campo ni
   sección se excluye) y nueva norma MUST de **`@SerialName` explícito** en cada
@@ -2697,3 +2710,52 @@
   validación independiente (`feature-validator`). **No** se marca `accepted`.
 - Siguiente mejor paso: validar `evaluacion-recuperacion` (FT00018). Siguiente rol:
   `validator`.
+
+### Session 051
+
+- Fecha: 2026-10-10
+- Objetivo: implementar `contrato-resumen-ciudadano` (FT00019) en el repo público:
+  formalizar y **validar** el contrato del resumen ciudadano en `:shared` (solo
+  `:shared` + docs).
+- Completado (producto, **librería pura sin wiring**, paquete nuevo
+  `es.aviferdev.datopublico.validation`):
+  - `CitizenSummaryVariant.kt` (nuevo): enum interno **sin** `Dto`/`@Serializable`
+    (`GENERAL`, `EMPLOYMENT_OR_SCHOLARSHIP`) + `CitizenSummaryVariantResolver.variantFor`
+    (`when`/`else`, sin `else if`) para `OPOSICIONES_Y_EMPLEO_PUBLICO` y
+    `BECAS_SUBVENCIONES_Y_AYUDAS`.
+  - `CitizenSummaryValidation.kt` (nuevo): enum interno `CitizenSummaryViolation`
+    (`MISSING_OFFICIAL_SOURCE`, `MISSING_WHAT_CHANGES`, `MISSING_WHO_IS_AFFECTED`,
+    `BLANK_KEY_FIGURE`, `MISSING_DEADLINE`) + `CitizenSummaryValidation`
+    (`violations` con `isValid` derivado).
+  - `CitizenSummaryValidator.kt` (nuevo): `object` **puro**,
+    `validate(summary, category)`, `buildList`, **acumula y no lanza**; fuente
+    oficial obligatoria con `http(s)://`, secciones no vacías, cifras clave sin
+    entradas en blanco y plazo obligatorio en la variante empleo/beca. Reutiliza
+    `ResumenDto`/`CategoriaDto`/`PlazoDto` sin crear DTO nuevo.
+  - Tests nuevos en `commonTest`: `validation/CitizenSummaryValidatorTest` (12,
+    escenarios 2–5 + variante + acumulación) y `model/CitizenSummaryContractTest`
+    (3, escenarios 1 y 6: round-trip con `DatoPublicoJson` + claves de wire).
+- **Alcance respetado**: `ResumenDto` **sin cambios** (wire congelado);
+  `:backend`, `:composeApp`, migraciones, CI e `init.sh` intactos; sin dependencias
+  Gradle nuevas. `git status --porcelain` solo lista los 5 ficheros nuevos.
+- Verificación (desde `..`, `JAVA_HOME` del JBR 21): `./gradlew :shared:jvmTest
+  --rerun-tasks` → BUILD SUCCESSFUL, **26 tests, 0 fallos/errores** (SmokeTest 1,
+  CategoriaWireTest 3, SerializationTest 7, CitizenSummaryContractTest 3,
+  CitizenSummaryValidatorTest 12); `./gradlew test --rerun-tasks` → 3 módulos
+  (`:backend` 224 tests, 0 fallos); `./gradlew build --no-daemon -PskipClient` →
+  BUILD SUCCESSFUL (23 tareas, `:shared:detekt` + `:cpdCheck`);
+  `./gradlew detekt --rerun-tasks` → BUILD SUCCESSFUL (4 tareas) y `:cpdCheck` →
+  BUILD SUCCESSFUL; `env -u JAVA_HOME .harness/init.sh` → **exit 0**. Ningún test
+  del gate toca red ni BD.
+- Docs durables: `ARCHITECTURE.md` (`validation/` en `:shared` + frontera contrato
+  FT00019 vs. guardrails FT00022), `CONSTRAINTS.md` §«Contrato del resumen
+  ciudadano», **ADR 0014** (`docs/adr/0014-validacion-contrato-resumen-shared.md`)
+  + índice, skill `rag-datapublico` §5, `feature-ids.md` (FT00019 → `passing`),
+  nota de cierre en el spec y `feature_list.json` (FT00019 → **`passing`** +
+  evidencia).
+- Riesgo o duda sin resolver: una convocatoria de empleo/beca sin plazo en la
+  fuente quedará inválida y deberá ir a revisión (política fina en FT00022/FT00023).
+- Estado: **FT00019 `passing`** (implementada y autoverificada). Pendiente:
+  validación independiente (`feature-validator`). **No** se marca `accepted`.
+- Siguiente mejor paso: validar `contrato-resumen-ciudadano` (FT00019). Siguiente
+  rol: `validator`.

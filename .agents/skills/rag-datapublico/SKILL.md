@@ -166,6 +166,24 @@ ingesta BOE → chunking → embeddings (ONNX) → pgvector → recuperación h�
 - El prompt trabaja **solo** con el contexto recuperado; prohibido el
   conocimiento libre del modelo.
 
+### Estado actual del producto (FT00019)
+
+- El **contrato** del resumen ciudadano ya está fijado y **validado** en
+  `:shared`, paquete `es.aviferdev.datopublico.validation`:
+  `CitizenSummaryValidator.validate(summary, category)` es un validador **puro**
+  (sin red/BD/reloj/estado) que **acumula violaciones y no lanza**
+  (`CitizenSummaryValidation.isValid` derivado). Comprueba **fuente oficial
+  obligatoria** (`http(s)://`), «¿Qué cambia?»/«¿A quién afecta?» no vacíos,
+  cifras clave sin entradas en blanco y, en la variante
+  `EMPLOYMENT_OR_SCHOLARSHIP` (`OPOSICIONES_Y_EMPLEO_PUBLICO`,
+  `BECAS_SUBVENCIONES_Y_AYUDAS`), plazo con `fechaLimite` no vacía. Decisión
+  durable en `docs/adr/0014`.
+- Reutiliza `ResumenDto`/`CategoriaDto`/`PlazoDto` **sin** cambiar el contrato de
+  wire (congelado). Es **contrato**, no veracidad: la alcanzabilidad del enlace y
+  las afirmaciones fuera del contexto recuperado son **guardrails** de FT00022, y
+  el **aviso de IA** se exige en FT00023. La **generación** (prompts, OpenCode) es
+  FT00020.
+
 ## 6. Guardrails (anti-alucinación y trazabilidad)
 
 - Ningún resumen se publica sin **enlace válido** a la fuente oficial.

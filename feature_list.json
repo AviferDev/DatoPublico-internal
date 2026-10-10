@@ -556,13 +556,23 @@
     "depends_on": [
       "bootstrap-shared-dtos"
     ],
-    "status": "not_started",
+    "status": "accepted",
     "verification": [
       "Un resumen sin fuente oficial falla la validación.",
-      "Un resumen con las tres secciones serializa y se valida correctamente."
+      "Un resumen con las tres secciones serializa y se valida correctamente.",
+      "El JSON de wire de `ResumenDto` conserva exactamente las claves `queCambia`, `aQuienAfecta`, `cifrasClave`, `fuenteOficial`, `avisoIA` y `plazo`/`fechaLimite`."
     ],
-    "evidence": [],
-    "notes": "Fuente: docs/roadmap.md 0.4-T01, docs/domain-model.md."
+    "evidence": [
+      "FT00019 (2026-10-10, rama `feat/ft00019-contrato-resumen-ciudadano`; **solo** `:shared` + docs): paquete nuevo `es.aviferdev.datopublico.validation` con la validación **pura del contrato** del resumen ciudadano. `CitizenSummaryVariant.kt` (enum interno sin `Dto`/`@Serializable`: `GENERAL`, `EMPLOYMENT_OR_SCHOLARSHIP` + `CitizenSummaryVariantResolver.variantFor(CategoriaDto)` con `when`/`else`), `CitizenSummaryValidation.kt` (`CitizenSummaryViolation`: `MISSING_OFFICIAL_SOURCE`, `MISSING_WHAT_CHANGES`, `MISSING_WHO_IS_AFFECTED`, `BLANK_KEY_FIGURE`, `MISSING_DEADLINE`; `CitizenSummaryValidation.violations` con `isValid` derivado) y `CitizenSummaryValidator.kt` (`object` puro, `validate(summary, category)`, `buildList`, **acumula y no lanza**).",
+      "Reglas de validación (spec): fuente oficial **obligatoria** con prefijo `http://`/`https://`; «¿Qué cambia?» y «¿A quién afecta?» no vacíos; cada cifra clave no en blanco (la lista **puede** estar vacía); variante empleo/beca ⇒ `plazo` con `fechaLimite` no vacía. Reutiliza `ResumenDto`/`CategoriaDto`/`PlazoDto` **sin** crear DTO nuevo.",
+      "Tests nuevos en `commonTest`: `validation/CitizenSummaryValidatorTest` (12: sin fuente en blanco/sin esquema, empleo sin plazo, beca con plazo en blanco, norma sin plazo válida, secciones en blanco, cifra en blanco, cifras vacías permitidas, acumulación de violaciones, variante de empleo/beca y resto general) y `model/CitizenSummaryContractTest` (3: round-trip con `DatoPublicoJson` + `isValid` con `OPOSICIONES_Y_EMPLEO_PUBLICO`, claves de wire de `ResumenDto` y claves de `plazo`).",
+      "Verificación (desde `..`, `JAVA_HOME` del JBR 21): `./gradlew :shared:jvmTest --rerun-tasks` → BUILD SUCCESSFUL; XML **26 tests, 0 fallos/errores** (SmokeTest 1/0/0, CategoriaWireTest 3/0/0, SerializationTest 7/0/0, CitizenSummaryContractTest 3/0/0, CitizenSummaryValidatorTest 12/0/0). `./gradlew test --rerun-tasks` → BUILD SUCCESSFUL (3 módulos; `:backend` 224 tests, 0 fallos).",
+      "Gate: `./gradlew build --no-daemon -PskipClient` → BUILD SUCCESSFUL (23 tareas; incluye `:shared:detekt` y `:cpdCheck`); `./gradlew detekt --rerun-tasks` → BUILD SUCCESSFUL (4 tareas: `cpdCheck` + detekt de los 3 módulos); `./gradlew :cpdCheck` → BUILD SUCCESSFUL; `env -u JAVA_HOME .harness/init.sh` → **exit 0** («Gate OK»). Ningún test del gate toca red ni BD.",
+      "Contrato de wire congelado verificado: `git status --porcelain` solo muestra los 5 ficheros nuevos (2 en `commonMain/validation/`, 2 en `commonTest`), y `git diff` de `ResumenDto.kt` está **vacío**; `:backend`, `:composeApp`, migraciones, CI e `init.sh` sin cambios.",
+      "Documentación durable: `ARCHITECTURE.md` (`validation/` en `:shared` y frontera contrato FT00019 vs. guardrails FT00022), `CONSTRAINTS.md` §«Contrato del resumen ciudadano», **ADR 0014** (`docs/adr/0014-validacion-contrato-resumen-shared.md`) + índice, skill `rag-datapublico` §5 («Estado actual del producto (FT00019)») y nota de cierre en el spec. `AGENTS.md` sin cambios.",
+      "Validación independiente (`feature-validator`, 2026-10-10): veredicto **`accept`**. Reejecutó el gate con salidas reales (`:shared:jvmTest --rerun-tasks` → **26 tests, 0 fallos**: SmokeTest 1, CategoriaWireTest 3, SerializationTest 7, `CitizenSummaryContractTest` 3, `CitizenSummaryValidatorTest` 12; `test` 3 módulos; `build --no-daemon -PskipClient` 23 tareas; `detekt` + `:cpdCheck`; `env -u JAVA_HOME .harness/init.sh` exit 0). Verificó los escenarios 1–6 contra código y tests (resumen completo de empleo round-trip + válido; sin fuente/`sin esquema` → `MISSING_OFFICIAL_SOURCE`; empleo/beca sin plazo → `MISSING_DEADLINE`; norma sin plazo válida; secciones/cifras en blanco; claves de wire congeladas), el alcance acotado (5 ficheros nuevos en `:shared`; `ResumenDto` sin cambios por `git diff`; `:backend`/`:composeApp`/migraciones/CI/`init.sh` intactos), el validador puro sin excepciones y las MUST de estilo. Sin hallazgos Critical/High/Medium; **deuda Low reparada en el commit de aceptación**: corregido el typo `BECAS_SUBVENCIONES_Y_AUDAS` → `BECAS_SUBVENCIONES_Y_AYUDAS` en 3 puntos del spec (el código ya usaba el nombre correcto)."
+    ],
+    "notes": "Fuente: docs/roadmap.md 0.4-T01, docs/domain-model.md. **`accepted`** (2026-10-10): contrato del resumen ciudadano fijado y validado de forma pura en `:shared` (`validation/`), sin tocar el wire de `ResumenDto` ni `:backend`/`:composeApp`/migraciones/CI/`init.sh`. Decisión durable en **ADR 0014**; validación independiente `accept`. Generación (FT00020), guardrails de contenido (FT00022) y exigencia del aviso de IA (FT00023) quedan fuera de alcance."
   },
   {
     "id": "generacion-resumen-go",
