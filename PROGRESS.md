@@ -2060,5 +2060,10 @@
   disponible en la sesión); checkpoint local no replicado (asumido en ADR 0006).
 - Estado: **FT00011 `accepted`**. Siguiente feature lista:
   `categorizacion-publicaciones` (FT00012).
-- Siguiente mejor paso: commit del harness y commit/PR de producto (orquestador);
-  después, `categorizacion-publicaciones` (FT00012).
+- Commit/PR (orquestador): commit de producto `6d18eda
+  feat(FT00011): complete backfill-historico` en `feat/ft00011-backfill-historico`
+  (15 ficheros; claim `3c07504`); **PR #12**
+  (https://github.com/AviferDev/DatoPublico/pull/12) hacia `main`, pendiente de
+  revisión/fusión explícita del dueño y del run de CI.
+- Siguiente mejor paso: revisar/fusionar el PR #12; después,
+  `categorizacion-publicaciones` (FT00012).
