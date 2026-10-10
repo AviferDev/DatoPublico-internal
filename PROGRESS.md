@@ -18,7 +18,8 @@
   (`:backend` **154 tests**, 0 fallos; `ArticleChunkerTest` 9/0/0;
   `build -PskipClient`/`test`/`detekt`+`:cpdCheck`/`init.sh` exit 0). Decisión
   durable en **ADR 0009**; validación independiente `accept` (tras un `revise` por
-  identificadores del test). Siguiente feature lista: `embeddings-locales-onnx`
+  identificadores del test); **PR #15 fusionado** en `main` por squash →
+  `74181ad`. Siguiente feature lista: `embeddings-locales-onnx`
   (FT00015, depende de FT00014) o `english-identifiers-rename` (FT00047).
 - Última verificación: 2026-10-10 (Sessions 032–038). **Cambio de alcance 1.0.0 =
   TODO el BOE** (secciones I, II.A, II.B, III, IV, V.A, V.B y V.C; ningún campo ni
@@ -2354,8 +2355,13 @@
   claim `d586536`); **PR #15**
   (https://github.com/AviferDev/DatoPublico/pull/15) hacia `main`. **CI en
   verde**: run `38076749103`, job 'Build and test' SUCCESS (2m48s) para el head
-  `725c469`. Harness commiteado en `main` (`e15591d`) y empujado. Pendiente de
-  revisión/fusión explícita del dueño.
+  `725c469`. Harness commiteado en `main` (`e15591d`) y empujado.
+- Merge (orquestador): **PR #15 fusionado** en `main` por **squash** →
+  `74181ad feat(FT00014): complete chunking-articulos` (2026-10-10); rama remota
+  `feat/ft00014-chunking-articulos` eliminada y rama local borrada; `main` local
+  actualizado a `74181ad`. Limpieza adicional: borradas las ramas locales
+  obsoletas `feat/ft00006-boe-sumario-cliente` y `chore/gate-calidad-detekt-cpd`
+  (contenido ya en `main`) y su worktree huérfano.
 - Riesgo o duda sin resolver: la estimación de tokens (`charsPerToken = 3`) es
   **provisional** hasta el tokenizador real de FT00015 (inyectable por
   constructor); la detección de encabezados es heurística por texto (mitigada por
@@ -2364,5 +2370,5 @@
 - Estado: **FT00014 `accepted`**. Siguiente feature lista:
   `embeddings-locales-onnx` (FT00015, depende de FT00014) o
   `english-identifiers-rename` (FT00047).
-- Siguiente mejor paso: revisar/fusionar el PR #15; después,
-  `embeddings-locales-onnx` (FT00015, depende de FT00014).
+- Siguiente mejor paso: `embeddings-locales-onnx` (FT00015, depende de FT00014).
+  Siguiente rol: `planner`.
