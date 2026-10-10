@@ -32,15 +32,19 @@
   (`bootstrap-shared-dtos`) **`accepted` y fusionada** (PR #2, merge `ca781f3`;
   ampliada en el PR #6 a las 8 secciones y `@SerialName`).
 
-- Última feature cerrada: **FT00009 `ingesta-job-diario` → `accepted`** (Session 038;
+- Última feature cerrada: **FT00009 `ingesta-job-diario` → `accepted` y fusionada** (Session 038;
   job programado en `:backend` (`ingesta/job/`) que a las **09:30** y en una **segunda
   pasada** (18:00, `Europe/Madrid`, configurable por `INGESTA_*`) descarga el sumario,
   parsea cada publicación y la persiste de forma **idempotente** (upsert por `id`);
   `HttpTimeout` explícito en los clientes HTTP; cableado **condicional y no bloqueante**
   en `Application.kt`; decisión durable en **ADR 0004**; validación independiente
-  `accept`; detalle en `docs/validations/ingesta-job-diario.md`). Hito anterior:
-  **FT00008 `publicacion-persistencia` → `accepted` y fusionada** (Session 036; PR #9,
-  `6f3e856`+`305b344`). Siguiente feature lista: `ingesta-observabilidad` (FT00010).
+  `accept`; detalle en `docs/validations/ingesta-job-diario.md`). **PR #10 fusionado**
+  en `main` por rebase → `33d02e8`+`37974ac`, rama remota eliminada. Los
+  identificadores del código de FT00009 se pasaron a **inglés** (regla MUST nueva
+  «todo el código en inglés»; el resto del código heredado → **FT00047**). Hito
+  anterior: **FT00008 `publicacion-persistencia` → `accepted` y fusionada** (Session
+  036; PR #9, `6f3e856`+`305b344`). Siguiente feature lista:
+  `ingesta-observabilidad` (FT00010).
 - Bloqueo actual: ninguno para el bootstrap. Pendiente de producto: **nombre y
   marca** (bloquea la fase de producción, no el bootstrap).
 - Convención de nombres (aclarada 2026-10-10): **todo tipo `@Serializable`/de
@@ -1835,9 +1839,12 @@
     `:cpdCheck`/`init.sh`). Commit `0e7262c refactor(FT00009): rename job identifiers
     to English` en la misma rama/PR #10; **CI en verde**: run `38055156093`, job
     'Build and test' SUCCESS (2m38s) para el head `0e7262c`.
-- Estado: **FT00009 `accepted`** (no fusionada aún: pendiente de revisión/fusión
-  explícita del dueño). Sin ampliar alcance (sin endpoints, sin migraciones, sin
-  clasificación/backfill/observabilidad).
+  - **Merge**: **PR #10 fusionado** en `main` (2026-10-10) por rebase → `33d02e8`
+    (FT00009) + `37974ac` (renombrado a inglés); el commit de claim se colapsó.
+    Rama remota `feat/ft00009-ingesta-job-diario` eliminada (local y remota) y
+    `main` local actualizado a `37974ac`.
+- Estado: **FT00009 `accepted` y fusionada**. Sin ampliar alcance (sin endpoints,
+  sin migraciones, sin clasificación/backfill/observabilidad).
 - Riesgo o duda sin resolver: el job asume el esquema aplicado (no migra al
   arrancar); Hikari falla rápido si el PostgreSQL configurado no está alcanzable
   (el fallo se registra y no bloquea el arranque); la ventana de la segunda pasada
