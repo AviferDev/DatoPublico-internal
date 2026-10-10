@@ -68,3 +68,4 @@ Aceptado (<AAAA-MM-DD>). [Quién decide y, si aplica, qué ADR supersede/ajusta.
 | [0008](0008-destacados-on-the-fly-ranker-puro.md) | Destacados calculados *on-the-fly* por un ranker puro y explicable (sin persistencia ni IA) | Aceptado |
 | [0009](0009-chunking-determinista-articulo-seccion.md) | Fragmentación determinista por artículo/disposición con variante por sección | Aceptado |
 | [0010](0010-embeddings-locales-e5-onnx.md) | Embeddings locales E5 int8 vía ONNX Runtime tras una interfaz de proveedor | Aceptado |
+| [0011](0011-pgvector-columna-hnsw.md) | Almacenamiento vectorial en pgvector: columna `vector(384)` nullable + índice HNSW coseno | Aceptado |

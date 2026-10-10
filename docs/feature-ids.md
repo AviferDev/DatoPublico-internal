@@ -31,7 +31,7 @@
 | FT00013 | destacados-diarios | Destacados del día por ranking objetivo | relevancia | accepted |
 | FT00014 | chunking-articulos | Fragmentación por artículo o sección | rag | accepted |
 | FT00015 | embeddings-locales-onnx | Servicio de embeddings locales (ONNX) | rag | accepted |
-| FT00016 | pgvector-indexado | Almacenamiento vectorial en pgvector | rag | not_started |
+| FT00016 | pgvector-indexado | Almacenamiento vectorial en pgvector | rag | accepted |
 | FT00017 | recuperacion-hibrida | Recuperación híbrida de fragmentos | rag | not_started |
 | FT00018 | evaluacion-recuperacion | Evaluación de recuperación (precision/recall) | rag | not_started |
 | FT00019 | contrato-resumen-ciudadano | Contrato del resumen ciudadano | simplificacion-ia | not_started |

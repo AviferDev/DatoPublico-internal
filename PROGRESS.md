@@ -36,6 +36,21 @@
   `ea8ad16` (CI de rama `38079118216` en verde; run de `main` `38079602119`);
   rama remota eliminada. Siguiente feature lista: `pgvector-indexado` (FT00016,
   depende de FT00003 + FT00015) o `english-identifiers-rename` (FT00047).
+- **FT00016 `pgvector-indexado` → `passing`** (Session 048): **almacenamiento
+  vectorial** en `:backend` como **librería sin wiring** — migración `V3`
+  (`fragmento.embedding vector(384)` **nullable** + índice HNSW coseno
+  `vector_cosine_ops`), `persistence/PgVector` (puro, 384 dims, fail-fast,
+  independiente del *locale*) y `FragmentRepository` ampliado (`saveEmbedding`,
+  `findNearest`, `FragmentMatch`; literal con *cast* `?::vector`). Gate sin red ni
+  BD verde (`:backend` **184 tests**, 0 fallos; `PgVectorTest` 7,
+  `FragmentEmbeddingMigrationSqlTest` 3; `build -PskipClient`/`test`/`detekt`+
+  `:cpdCheck`/`init.sh` exit 0) y prueba **opt-in real ejecutada** con
+  PostgreSQL/Docker (`DB_LIVE_TEST=1`: vecino más cercano `distance=0.0`, índice
+  `fragmento_embedding_hnsw_idx` usado). Decisión durable en **ADR 0011**;
+  pendiente de validación independiente. Contador real de tokens en
+  `ArticleChunker` **diferido** (Non-Goal). Siguiente feature lista:
+  `recuperacion-hibrida` (FT00017, depende de FT00016) o
+  `english-identifiers-rename` (FT00047).
 - Última verificación: 2026-10-10 (Sessions 032–038). **Cambio de alcance 1.0.0 =
   TODO el BOE** (secciones I, II.A, II.B, III, IV, V.A, V.B y V.C; ningún campo ni
   sección se excluye) y nueva norma MUST de **`@SerialName` explícito** en cada
@@ -2447,3 +2462,59 @@
   `english-identifiers-rename` (FT00047).
 - Siguiente mejor paso: implementar `pgvector-indexado` (FT00016). Siguiente rol:
   `planner`.
+
+### Session 048
+
+- Fecha: 2026-10-10
+- Objetivo: ejecutar **FT00016 `pgvector-indexado`** como **implementer**
+  (`feature-implementer` + skill `rag-datapublico`) sobre el spec
+  `docs/specs/pgvector-indexado.md`.
+- Claim: rama `feat/ft00016-pgvector-indexado` con `a2df1f3 chore(FT00016): claim`.
+  Sin commits ni push (los hace el orquestador).
+- Completado (producto, **librería sin wiring**):
+  - Migración nueva `backend/src/main/resources/db/migration/V3__fragmento_embedding.sql`
+    (`embedding vector(384)` **nullable** + índice `fragmento_embedding_hnsw_idx`
+    `USING hnsw (embedding vector_cosine_ops)` con `m = 16`, `ef_construction = 64`).
+    `V1`/`V2` intactas.
+  - `persistence/PgVector.kt` (puro): `DIMENSIONS = 384`, `toLiteral`, `parse`
+    (`null`/blanco → `null`), fail-fast de dimensión, formato independiente del
+    *locale*.
+  - `persistence/FragmentRepository.kt` ampliado: `saveEmbedding`
+    (`UPDATE … RETURNING id`), `findNearest` (filtra `embedding IS NOT NULL`,
+    `ORDER BY embedding <=> ?::vector LIMIT ?`) y `FragmentMatch(fragment, distance)`;
+    literal con *cast* `?::vector` (`setString`), sin ORM ni `PGobject`.
+    `FragmentEntity`/`Fragment.toEntity()` intactas.
+- **Alcance respetado (Non-Goal del spec)**: **no** se toca `ArticleChunker` ni
+  `rag/embeddings/`; **no** se expone `countTokens` por `EmbeddingProvider`; la
+  calibración del contador real de tokens queda **diferida**. Sin filtros de
+  metadatos (FT00017), sin evaluación (FT00018), sin wiring, sin dependencias
+  nuevas.
+- Tests: `PgVectorTest` (7) y `FragmentEmbeddingMigrationSqlTest` (3) en el gate
+  (sin red ni BD); `FragmentEmbeddingPersistenceLiveTest` (1, opt-in
+  `DB_LIVE_TEST=1`). **11 tests nuevos**.
+- Verificación: `./gradlew :backend:test --rerun-tasks` → **184 tests, 0 fallos**
+  (antes 173); `./gradlew build --no-daemon -PskipClient` → BUILD SUCCESSFUL;
+  `./gradlew test` → 3 módulos; `./gradlew detekt` (+`:cpdCheck`) → BUILD
+  SUCCESSFUL; `env -u JAVA_HOME .harness/init.sh` → **exit 0**. Sin red ni BD.
+- **Prueba opt-in real ejecutada** (Docker/Colima disponible): `docker compose up -d`
+  → `healthy`; `./gradlew :backend:flywayMigrate :backend:flywayInfo` → **V1+V2+V3
+  en `Success`**; `\d fragmento` → `embedding vector(384)` nullable e índice HNSW
+  coseno; `DB_LIVE_TEST=1 … --tests '*FragmentEmbeddingPersistenceLiveTest'` →
+  1 test, 0 fallos; salida real `nearest=0 distance=0.0 second=2 distance=1.0` y
+  plan `Index Scan using fragmento_embedding_hnsw_idx` (`enable_seqscan = off`).
+  Entorno limpiado (`docker compose down -v`, `.env` borrado).
+- Docs durables: `ARCHITECTURE.md` (`persistence/` con `PgVector`/`findNearest`,
+  frontera PostgreSQL con `embedding`/HNSW, migración `V3`), `CONSTRAINTS.md`
+  (nueva sección **«Almacenamiento vectorial (pgvector)»** + corrección de la
+  asignación diferida del contador de tokens), **ADR 0011** + índice, skill
+  `rag-datapublico` §3, `docs/desarrollo-local.md` (producto),
+  `docs/feature-ids.md` (FT00016 → `passing`), `feature_list.json` (FT00016 →
+  **`passing`** + evidencia).
+- Riesgo o duda sin resolver: en tablas pequeñas el planificador puede preferir
+  *seq scan* (la prueba fuerza `enable_seqscan = off`); el uso real con volumen
+  llega con FT00017. Cambiar de modelo (768 dims) exigiría migración nueva y
+  reindexar. Comparación int8 vs fp32/`-base` sigue abierta.
+- Estado: **FT00016 `passing`** (implementada y autoverificada). Pendiente:
+  validación independiente (`feature-validator`).
+- Siguiente mejor paso: validar `pgvector-indexado` (FT00016). Siguiente rol:
+  `validator`.

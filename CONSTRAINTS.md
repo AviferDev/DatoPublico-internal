@@ -87,7 +87,8 @@
   con una **estimación provisional documentada e inyectable** por constructor
   (`charsPerToken = 3` por defecto) mientras el chunker se mantiene **puro**;
   FT00015 **expone** el tokenizador real (`countTokens`) sin modificar
-  `ArticleChunker`, y la inyección/calibración en el chunker es de FT00016; un
+  `ArticleChunker`, y la inyección/calibración del contador real en el chunker
+  queda **diferida** (no forma parte de FT00016, que solo almacena vectores); un
   párrafo que supere el presupuesto se parte por palabras y conserva la misma
   `reference`. `order` es **contiguo** `0..n-1` en orden de documento.
 - **MUST NOT**: la fragmentación **no anticipa lo diferido** — sin embeddings/ONNX
@@ -96,6 +97,28 @@
   PostgreSQL ni se cablea en `Application.kt`/job/backfill. El encaje con la
   persistencia es solo el mapeo puro `Fragment.toEntity()` (`id = null`, sin abrir
   conexión).
+
+## Almacenamiento vectorial (pgvector)
+
+- **MUST**: el embedding de `fragmento` es la columna **`embedding vector(384)`
+  nullable** (dimensión del modelo E5 `-small`) con índice **HNSW**
+  `vector_cosine_ops` (`m = 16`, `ef_construction = 64`), creada en la migración
+  `V3`. Decisión durable en `docs/adr/0011`.
+- **MUST**: el vector se guarda y consulta como **literal textual** (`[v1,v2,…]`,
+  formato independiente del *locale*) enlazado con el *cast* `?::vector`, **sin
+  ORM** y sin depender de `PGobject`; `PgVector` (puro) valida la dimensión **384**
+  con **fail-fast** (`IllegalArgumentException`) **antes** de tocar la base de
+  datos.
+- **MUST**: `findNearest` filtra los fragmentos **sin embedding**
+  (`embedding IS NOT NULL`) y ordena por **distancia coseno** ascendente; `limit`
+  debe ser `>= 1` (fail-fast). **Sin** filtros de metadatos: la recuperación
+  híbrida es de FT00017.
+- **MUST**: la prueba real de similitud e índice HNSW es **opt-in**
+  (`DB_LIVE_TEST=1`) contra el PostgreSQL de `docker-compose`, fuera de
+  `build`/`test`/`init.sh` y de la CI; el gate cubre la conversión pura
+  (`PgVectorTest`) y el contrato SQL de `V3`
+  (`FragmentEmbeddingMigrationSqlTest`) sin red ni BD. `saveEmbedding` **no**
+  crea el fragmento: la fila la crea `save` (FT00008/FT00014).
 
 ## Embeddings locales
 
@@ -118,10 +141,10 @@
 - **MUST**: la prueba contra el **modelo real** es **opt-in**
   (`EMBEDDING_LIVE_TEST=1`), fuera de `build`/`test`/`init.sh`/CI; el gate cubre el
   contrato y la aritmética con **dobles deterministas** (sin red ni artefactos).
-- **MUST NOT**: los embeddings **no** se cablean todavía en
-  `Application.kt`/job/backfill y **no** anticipan la columna `embedding
-  vector(384)`/HNSW (FT00016) ni la recuperación (FT00017); `ArticleChunker` y
-  `persistence/` quedan intactos.
+- **MUST NOT**: el proveedor de embeddings (FT00015) **no** se cablea en
+  `Application.kt`/job/backfill; el **almacenamiento** vectorial vive en
+  `persistence/` (FT00016, `embedding vector(384)` + HNSW) y la **recuperación
+  híbrida** (FT00017) es quien combinará proveedor y repositorio.
 
 ## Persistencia y base de datos
 
@@ -138,8 +161,8 @@
   de `build`/`test`/`init.sh` y de la CI (patrón `BOE_LIVE_TEST`). El gate cubre
   config de conexión, mapeo y contrato SQL de la migración **sin** PostgreSQL.
 - **MUST**: las migraciones Flyway son versionadas y **nunca** se edita una ya
-  aplicada; lo diferido (p. ej. la columna `embedding vector(384)` de `fragmento`
-  y su índice HNSW, de FT00016) **no** se anticipa.
+  aplicada (`V1`/`V2`/`V3`); lo diferido (p. ej. los filtros de metadatos de la
+  recuperación híbrida, FT00017) **no** se anticipa.
 
 ## Nombres y contratos
 

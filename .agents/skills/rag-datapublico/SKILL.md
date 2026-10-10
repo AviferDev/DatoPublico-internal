@@ -84,7 +84,8 @@ ingesta BOE → chunking → embeddings (ONNX) → pgvector → recuperación h�
   reutilizará la recuperación. Decisión durable en `docs/adr/0010`.
 - **Tokenizador real**: `E5Tokenizer.countTokens` cierra el **contador provisional**
   de FT00014 (`ArticleChunker` se mantiene **puro**, sin dependencia nativa; la
-  inyección/calibración es de FT00016).
+  inyección/calibración del contador real en el chunker queda **diferida**, no
+  forma parte de FT00016, que solo almacena vectores).
 - **Aprovisionamiento**: el modelo (~118 MB) y el `tokenizer.json` **no** se
   versionan; se descargan con `backend/tools/download-embedding-model.sh` a
   `backend/models/` (gitignored) y se referencian por **ruta absoluta**
@@ -98,6 +99,26 @@ ingesta BOE → chunking → embeddings (ONNX) → pgvector → recuperación h�
 - PostgreSQL + **pgvector**; columna de dimensión **384**; índice **HNSW**.
 - Filtros SQL por metadatos (fecha, categoría, organismo) combinados con la
   similitud. Verifica que el índice **se usa** en la consulta.
+
+### Estado actual del producto (FT00016)
+
+- El **almacenamiento vectorial** ya está implementado en `:backend`:
+  `persistence/PgVector` (puro: `DIMENSIONS = 384`, `toLiteral`/`parse`, fail-fast
+  de dimensión, formato independiente del *locale*) y `FragmentRepository`
+  ampliado con `saveEmbedding` y `findNearest` (`FragmentMatch` = fragmento +
+  distancia coseno). Migración `V3__fragmento_embedding.sql`: columna
+  **`embedding vector(384)` nullable** + índice **HNSW** `vector_cosine_ops`
+  (`m = 16`, `ef_construction = 64`). El vector se guarda como **literal textual
+  con *cast* `?::vector`** (sin ORM ni `PGobject`); `findNearest` filtra
+  `embedding IS NOT NULL` y ordena por distancia ascendente. Decisión durable en
+  `docs/adr/0011`.
+- **Sin filtros de metadatos** (recuperación híbrida → FT00017) y **sin wiring**:
+  `Application.kt`/job/backfill, `ArticleChunker`, `rag/embeddings/` y `:shared`
+  intactos; no genera embeddings (no construye `E5EmbeddingProvider`).
+- **Verificación**: el gate cubre `PgVectorTest` y
+  `FragmentEmbeddingMigrationSqlTest` **sin red ni BD**; la prueba real (vecino más
+  cercano, exclusión de nulos e índice HNSW usado con `SET enable_seqscan = off`)
+  es **opt-in** `DB_LIVE_TEST=1` contra el PostgreSQL de `docker-compose`.
 
 ## 4. Recuperación híbrida
 

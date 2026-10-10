@@ -68,6 +68,15 @@
   prueba contra el modelo real es **opt-in** (`EMBEDDING_LIVE_TEST=1`). No
   anticipa pgvector/HNSW (FT00016) ni la recuperación (FT00017) y **no** toca
   `ArticleChunker`/`persistence/`. Ver `docs/adr/0010`.
+  FT00016 añade el **almacenamiento vectorial**: la migración `V3` da a `fragmento`
+  la columna `embedding vector(384)` (nullable) y su **índice HNSW** coseno
+  (`vector_cosine_ops`); `persistence/PgVector` convierte de forma **pura** entre
+  `FloatArray` y el literal `[v1,v2,…]` (dimensión 384, fail-fast) y
+  `FragmentRepository` gana `saveEmbedding` (literal con *cast* `?::vector`) y
+  `findNearest` (vecinos más cercanos por distancia coseno, excluyendo los nulos).
+  Es una **librería**: **no** se cablea en el arranque y **no** incluye filtros de
+  metadatos (recuperación híbrida, FT00017) ni evaluación (FT00018); la prueba
+  real contra PostgreSQL es **opt-in** (`DB_LIVE_TEST=1`). Ver `docs/adr/0011`.
   Existe **`persistence/`** (FT00008): repositorios **JDBC**
   + entidades `...Entity` de `publicacion`, `fragmento`, `resumen` y
   `cola_revision`, más los helpers JDBC compartidos; la configuración de
@@ -122,14 +131,15 @@
   (ver `docs/adr/0006`).
 - **Backend → PostgreSQL** (JDBC + **HikariCP**, **sin ORM**; migraciones
   **Flyway**; ver `docs/adr/0003`): los repositorios de `persistence/` escriben
-  y leen `publicacion` (con `categoria` y `plazo` nullable), `fragmento`,
+  y leen `publicacion` (con `categoria` y `plazo` nullable), `fragmento` (con
+  `embedding vector(384)` nullable e índice **HNSW** coseno desde FT00016),
   `resumen` y `cola_revision`. La conexión se **deriva** de `POSTGRES_*` (fuente
   única, la misma que Compose/Flyway) y falla en claro si falta la contraseña. El
   *upsert* de publicación por `id` es idempotente y es la base del job diario: la
   segunda pasada reejecuta la misma fecha sin duplicar. `Application.kt` crea el
   pool **solo** si la ingesta está habilitada y la config de BD resuelve, y lo
-  cierra en `ApplicationStopped`. Lo diferido no se anticipa: la columna
-  `embedding vector(384)` y su índice HNSW llegan con FT00016, y los valores de
+  cierra en `ApplicationStopped`. Lo diferido no se anticipa: los filtros de
+  metadatos de la recuperación híbrida llegan con FT00017 y los valores de
   categoría/plazo los produce la ingesta desde FT00012
   (`ingesta/categorizacion/`, ver `docs/adr/0007`).
 - **Backend:** `plugins/` (HTTP) → servicios → dominio puro → repositorios y
@@ -140,7 +150,7 @@
   en CPU, tras `EmbeddingProvider`; **no** cableados aún y sin anticipar
   pgvector/HNSW (FT00016).
 - **Datos:** PostgreSQL + pgvector; migraciones Flyway (`V1` esquema base, `V2`
-  persistencia). Sin cuentas ni datos personales.
+  persistencia, `V3` embedding + HNSW). Sin cuentas ni datos personales.
 
 ## Reglas transversales
 
