@@ -55,9 +55,9 @@
   tests, 0 fallos; `build`/`test`/`detekt`+`:cpdCheck`/`init.sh` exit 0) y JSON
   real de Logstash verificado (`event=ingestion.run.completed|failed|missed`);
   validación independiente `accept` (`docs/validations/ingesta-observabilidad.md`);
-  commit `ee1ab2d` y **PR #11** (`feat/ft00010-ingesta-observabilidad`) hacia
-  `main`. Siguiente feature lista: `backfill-historico` (FT00011) o
-  `categorizacion-publicaciones` (FT00012).
+  commit `ee1ab2d` y **PR #11** (`feat/ft00010-ingesta-observabilidad`) **fusionado**
+  en `main` por rebase → `4ec080e` (rama remota eliminada). Siguiente feature lista:
+  `backfill-historico` (FT00011) o `categorizacion-publicaciones` (FT00012).
 - Bloqueo actual: ninguno para el bootstrap. Pendiente de producto: **nombre y
   marca** (bloquea la fase de producción, no el bootstrap).
 - Convención de nombres (aclarada 2026-10-10): **todo tipo `@Serializable`/de
@@ -1945,3 +1945,7 @@
   (https://github.com/AviferDev/DatoPublico/pull/11); **CI en verde**: run
   `38059233088`, job 'Build and test' SUCCESS (3m17s). `feature_list.json`:
   FT00010 → **`accepted`**; `docs/feature-ids.md`: FT00010 → `accepted`.
+- Merge (orquestador, Session 039): **PR #11 fusionado** en `main` por rebase →
+  `4ec080e`; rama remota eliminada y rama local `feat/ft00010-ingesta-observabilidad`
+  borrada. Siguiente feature lista: `backfill-historico` (FT00011) o
+  `categorizacion-publicaciones` (FT00012).
