@@ -7,9 +7,10 @@
 - Camino de arranque estándar: `./init.sh` (desde `.harness/`)
 - Camino de verificación estándar: `./gradlew build` y `./gradlew test` desde la
   raíz del repo público (`..`) — **bootstrapped** (Gradle 8.10.2 + JDK 21).
-- Última feature cerrada: `bootstrap-cmp-targets` (FT00005) → **`accepted`**
-  (Session 027; validación independiente `accept`; commit/PR a cargo del
-  orquestador). Hito anterior: `bootstrap-ktor-healthcheck` (FT00004) →
+- Última feature cerrada: `bootstrap-cmp-targets` (FT00005) → **`accepted` y
+  fusionada** (Sessions 026–027; validación independiente `accept`, CI en verde
+  run `38037289572` y PR #5 fusionado, merge `136eedf`). Hito anterior:
+  `bootstrap-ktor-healthcheck` (FT00004) →
   **`accepted` y fusionada** (Session 025; validación independiente `accept`, CI
   en verde y PR #4 fusionado, merge `1e32f4c`). Siguiente feature lista tras
   acceptar FT00005: `boe-sumario-cliente` (FT00006, depende de FT00002 y FT00004,
@@ -1159,6 +1160,13 @@
   - `.harness/feature_list.json`: FT00005 → **`accepted`** (evidencia con la
     validación independiente y la deuda Low). `docs/feature-ids.md`: FT00005 →
     `accepted`.
+  - Commit de producto `0f47d03 feat(FT00005): complete bootstrap-cmp-targets` en
+    `feat/ft00005-bootstrap-cmp-targets`. **PR #5** hacia `main`:
+    https://github.com/AviferDev/DatoPublico/pull/5
+  - **CI en verde**: run `38037289572`, job "Build and test" SUCCESS (5m16s) para
+    el head `0f47d03`.
+  - **PR #5 fusionado** en `main` (merge commit `136eedf`). Rama de feature
+    eliminada (local y remota). `main` local sincronizada con `origin/main`.
 - Notas *Low* del validator (no bloquean; deuda menor):
   1. `wasmJsBrowserTest` desactivado globalmente también salta en CI (ubuntu, con
      Chrome); revisar al llegar UI Wasm real (FT00032+).
@@ -1169,8 +1177,7 @@
 - Ficheros (harness): `.harness/feature_list.json`, `.harness/docs/feature-ids.md`,
   `.harness/docs/validations/bootstrap-cmp-targets.md`,
   `.harness/PROGRESS.md`.
-- Estado: **FT00005 `accepted`** (producto en la rama
-  `feat/ft00005-bootstrap-cmp-targets`; commit/push/PR a cargo del orquestador).
-  Siguiente feature lista: `boe-sumario-cliente` (FT00006).
-- Siguiente mejor paso: tras el PR, implementar `boe-sumario-cliente` (FT00006)
-  con el flujo.
+- Estado: **FT00005 `accepted` y fusionada** (PR #5 fusionado, merge `136eedf`;
+  CI en verde run `38037289572`; rama eliminada). Siguiente feature lista:
+  `boe-sumario-cliente` (FT00006).
+- Siguiente mejor paso: implementar `boe-sumario-cliente` (FT00006) con el flujo.
