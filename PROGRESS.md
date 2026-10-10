@@ -7,21 +7,23 @@
 - Camino de arranque estándar: `./init.sh` (desde `.harness/`)
 - Camino de verificación estándar: `./gradlew build` y `./gradlew test` desde la
   raíz del repo público (`..`) — **bootstrapped** (Gradle 8.10.2 + JDK 21).
-- **Stack RAG/resumen 0.3–0.4 (Sessions 048–052): 5 features `accepted`, apiladas
-  en 5 PRs encadenados (sin fusionar).** Orden del stack y base de cada PR:
-  `FT00016 pgvector-indexado` (PR #17 → `main`), `FT00017 recuperacion-hibrida`
-  (PR #18 → FT00016), `FT00018 evaluacion-recuperacion` (PR #19 → FT00017),
-  `FT00019 contrato-resumen-ciudadano` (PR #20 → FT00018) y
-  `FT00020 generacion-resumen-go` (PR #21 → FT00019). Cada feature se planificó
-  (spec), implementó y **validó de forma independiente** (`feature-validator`,
-  veredicto `accept` en las cinco); el gate se reejecutó en verde en cada punta
-  (`:backend` 184 → 202 → 224 → 253 tests, 0 fallos; `:shared` 26; `build
-  -PskipClient`/`test`/`detekt`+`:cpdCheck`/`init.sh` exit 0). La punta del stack
-  (FT00020) contiene las cinco y está verde. **La CI de GitHub solo se dispara en
-  PRs hacia `main`**, así que solo el PR #17 tiene run; los PR #18–#21 se revisan
-  por diff incremental contra su base (su gate ya se validó en local). ADR 0011,
-  0012, 0013, 0014 y 0015. Siguiente feature lista: `cacheo-resumenes` (FT00021,
-  depende de FT00020) o `english-identifiers-rename` (FT00047).
+- **Stack RAG/resumen 0.3–0.4 (Sessions 048–052): 5 features `accepted`, ya
+  consolidadas en `main`.** Se apilaron en 5 PRs encadenados: `FT00016
+  pgvector-indexado` (PR #17 → `main`), `FT00017 recuperacion-hibrida` (PR #18),
+  `FT00018 evaluacion-recuperacion` (PR #19), `FT00019 contrato-resumen-ciudadano`
+  (PR #20) y `FT00020 generacion-resumen-go` (PR #21). Los merges de los PRs
+  apilados cayeron en sus **ramas base**, no en `main`; para dejar `main` completo
+  se consolidaron los commits `feat(FT00017..FT00020)` sobre `main` (cherry-pick
+  en orden, árbol idéntico a la punta del stack) y se publicó `main` → `dcce1fc`
+  (2026-10-11), con **CI en verde** (run `38096097654`, job 'Build and test'
+  SUCCESS). Cada feature se planificó (spec), implementó y **validó de forma
+  independiente** (`feature-validator`, veredicto `accept` en las cinco); el gate
+  se reejecutó en verde en cada punta (`:backend` 184 → 202 → 224 → 253 tests, 0
+  fallos; `:shared` 26; `build -PskipClient`/`test`/`detekt`+`:cpdCheck`/`init.sh`
+  exit 0) y de nuevo sobre el árbol consolidado (253/26, 0 fallos). ADR 0011,
+  0012, 0013, 0014 y 0015. `main` contiene ahora FT00001–FT00020. Siguiente
+  feature lista: `cacheo-resumenes` (FT00021, depende de FT00020) o
+  `english-identifiers-rename` (FT00047).
 - **FT00014 `chunking-articulos` → `accepted`** (Session 046): chunking **puro,
   determinista y sin red/BD** en `:backend` — paquete nuevo `rag/` (`Fragment` +
   `ArticleChunker`, `chunk(Publicacion): List<Fragment>`, presupuesto
