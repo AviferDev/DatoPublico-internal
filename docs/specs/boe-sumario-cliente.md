@@ -27,6 +27,33 @@ return*. Aplicada a esta feature sin cambiar comportamiento ni firmas:
   envuelve las aserciones, sin salida etiquetada. Se mantiene el mensaje de aviso
   cuando `BOE_LIVE_TEST != 1`.
 
+## Nota de reparación: alcance completo del BOE y `@SerialName` (2026-10-10, reapertura)
+
+Cambio decidido por el owner (1.0.0 = **todo el sumario del BOE**: I, II.A, II.B,
+III, IV, V.A, V.B y V.C; **todos los campos**; ver MUST en `CONSTRAINTS.md`
+§Producto y datos) y norma de serialización nueva (MUST en `CONSTRAINTS.md`
+§«Serialización»: `@SerialName` explícito en cada propiedad). Aplicado sin ampliar
+más el alcance del cliente:
+
+- **Secciones**: `seccionBoeDe` mapea los **8** códigos (`1→I`, `2A→II.A`,
+  `2B→II.B`, `3→III`, `4→IV`, `5A→V.A`, `5B→V.B`, `5C→V.C`); **ya no se descarta
+  ninguna sección** (solo un código ajeno al sumario → `null`).
+- **Envoltura `texto`**: las Secciones IV y V.C exponen sus entradas en
+  `departamento.texto.item[]` (no en `departamento.item`). Se modela
+  `BoeTextoDto` (`texto` con `item`, tolerante objeto/array) y el aplanado
+  incorpora esos items.
+- **Todos los campos**: `BoeUrlPdfDto` incorpora `szBytes` y `szKBytes` (además de
+  `pagina_inicial`, `pagina_final` y `texto`); `EntradaSumario` añade `urlPdf`
+  (URL del PDF) y `urlOficial = urlHtml ?: urlPdf.texto` como respaldo.
+- **Serialización**: `@SerialName` explícito en **todas** las propiedades de
+  `SumarioWireDto.kt` y en `HealthDto` (`:backend`).
+
+Tests actualizados con los mismos fixtures reales (`sumario-20261009.json`,
+`sumario-20240102.json`): recuentos con **todas** las secciones (20261009: 237 =
+I 5/II.A 16/II.B 31/III 69/V.A 32/V.B 84; 20240102: 143 = II.A 6/II.B 24/III 18/
+IV 24/V.A 51/V.B 16/V.C 4) y `urlPdf`. El test opt-in usa un día con las ocho
+secciones (2024-01-09). Sin cambiar el formato de wire.
+
 ## Goal
 
 Añadir en `:backend` un **cliente de la API de datos abiertos del BOE** que, dada

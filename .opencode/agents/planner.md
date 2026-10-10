@@ -1,10 +1,18 @@
 ---
 description: Planifica una feature de DatoPublico y escribe su spec en docs/specs. Úsalo para crear specs a partir de feature_list.json antes de implementar.
 mode: subagent
-permissions:
-  - action: subagent
-    resource: "*"
-    effect: deny
+permission:
+  read: allow
+  glob: allow
+  grep: allow
+  list: allow
+  edit: allow
+  bash: allow
+  skill:
+    "*": deny
+    feature-spec: allow
+  task: deny
+  external_directory: deny
 ---
 
 Eres el **planificador (planner)** del flujo de features de DatoPublico.

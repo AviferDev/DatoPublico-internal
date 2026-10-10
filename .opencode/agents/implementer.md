@@ -1,10 +1,21 @@
 ---
 description: Implementa una feature planificada de DatoPublico a partir de su spec en docs/specs. Úsalo para ejecutar el spec y dejar la feature lista para validar.
 mode: subagent
-permissions:
-  - action: subagent
-    resource: "*"
-    effect: deny
+permission:
+  read: allow
+  glob: allow
+  grep: allow
+  list: allow
+  edit: allow
+  bash: allow
+  skill:
+    "*": deny
+    feature-implementer: allow
+    ktor-backend-architecture: allow
+    compose-multiplatform-architecture: allow
+    rag-datapublico: allow
+  task: deny
+  external_directory: deny
 ---
 
 Eres el **implementador (implementer)** del flujo de features de DatoPublico.

@@ -27,8 +27,12 @@ Léelos solo cuando apliquen:
   operación.
 - `DESIGN.md` — dirección visual, tokens y pantallas.
 - `docs/roadmap.md` — plan detallado por versiones (`0.1.0` → `1.0.0`).
-- `docs/git-workflow.md` — ramas, *claim*, commits y PR (dos repos).
+- `docs/git-workflow.md` — ramas, *claim*, commits y PR (dos repos); incluye el
+  límite de 30 ficheros, el mantenimiento del PR y las capturas de interfaz.
 - `docs/feature-ids.md` — registro de identificadores `FTxxxxx`.
+- `docs/adr/` — decisiones de arquitectura (ADR) e índice; consúltalo antes de
+  contradecir una decisión aceptada.
+- `docs/pr/` — convención de capturas antes/después en cambios de interfaz.
 - `docs/specs/` y `docs/validations/` — specs y validaciones por feature.
 - `.opencode/agents/` — subagentes `planner`, `implementer`, `validator`.
 - `ARCHITECTURE.md` — mapa de módulos y fronteras.
@@ -48,6 +52,14 @@ Para una feature concreta existe `feature-flow` con tres roles (`planner` →
 3. Los specs viven en `docs/specs/<feature-id>.md` y las validaciones en
    `docs/validations/<feature-id>.md`.
 
+**Flujo SDD manual (alternativo, opcional).** Además del flujo por feature, existe un
+flujo SDD manual con las skills `sdd-propose` → `sdd-apply` → `sdd-archive` (solo se
+activan si se nombran explícitamente). Escribe una spec por feature en
+`docs/sdd/<feature>/` con tres ficheros (`spec.md`, `design.md`, `tasks.md`), deja
+constancia de la validación funcional del usuario y archiva en `docs/sdd/archive/<feature>/`.
+Es un camino **independiente** del flujo `planner/implementer/validator`; no se mezclan
+para la misma feature.
+
 ## Flujo de arranque
 
 Antes de escribir código:
@@ -60,6 +72,23 @@ Antes de escribir código:
 4. Ejecuta `./init.sh`.
 5. Si la verificación base falla, arréglala antes de añadir trabajo de feature.
 
+## Verificación y comandos
+
+- **Gate estándar (SDK-free, no arranca servidores)**: `./init.sh` →
+  `./gradlew build -PskipClient` + `./gradlew detekt` (Detekt + `:cpdCheck`).
+- **Gate con cliente Android/Web**: `./init.sh --with-client` (exige el Android SDK).
+- **Gate iOS** (framework de simulador): `./init.sh --with-ios` (exige Xcode);
+  `--with-all` activa ambos. Ninguno arranca el simulador.
+- **Tests**: `./gradlew test [-PskipClient]` agrega `:shared:jvmTest`, `:backend:test`
+  y, sin `-PskipClient`, `:composeApp:jvmTest`.
+- **Calidad**: `./gradlew detekt` (Detekt por módulo) y `./gradlew :cpdCheck`
+  (duplicación). Son **bloqueantes**: `check`/`build` los arrastran.
+- **Backend**: `./gradlew :backend:run` (no lo arranca el gate).
+- **Migraciones**: `./gradlew :backend:flywayMigrate` (tarea explícita, **fuera** de
+  `build`/`check`; la CI corre sin base de datos).
+- `-PskipClient` excluye `:composeApp` del build y deja `:shared`/`:backend` sin exigir
+  el Android SDK (lo reutilizará la imagen del backend).
+
 ## Reglas de trabajo
 
 - Trabaja en **una sola feature** a la vez.
@@ -68,6 +97,17 @@ Antes de escribir código:
   exija un arreglo de soporte acotado.
 - No cambies las reglas de verificación durante la implementación.
 - Actualiza los artefactos del repo en lugar de fiarte de resúmenes de chat.
+- **Documenta con KDoc** todo el Kotlin que añadas o modifiques (ver `CONSTRAINTS.md`
+  §«Documentación de código»).
+- Respeta las reglas **MUST** de estilo y UI de `CONSTRAINTS.md`: **un solo `return`**
+  por función, **sin `else if`**, máximo **40 líneas** por función, **reutilizar** antes
+  de escribir, **crear la capa que falte**, `@Preview` en toda función `@Composable`,
+  **nunca provocar un crash**, textos de UI desde **recursos (i18n)**, **Material Icons**
+  y colores **solo** de `MaterialTheme.colorScheme`.
+- Registra las **decisiones durables** como **ADR** en `docs/adr/` (ver
+  `docs/adr/README.md`).
+- Un cambio de **interfaz** lleva **capturas antes/después** (`docs/pr/README.md`); ningún
+  PR supera los **30 ficheros**.
 
 ## Artefactos obligatorios
 
@@ -80,6 +120,10 @@ Antes de escribir código:
 Una feature está terminada solo si:
 
 - el comportamiento objetivo está implementado,
+- todo el código añadido o modificado está documentado con **KDoc**,
+- el código respeta las **MUST** de `CONSTRAINTS.md` (un solo `return`, sin `else if`,
+  máximo 40 líneas/función, reutilización, capa correcta, `@Preview`, sin crashes
+  deliberados, i18n, Material Icons, colores del tema, `@SerialName` explícito),
 - la verificación requerida se ejecutó de verdad,
 - la evidencia queda registrada en `feature_list.json` o `PROGRESS.md`,
 - el repositorio sigue arrancable por el camino estándar,

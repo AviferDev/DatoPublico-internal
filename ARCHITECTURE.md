@@ -23,6 +23,21 @@
   tests/dev. Aún **no** depende de `:shared` (llega con la primera UI que necesite
   DTOs, FT00032).
 
+## Build y gate
+
+- Raíz Gradle multi-proyecto (Kotlin DSL) con **version catalog** (`gradle/libs.versions.toml`).
+- `:shared` y `:backend` son **SDK-free**; `:composeApp` aplica AGP (exige el Android SDK)
+  y se incluye salvo con `-PskipClient`.
+- **Gate de calidad bloqueante**: **Detekt** por módulo (`config/detekt/detekt.yml` +
+  `config/detekt/<módulo>-baseline.xml`) y **CPD** global (`:cpdCheck`, PMD, umbral 100
+  tokens); `check`/`build` y `.harness/init.sh` los ejecutan. Un hallazgo nuevo o un
+  duplicado rompe el build.
+- **Gate estándar** (`.harness/init.sh`, SDK-free): `./gradlew build -PskipClient` +
+  `./gradlew detekt`. Con `--with-client`/`--with-ios`/`--with-all` se añade el cliente
+  (Android/Web, iOS).
+- **Migraciones** Flyway con tareas explícitas (`./gradlew :backend:flywayMigrate`), fuera
+  de `check`; la CI no necesita base de datos.
+
 ## Fronteras
 
 - **Cliente → API HTTP** (público, solo lectura). El cliente no conoce los

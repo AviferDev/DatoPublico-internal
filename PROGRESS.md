@@ -7,6 +7,12 @@
 - Camino de arranque estándar: `./init.sh` (desde `.harness/`)
 - Camino de verificación estándar: `./gradlew build` y `./gradlew test` desde la
   raíz del repo público (`..`) — **bootstrapped** (Gradle 8.10.2 + JDK 21).
+- Última verificación: 2026-10-10 (Session 032). **Cambio de alcance 1.0.0 =
+  TODO el BOE** (secciones I, II.A, II.B, III, IV, V.A, V.B y V.C; ningún campo ni
+  sección se excluye) y nueva norma MUST de **`@SerialName` explícito** en cada
+  propiedad `@Serializable`. **FT00002** (`bootstrap-shared-dtos`) y **FT00006**
+  (`boe-sumario-cliente`) reabiertas e implementadas → **`passing`** (pendientes de
+  validación independiente).
 - Última feature cerrada: `boe-sumario-cliente` (FT00006) → **`accepted`**
   (Sessions 029–031; validación independiente `accept` y revalidación `accept`
   tras aplicar el MUST de **retorno único** y aclarar la convención de nombres;
@@ -83,12 +89,13 @@
   (ONNX/CPU)** por defecto (`-base` como alternativa tras la interfaz) +
   **OpenCode** (`deepseek-v4.1-flash`) para resumen y chat. OpenCode no ofrece
   endpoint de embeddings. El **chat RAG entra en el alcance de la 1.0.0**.
-- Alcance 1.0.0 (2026-10-09): BOE **Secciones I, II.A, II.B, III y V.B**, con
-  **categorías** curadas (11 valores) + sección/epígrafe del BOE como metadato;
-  feed diario con **destacados**, búsqueda con filtros y **chat de verificación**
-  contra el BOE. Ingesta **9:30 + segunda pasada**; backfill del **último año**.
-  Fuera: Sección IV (Justicia, datos personales), V.A (licitaciones), PLACSP y
-  fact-checking externo (1.x).
+- Alcance 1.0.0 (actualizado 2026-10-10): **todo el sumario del BOE**
+  (secciones I, II.A, II.B, III, IV, V.A, V.B y V.C) con **categorías** curadas
+  (11 valores) + sección/epígrafe del BOE como metadato; feed diario con
+  **destacados**, búsqueda con filtros y **chat de verificación** contra el BOE.
+  Ingesta **9:30 + segunda pasada**; backfill del **último año**. El principio
+  «sin datos personales» aplica a los **usuarios de la app**, no al BOE. Fuera:
+  PLACSP (detalle de adjudicaciones) y fact-checking externo (1.x).
 
 ## Session Log
 
@@ -1397,3 +1404,143 @@
 - Estado: **FT00006 `accepted`**. Siguiente feature lista: `boe-parser-publicacion`
   (FT00007).
 - Siguiente mejor paso: implementar `boe-parser-publicacion` (FT00007) con el flujo.
+
+### Session 032
+
+- Fecha: 2026-10-10
+- Objetivo: aplicar el **cambio de alcance** decidido por el owner (1.0.0 = **todo
+  el BOE**, todas las secciones y todos los campos) y la **norma MUST de
+  serialización** (`@SerialName` explícito en cada propiedad `@Serializable`) a las
+  features reabiertas **FT00002** (`bootstrap-shared-dtos`, `:shared`) y **FT00006**
+  (`boe-sumario-cliente`, `:backend`), sin ampliar más el alcance. Rama de producto
+  `feat/ft00006-boe-sumario-cliente` (PR #6 abierto); **sin crear ramas ni commits**.
+- Completado (`:shared`, FT00002):
+  - `SeccionBoeDto`: ampliado a **8** valores — `I`, `II.A`, `II.B`, `III`, `IV`
+    (`@SerialName("IV")`), `V.A` (`"V.A"`), `V.B`, `V.C` (`"V.C"`). Ninguna sección
+    se excluye.
+  - `@SerialName` explícito en **todas** las propiedades de `PublicacionDto` (10),
+    `ResumenDto` (6), `PlazoDto` (2) y `ResumenDiarioDto` (2); `CategoriaDto`
+    (11 valores) y `SeccionBoeDto` (8) ya anotaban sus valores de enum. JSON de
+    wire invariante.
+  - `CategoriaWireTest` actualizado a 8 secciones. `SerializationTest` sin cambios
+    (round-trip intacto).
+- Completado (`:backend`, FT00006):
+  - `SumarioWireDto.kt`: `@SerialName` explícito en **las 36** propiedades de todos
+    los DTOs de transporte. `BoeUrlPdfDto` amplía a los campos reales (`szBytes`,
+    `szKBytes`, `pagina_inicial`, `pagina_final`, `texto`). Nuevo `BoeTextoDto` y
+    campo `texto` en `BoeDepartamentoDto` para la envoltura `departamento.texto`.
+  - `BoeSumarioClient.kt`: `seccionBoeDe` mapea los 8 códigos (`1→I`, `2A→II.A`,
+    `2B→II.B`, `3→III`, `4→IV`, `5A→V.A`, `5B→V.B`, `5C→V.C`); **ya no se descarta
+    ninguna sección**. El aplanado incorpora `departamento.texto.item[]`.
+    `urlOficial = urlHtml ?: urlPdf?.texto.orEmpty()`. Estilo de retorno único
+    mantenido.
+  - `EntradaSumario`: nuevo campo `urlPdf: String?`. `Health.kt`: `HealthDto` con
+    `@SerialName("status")`. `BoeSumarioHttpClient.kt` sin cambios funcionales.
+  - Tests: `SumarioParsingTest` (4) con recuentos de **todas** las secciones
+    (20261009 = 237; 20240102 = 143) y `urlPdf`; `BoeSumarioClientTest` (5) donde el
+    test de filtrado ahora **incluye** V.A; `BoeSumarioLiveTest` usa 2024-01-09 (día
+    con las 8 secciones) y espera el conjunto completo. Fixtures reales existentes,
+    sin crear nuevos.
+- **Cómo se resolvió `departamento.texto.item`**: las Secciones IV (Justicia) y V.C
+  (anuncios particulares) cuelgan sus entradas de `departamento.texto.item[]` en
+  lugar de `departamento.item` (verificado en `sumario-20240102.json`: la Sección IV
+  es `texto.item[24]`, la V.C es `texto.item[4]`). Se modeló `BoeTextoDto`
+  (`texto: BoeTextoDto? = null`, con `item` tolerante objeto/array vía
+  `ItemListSerializer`) y `BoeDepartamentoDto.entradas` añade `texto?.item.orEmpty()`
+  al `buildList`, con organismo = nombre del departamento y epígrafe = null.
+- Verificación ejecutada (desde `..`, `JAVA_HOME` del JBR 21):
+  - `./gradlew :shared:jvmTest --rerun-tasks` → BUILD SUCCESSFUL; XML: SmokeTest
+    1/0/0, CategoriaWireTest 3/0/0, SerializationTest 7/0/0 (**11 tests**).
+  - `./gradlew :backend:test --rerun-tasks` → BUILD SUCCESSFUL; XML sin
+    failures/errors: SmokeTest 1/0/0, AppConfigTest 6/0/0, HealthTest 2/0/0,
+    SumarioParsingTest 4/0/0, BoeSumarioClientTest 5/0/0, BoeSumarioLiveTest 1/0/0
+    (**19 tests**).
+  - **Recuentos por sección** (con todas las secciones): `20261009` = 237
+    (I 5/II.A 16/II.B 31/III 69/V.A 32/V.B 84); `20240102` = 143
+    (II.A 6/II.B 24/III 18/IV 24/V.A 51/V.B 16/V.C 4).
+  - **Grep/script de `@SerialName`**: 0 propiedades sin anotar y 0 valores de enum
+    sin anotar en `:shared` y `:backend` (SumarioWireDto 36/36, Health 1/1,
+    PublicacionDto 10/10, ResumenDto 6/6, PlazoDto 2/2, ResumenDiarioDto 2/2;
+    CategoriaDto 11/11 y SeccionBoeDto 8/8).
+  - Gate sin red ni BD: `./gradlew build --no-daemon` → BUILD SUCCESSFUL (197
+    tareas); `./gradlew test` → BUILD SUCCESSFUL (3 módulos);
+    `env -u JAVA_HOME .harness/init.sh` → exit 0.
+  - Llamada real (opt-in): `curl -H 'Accept: application/json'
+    .../boe/sumario/20240102` → HTTP 200; con la lógica nueva se incluyen
+    II.A 6/II.B 24/III 18/**IV 24**/**V.A 51**/V.B 16/**V.C 4** = 143. El test
+    opt-in `BOE_LIVE_TEST=1` sobre 2024-01-09 falla solo por la raíz **FNMT-RCM**
+    ausente en el `cacerts` del JBR (limitación de entorno ya documentada), no por
+    parcheo; fuera del gate.
+- Documentación durable: nota de reparación en
+  `docs/specs/{bootstrap-shared-dtos,boe-sumario-cliente}.md`;
+  `.harness/PROGRESS.md`, `.harness/feature_list.json` (FT00002/FT00006 →
+  `passing`), `.harness/docs/feature-ids.md` (`passing`); producto
+  `docs/desarrollo-local.md` y `ROADMAP.md` (alcance completo). `CONSTRAINTS.md`
+  ya recogía ambos MUST; `ARCHITECTURE.md` ya los describe.
+- Ficheros de producto: `shared/src/commonMain/.../model/{SeccionBoeDto,PublicacionDto,
+  ResumenDto,PlazoDto,ResumenDiarioDto}.kt`, `shared/src/commonTest/.../CategoriaWireTest.kt`,
+  `backend/src/main/.../ingesta/sumario/{SumarioWireDto,EntradaSumario,BoeSumarioClient}.kt`,
+  `backend/src/main/.../plugins/Health.kt`,
+  `backend/src/test/.../ingesta/sumario/{SumarioParsingTest,BoeSumarioClientTest,BoeSumarioLiveTest}.kt`,
+  `docs/desarrollo-local.md`, `ROADMAP.md`.
+- Estado: **FT00002 `passing`** y **FT00006 `passing`** (implementadas y
+  autoverificadas), pendientes de **validación independiente**. Sin commit (lo
+  gestiona el orquestador).
+- Siguiente mejor paso: validación independiente (`feature-validator`) de FT00002 y
+  FT00006 tras el cambio de alcance y la norma de serialización.
+
+### Session 033
+
+- Fecha: 2026-10-10
+- Objetivo: portar del harness de Vuelantis las diferencias seleccionadas por el
+  dueño (**Fase 1**: docs de decisión/flujo, reglas MUST, skills SDD, agentes;
+  **Fase 2**: gate de calidad detekt+CPD, `init.sh` con flags, `opencode.json`).
+- Decisiones: se adopta casi todo lo seleccionado salvo `fastlane`/workflows de
+  release, `deploy`/`docker`/compose y docs de release/design (Fases 3–4), diferidos
+  hasta que exista app/backend desplegable. **No** se adoptan los campos extra de
+  `feature_list.json` (`phase`, `out_of_mvp`, `parts`, `supersedes`).
+- Fase 1 (harness privado):
+  - `docs/adr/` (README de convención + índice + ADR `0001` de los dos repositorios).
+  - `docs/pr/` (convención de capturas antes/después).
+  - `docs/sdd/` + skills `sdd-propose`/`sdd-apply`/`sdd-archive` adaptadas a
+    `docs/sdd/<feature>/` (spec/design/tasks) y `docs/sdd/archive/`.
+  - `docs/git-workflow.md`: + límite de 30 ficheros, mantener PR actualizado,
+    capturas de interfaz y "Evitar problemas".
+  - `AGENTS.md`: sección "Verificación y comandos"; reglas de trabajo y definición
+    de terminado con las MUST nuevas; referencias a `docs/adr/` y `docs/pr/`.
+  - `CONSTRAINTS.md`: KDoc, prohibir `else if`, 40 líneas/función, reutilización,
+    crear la capa que falte, `@Preview`, nunca provocar crash, i18n, Material Icons,
+    colores del tema, gate detekt+CPD y gate SDK-free; sección "Decisiones y flujo".
+  - `ARCHITECTURE.md`: sección "Build y gate".
+  - `.opencode/agents/*`: frontmatter al formato `permission:` (mapa) de Vuelantis;
+    el implementer/validator permiten las skills de arquitectura.
+  - `README.md` (harness): contenido ampliado.
+- Fase 2 (producto):
+  - `gradle/libs.versions.toml`: detekt 1.23.8 y CPD 3.5.
+  - `build.gradle.kts`: plugins, `cpd{}` (kotlin, PMD 7.7.0, 100 tokens),
+    `:cpdCheck` global y detekt por módulo (`buildUponDefaultConfig`, baseline);
+    detekt depende de `:cpdCheck`; task `test` guardada por `skipClient`.
+  - `config/detekt/detekt.yml` + `config/detekt/backend-baseline.xml` (deuda:
+    `MatchingDeclarationName:Health.kt$HealthDto`).
+  - `settings.gradle.kts`: `:composeApp` condicional con `-PskipClient`.
+  - `opencode.json` en la raíz.
+- Fase 2 (harness): `.harness/init.sh` con `--with-client`/`--with-ios`/`--with-all`,
+  detección de Android SDK y Xcode, y gate de calidad; SDK-free por defecto.
+- Verificación ejecutada (JAVA_HOME del JBR 21, desde `..`):
+  - `./gradlew detekt` → BUILD SUCCESSFUL (backend/shared/composeApp + `:cpdCheck`).
+  - `./gradlew build -PskipClient` + `./gradlew detekt -PskipClient` → verdes;
+    `.harness/init.sh` (default) → exit 0.
+  - `./gradlew build --no-daemon` (con `:composeApp`) → BUILD SUCCESSFUL (201 tareas).
+  - `./gradlew test` y `./gradlew test -PskipClient` → verdes.
+- Ficheros: `.harness/{AGENTS.md,CONSTRAINTS.md,ARCHITECTURE.md,README.md,init.sh,PROGRESS.md}`,
+  `.harness/docs/{adr/*,pr/README.md,sdd/README.md,git-workflow.md}`,
+  `.harness/.agents/skills/sdd-*/SKILL.md`, `.harness/.opencode/agents/*.md`;
+  producto `gradle/libs.versions.toml`, `build.gradle.kts`, `settings.gradle.kts`,
+  `config/detekt/{detekt.yml,backend-baseline.xml}`, `opencode.json`.
+- Riesgo/duda: el árbol de producto ya tenía **WIP de FT00006** (`feat/ft00006-...`)
+  sin commitear; por eso **no** se hizo commit/rama/PR (lo gestiona el orquestador).
+  El baseline de `:backend` registra la deuda de `Health.kt` (renombrar a
+  `HealthDto.kt` cuando toque). El default del gate pasa a SDK-free (`-PskipClient`);
+  la CI sigue con `./gradlew build` (incluye `:composeApp`).
+- Siguiente mejor paso: revisar/commitear Fase 1 (harness `main`) y Fase 2 (rama de
+  producto + PR); validar FT00002/FT00006 pendientes.

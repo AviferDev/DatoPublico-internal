@@ -57,23 +57,96 @@
   **también a los tests**. Los códigos de salida temprana de lambdas etiquetadas
   (`return@…`, p. ej. `return@runTest`) se evitan igualmente: usa guardas `if` y
   deja el cuerpo sin salidas etiquetadas.
+- **MUST**: **no** se usa `else if`. Las cadenas de guardas se resuelven con
+  `when` (`when { cond -> …; else -> … }`), como expresión o como sentencia. Un
+  `if` simple de dos ramas sigue permitido.
+- **MUST**: las funciones son **cortas y con una sola responsabilidad**: máximo
+  **40 líneas** (objetivo **30**), sin contar KDoc, comentarios ni líneas en
+  blanco. Si se supera, se **extraen** sub-funciones o componentes.
+- **MUST**: **reutilizar antes de escribir**. Antes de crear UI o lógica nueva,
+  busca un componente/función equivalente en **todo** el repositorio (no solo en
+  la feature en curso). Si lo van a usar **≥2 features**, muévelo a
+  `design/components/`; si es de una sola feature, a `feature/<nombre>/ui/components/`.
+
+## Documentación de código (KDoc)
+
+- **MUST**: todo el código Kotlin que se añada o modifique lleva documentación
+  **KDoc** (`/** … */`): clases, interfaces, objetos, funciones, propiedades y
+  tipos públicos, con `@param`/`@property`/`@return`/`@throws`/`@see` cuando aporten.
+- **MUST**: documentar el **porqué** de lo no obvio (contratos, invariantes,
+  efectos secundarios, límites), no solo el qué. El KDoc vive junto al código; no
+  se duplica en `docs/` lo que ya explica el KDoc.
+- Un cambio que añade o modifica API sin KDoc es motivo de revisión en el PR.
+
+## Arquitectura por capas: crear la capa que falte
+
+- **MUST**: al añadir código, si la **capa o directorio** que le corresponde según
+  la arquitectura **no existe todavía**, se **crea** y se coloca ahí; nunca en un
+  paquete plano o en la capa equivocada «porque aún no existe».
+- **MUST**: al implementar una feature, si falta una capa (p. ej. `domain/` o
+  `data/`) se crea con sus componentes mínimos (interfaz + implementación, caso de
+  uso, ViewModel…). No se inventan capas ni nombres nuevos: se siguen las skills
+  `ktor-backend-architecture`, `compose-multiplatform-architecture` y
+  `rag-datapublico` y `ARCHITECTURE.md`.
 
 ## Cliente (Compose Multiplatform)
 
 - **MUST**: la **UI compartida** de `:composeApp` vive en `commonMain`; cada
   plataforma aporta **solo su entrypoint** (Android `MainActivity`, Wasm `main()`,
   iOS `MainViewController`). No duplicar pantallas por plataforma.
-- **MUST**: el gate estándar (`./gradlew build`, `.harness/init.sh`) **no** exige
-  Xcode ni un navegador. Los targets iOS se ignoran en hosts no-Apple y los tests
-  de Wasm en navegador (Karma/Chrome) quedan fuera del gate.
+- **MUST**: el gate estándar (`./gradlew build -PskipClient`, `.harness/init.sh`
+  por defecto) **no** exige el Android SDK ni arranca Xcode; el cliente
+  (`:composeApp`) se añade con `--with-client`/`--with-ios`/`--with-all`. Los targets
+  iOS se ignoran en hosts no-Apple y los tests de Wasm en navegador (Karma/Chrome)
+  quedan fuera del gate.
+- **MUST**: toda función `@Composable` de UI (pantallas, componentes y
+  sub-composables) incluye al menos una `@Preview` (`org.jetbrains.compose.ui.tooling.preview.Preview`)
+  en `commonMain`, junto al composable y dentro del tema. Los composables privados
+  se previsualizan en el mismo fichero. Una preview **no** es un test y no autoriza
+  tests de vistas/composables.
+- **MUST**: **nunca** se provoca a propósito un *crash* que cierre la app. No se usan
+  `throw`, `error(...)`, `TODO()` ni asertos como camino de control (en el código de
+  producción). Los fallos (red, parseo, permisos, estados inesperados) se **modelan y
+  se muestran** como estado gestionado (mensaje, reintento o estado vacío).
+- **MUST**: todo texto visible al usuario sale de **recursos**
+  (`composeResources/values*/strings.xml`, consumido con `stringResource(Res.string.*)`),
+  nunca hardcodeado. La clave existe en **todos** los locales. Solo se permiten
+  literales para símbolos tipográficos (flechas, separadores) y en `@Preview`.
+- **MUST**: los **iconos con significado** usan **Material Icons**
+  (`Icon(Icons.Outlined.*)`), con `contentDescription` cuando transmiten información;
+  los glifos Unicode/ASCII se reservan a lo tipográfico dentro de un texto.
+- **MUST**: las pantallas leen sus colores **solo** de `MaterialTheme.colorScheme.*`;
+  nunca fijan un color de runtime. Los literales de color solo se permiten en `@Preview`.
 
 ## Build y repositorios
 
+- **MUST**: el **gate de calidad es bloqueante**: `./gradlew detekt` ejecuta Detekt en
+  `:backend`, `:shared` y `:composeApp` (config en `config/detekt/detekt.yml`, deuda
+  conocida en `config/detekt/<módulo>-baseline.xml`) y, enganchado a él, el chequeo global
+  de duplicación **`:cpdCheck`** (CPD de PMD, `language = kotlin`, umbral 100 tokens, barre
+  todo `<módulo>/src/**/*.kt` salvo tests). Un hallazgo nuevo o un duplicado rompe el build.
+  `check`/`build` lo arrastran, así que `./init.sh` también.
+- **MUST**: el **gate estándar es SDK-free**: `./gradlew build -PskipClient` compila y testea
+  solo `:shared` y `:backend` (no exige el Android SDK). `:composeApp` se incluye sin el flag
+  y exige el Android SDK. `.harness/init.sh` es SDK-free por defecto y añade el cliente con
+  `--with-client`/`--with-ios`/`--with-all`. `-PskipClient` lo reutilizará la imagen del backend.
 - **MUST**: las distribuciones de herramientas de Kotlin/JS-Wasm (Binaryen, Node,
   Yarn) se declaran como repositorios Ivy en `settings.gradle.kts`, que usa
   `RepositoriesMode.PREFER_SETTINGS`. El plugin de Kotlin/Wasm las registra a
   nivel de proyecto, así que `FAIL_ON_PROJECT_REPOS` rompería el build. Mantén el
   settings como **fuente única de verdad** de repositorios.
+
+## Decisiones y flujo
+
+- **MUST**: las decisiones **durables** (modelo de datos, arquitectura, integración
+  externa, despliegue, flujo de trabajo, seguridad) se registran como **ADR** en
+  `docs/adr/` (formato e índice en `docs/adr/README.md`); para reabrir una decisión
+  aceptada se escribe un ADR nuevo que la supersede/adjusta, no se edita el anterior.
+- **MUST**: los PR que cambian la interfaz (`:composeApp` o `DESIGN.md`) llevan
+  **capturas antes/después** en `docs/pr/<rama>/` (ver `docs/pr/README.md` y
+  `docs/git-workflow.md`). Un cambio visual sin capturas ni justificación no se mergea.
+- **MUST**: ningún PR de producto supera los **30 ficheros**; si se excede, se divide
+  en partes `FTxxxxx-PTn` (`docs/git-workflow.md`).
 
 ## Operación
 

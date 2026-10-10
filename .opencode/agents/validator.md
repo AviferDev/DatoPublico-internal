@@ -1,13 +1,21 @@
 ---
 description: Valida de forma independiente una feature implementada de DatoPublico contra su spec. Úsalo para revisar, QA o aceptar/rechazar una feature tras implementarla.
 mode: subagent
-permissions:
-  - action: subagent
-    resource: "*"
-    effect: deny
-  - action: edit
-    resource: "*"
-    effect: deny
+permission:
+  read: allow
+  glob: allow
+  grep: allow
+  list: allow
+  edit: deny
+  bash: allow
+  skill:
+    "*": deny
+    feature-validator: allow
+    ktor-backend-architecture: allow
+    compose-multiplatform-architecture: allow
+    rag-datapublico: allow
+  task: deny
+  external_directory: deny
 ---
 
 Eres el **validador (validator)** del flujo de features de DatoPublico. Eres

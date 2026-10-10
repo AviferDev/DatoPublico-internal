@@ -32,6 +32,27 @@ debe entenderse el nombre `...Dto` correspondiente, y donde diga
 El token de wire y el JSON no cambian: es un renombrado de tipos Kotlin, no del
 contrato.
 
+## Nota de reparación: alcance 1.0.0 y `@SerialName` (2026-10-10, reapertura)
+
+Cambio decidido por el owner (1.0.0 = **todo el sumario del BOE**; ver MUST en
+`CONSTRAINTS.md` §Producto y datos) y norma de serialización nueva (MUST en
+`CONSTRAINTS.md` §«Serialización»: cada propiedad lleva `@SerialName` explícito
+aunque el nombre Kotlin coincida). Aplicado a esta feature sin cambiar el JSON de
+wire:
+
+- `SeccionBoeDto` amplía sus valores de 5 a **8**: se añaden `IV` (`@SerialName
+  "IV"`), `V_A` (`"V.A"`) y `V_C` (`"V.C"`), conservando `I`, `II.A`, `II.B`,
+  `III` y `V.B`. Ninguna sección se excluye.
+- `PublicacionDto`, `ResumenDto`, `PlazoDto` y `ResumenDiarioDto`: **cada
+  propiedad** lleva `@SerialName` explícito (`"id"`, `"titulo"`, `"queCambia"`…).
+  El nombre JSON y los tokens de enum no cambian; es una anotación redundante
+  deliberada.
+- `CategoriaDto` y `SeccionBoeDto` ya anotaban sus valores de enum; se verifican
+  los 11 y los 8 tokens.
+
+Evidencia en `feature_list.json` (FT00002) y `PROGRESS.md`; tests actualizados en
+`CategoriaWireTest` (8 secciones) sin tocar el JSON de wire.
+
 ## Goal
 
 Dotar al módulo `:shared` del **contrato de datos base** que backend y cliente

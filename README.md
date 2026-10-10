@@ -17,7 +17,14 @@ y el symlink `.agents` mediante una exclusión local no versionada
 - `docs/technical-discovery.md` — stack, datos, integraciones y operación.
 - `docs/risks-and-open-questions.md` — riesgos y dudas abiertas.
 - `docs/roadmap.md` — roadmap detallado por versiones.
+- `docs/adr/` — decisiones de arquitectura (ADR) e índice.
+- `docs/sdd/` — specs del flujo SDD manual (`spec.md`/`design.md`/`tasks.md` por feature).
+- `docs/pr/` — convención de capturas antes/después para los PR de interfaz.
+- `docs/git-workflow.md` — flujo de ramas, *claim*, commits y PR (dos repos).
+- `docs/feature-ids.md` — registro de identificadores `FTxxxxx`.
+- `docs/specs/` y `docs/validations/` — specs y validaciones por feature.
 - `.agents/skills/` — skills para agentes (RepoSkills), versionadas aquí.
+- `.opencode/agents/` — subagentes `planner`, `implementer`, `validator`.
 
 ## Licencia
 
