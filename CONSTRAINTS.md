@@ -144,7 +144,45 @@
 - **MUST NOT**: el proveedor de embeddings (FT00015) **no** se cablea en
   `Application.kt`/job/backfill; el **almacenamiento** vectorial vive en
   `persistence/` (FT00016, `embedding vector(384)` + HNSW) y la **recuperación
-  híbrida** (FT00017) es quien combinará proveedor y repositorio.
+  híbrida** (FT00017) es quien combina proveedor y repositorio.
+
+## Recuperación híbrida e indexado
+
+- **MUST**: la recuperación híbrida (FT00017) filtra **solo** por los metadatos
+  existentes (`fecha_publicacion`, `categoria`, `seccion`, `organismo`) **combinados
+  con `AND`** y siempre **parametrizados** (`?`, nunca concatenando entrada); el
+  `SearchFilter` es un valor interno (sin sufijo, **no** `@Serializable`) y su
+  traducción a SQL (`SearchFilterSql.whereClause`/`parameters`) es **pura**, con
+  orden documentado y coherente. Las fechas ISO-8601 se enlazan como **texto con
+  *cast* `?::date`** y una fecha no ISO falla con `IllegalArgumentException`
+  **antes** de tocar la base de datos. Decisión durable en `docs/adr/0012`.
+- **MUST**: `FragmentRepository.findNearest(queryEmbedding, filter, limit)` filtra
+  los fragmentos **sin embedding** (`embedding IS NOT NULL`), aplica el filtro vía
+  `JOIN publicacion` y ordena por **distancia coseno** ascendente; el `findNearest`
+  de 2 argumentos (FT00016) **delega** con `SearchFilter()` sin romper su contrato.
+  `limit < 1`, dimensión ≠384 o fecha no ISO son **fail-fast**
+  (`IllegalArgumentException`) antes de abrir la conexión.
+- **MUST**: la **composición** proveedor de embeddings + repositorio de fragmentos
+  vive en **`rag/`** (servicios `HybridSearch` en `rag/retrieval/` y
+  `FragmentIndexer` en `rag/indexing/`), **no** en `persistence/`; se **extiende**
+  la interfaz existente (`FragmentRepository`) en vez de declarar un *port* nuevo
+  para no duplicar SQL. La consulta usa `embedQuery` (prefijo `query: `) y los
+  fragmentos `embedPassage` (prefijo `passage: `).
+- **MUST**: el indexado mínimo (`FragmentIndexer.index`) es **idempotente** por el
+  *upsert* de `(publicacion_id, orden)`: fragmenta (`ArticleChunker`), persiste cada
+  fragmento (`save`) y guarda su embedding (`saveEmbedding`), **sin** *batching*,
+  sin transacción multi-repositorio y **sin** indexar el corpus completo (operación
+  posterior).
+- **MUST**: la recuperación y el indexado son una **librería sin wiring**: **no** se
+  construyen en `Application.kt` ni en el job/backfill, **no** hay endpoints/UI ni
+  migración nueva, y **no** se anticipa lo diferido (evaluación FT00018;
+  resúmenes/chat FT00019+; reranking/fusión léxica/índice GIN o trigram y ajuste de
+  `ef_search`, que quedan para la evaluación/operación).
+- **MUST**: las pruebas reales (filtros sobre PostgreSQL con vectores sintéticos, e
+  indexado + recuperación con el modelo E5 real) son **opt-in**
+  (`DB_LIVE_TEST=1` y `EMBEDDING_LIVE_TEST=1`), fuera de
+  `build`/`test`/`init.sh`/CI; el gate cubre la traducción SQL, el servicio y el
+  indexado con **dobles deterministas**, sin red ni BD.
 
 ## Persistencia y base de datos
 

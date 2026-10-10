@@ -77,6 +77,19 @@
   Es una **librería**: **no** se cablea en el arranque y **no** incluye filtros de
   metadatos (recuperación híbrida, FT00017) ni evaluación (FT00018); la prueba
   real contra PostgreSQL es **opt-in** (`DB_LIVE_TEST=1`). Ver `docs/adr/0011`.
+  FT00017 añade **`rag/retrieval/`** y **`rag/indexing/`**: `SearchFilter` (valor
+  interno sin sufijo: fechas ISO-8601, categoría, sección y organismo),
+  `SearchFilterSql` (puro: cláusula ` AND …` parametrizada y parámetros en orden
+  documentado, `?::date` y fail-fast de fecha no ISO), `HybridSearch` (servicio
+  que vectoriza la consulta con `embedQuery` y llama a `findNearest` filtrado) y
+  `FragmentIndexer` (indexado mínimo: fragmenta, `save` y guarda el embedding de
+  *pasaje*; idempotente por *upsert*). `FragmentRepository` gana
+  `findNearest(queryEmbedding, filter, limit)` (con `JOIN publicacion` y `WHERE`
+  dinámico) y `findEmbedding`; el `findNearest` de 2 argumentos de FT00016 delega.
+  Sigue siendo una **librería sin wiring**: **no** se construye en `Application.kt`
+  ni en el job/backfill, no hay endpoints/UI ni migración nueva, y la prueba real
+  es **opt-in** (`DB_LIVE_TEST=1` y, para el modelo, `EMBEDDING_LIVE_TEST=1`). Ver
+  `docs/adr/0012`.
   Existe **`persistence/`** (FT00008): repositorios **JDBC**
   + entidades `...Entity` de `publicacion`, `fragmento`, `resumen` y
   `cola_revision`, más los helpers JDBC compartidos; la configuración de
@@ -138,10 +151,11 @@
   *upsert* de publicación por `id` es idempotente y es la base del job diario: la
   segunda pasada reejecuta la misma fecha sin duplicar. `Application.kt` crea el
   pool **solo** si la ingesta está habilitada y la config de BD resuelve, y lo
-  cierra en `ApplicationStopped`. Lo diferido no se anticipa: los filtros de
-  metadatos de la recuperación híbrida llegan con FT00017 y los valores de
-  categoría/plazo los produce la ingesta desde FT00012
-  (`ingesta/categorizacion/`, ver `docs/adr/0007`).
+  cierra en `ApplicationStopped`. La **recuperación híbrida** (FT00017) consulta
+  `fragmento` con un `JOIN publicacion` para aplicar los **filtros de metadatos**
+  parametrizados (fecha/categoría/sección/organismo) junto a la distancia coseno;
+  los valores de categoría/plazo los produce la ingesta desde FT00012
+  (`ingesta/categorizacion/`, ver `docs/adr/0007`). Ver `docs/adr/0012`.
 - **Backend:** `plugins/` (HTTP) → servicios → dominio puro → repositorios y
   clientes → `infra/`.
 - **IA:** embeddings **locales** (ONNX) y generación/chat **remoto** (OpenCode),

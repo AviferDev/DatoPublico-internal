@@ -112,9 +112,9 @@ ingesta BOE → chunking → embeddings (ONNX) → pgvector → recuperación h�
   con *cast* `?::vector`** (sin ORM ni `PGobject`); `findNearest` filtra
   `embedding IS NOT NULL` y ordena por distancia ascendente. Decisión durable en
   `docs/adr/0011`.
-- **Sin filtros de metadatos** (recuperación híbrida → FT00017) y **sin wiring**:
-  `Application.kt`/job/backfill, `ArticleChunker`, `rag/embeddings/` y `:shared`
-  intactos; no genera embeddings (no construye `E5EmbeddingProvider`).
+- FT00016 dejó **sin filtros de metadatos** y **sin wiring** (los añade FT00017,
+  ver §4): `Application.kt`/job/backfill, `ArticleChunker`, `rag/embeddings/` y
+  `:shared` intactos; no genera embeddings (no construye `E5EmbeddingProvider`).
 - **Verificación**: el gate cubre `PgVectorTest` y
   `FragmentEmbeddingMigrationSqlTest` **sin red ni BD**; la prueba real (vecino más
   cercano, exclusión de nulos e índice HNSW usado con `SET enable_seqscan = off`)
@@ -125,6 +125,33 @@ ingesta BOE → chunking → embeddings (ONNX) → pgvector → recuperación h�
 - Combina filtros SQL con similitud vectorial; devuelve top-k fragmentos con su
   referencia y score.
 - Ordena por relevancia; deja la puerta a un **reranking** si la calidad lo pide.
+
+### Estado actual del producto (FT00017)
+
+- La **recuperación híbrida** ya está implementada en `:backend`, paquete
+  `es.aviferdev.datopublico.backend.rag.retrieval`: `SearchFilter` (valor interno
+  sin sufijo: fechas ISO-8601, `CategoriaDto`, `SeccionBoeDto`, organismo),
+  `SearchFilterSql` (puro: `whereClause` + `parameters` en orden documentado,
+  parametrizado con `?`, fechas con *cast* `?::date` y fail-fast de fecha no ISO) y
+  `HybridSearch` (servicio que vectoriza la consulta con `embedQuery` y delega en
+  `FragmentRepository.findNearest(vector, filter, limit)`). `FragmentRepository`
+  gana `findNearest` filtrado (con `JOIN publicacion`) y `findEmbedding`; el
+  `findNearest` de 2 argumentos de FT00016 delega con `SearchFilter()`. Decisión
+  durable en `docs/adr/0012`.
+- **Indexado mínimo** en `rag/indexing/FragmentIndexer` (cierra el aplazamiento de
+  FT00016): fragmenta (`ArticleChunker`), persiste cada fragmento (`save`) y guarda
+  su embedding de *pasaje* (`embedPassage` + `saveEmbedding`); **idempotente** por
+  el *upsert* de `(publicacion_id, orden)`. **Sin** *batching*, sin transacción
+  multi-repositorio y **sin** indexar el corpus completo (operación posterior).
+- **Sin wiring**: `Application.kt`/job/backfill, `ArticleChunker`,
+  `rag/embeddings/`, `infra/` y `:shared` intactos; sin migración nueva. La
+  recuperación la consumirán la evaluación (FT00018) y el chat (FT00019+); el
+  reranking y la fusión léxica quedan abiertos.
+- **Verificación**: el gate cubre `SearchFilterSqlTest`, `HybridSearchTest` y
+  `FragmentIndexerTest` **sin red ni BD**; las pruebas reales son **opt-in** —
+  `HybridSearchLiveTest` (`DB_LIVE_TEST=1`, vectores sintéticos) y
+  `FragmentIndexerLiveTest` (`DB_LIVE_TEST=1` + `EMBEDDING_LIVE_TEST=1`, modelo E5
+  real) contra el PostgreSQL de `docker-compose`.
 
 ## 5. Generación (resumen y chat)
 

@@ -51,6 +51,23 @@
   `ArticleChunker` **diferido** (Non-Goal). Siguiente feature lista:
   `recuperacion-hibrida` (FT00017, depende de FT00016) o
   `english-identifiers-rename` (FT00047).
+- **FT00017 `recuperacion-hibrida` → `passing`** (Session 049): **recuperación
+  híbrida** + **indexado mínimo** en `:backend` como **librería sin wiring** —
+  `rag/retrieval/` (`SearchFilter` valor interno sin sufijo, `SearchFilterSql`
+  puro con cláusula parametrizada ` AND …`/parámetros en orden documentado y
+  `?::date`, `HybridSearch` que vectoriza con `embedQuery` y llama a `findNearest`
+  filtrado) y `rag/indexing/` (`FragmentIndexer`: chunk + `save` + `embedPassage`
+  + `saveEmbedding`, idempotente por *upsert*). `FragmentRepository` gana
+  `findNearest(queryEmbedding, filter, limit)` (con `JOIN publicacion`) y
+  `findEmbedding`; el 2-arg de FT00016 delega con `SearchFilter()`. Gate sin red ni
+  BD verde (`:backend` **202 tests**, 0 fallos; `SearchFilterSqlTest` 8,
+  `HybridSearchTest` 5, `FragmentIndexerTest` 3; `build -PskipClient`/`test`/
+  `detekt`+`:cpdCheck`/`init.sh` exit 0) y pruebas **opt-in reales ejecutadas** con
+  PostgreSQL/Docker y modelo E5 (`HybridSearchLiveTest` 1/0/0;
+  `FragmentIndexerLiveTest` 1/0/0, `first=0.104… second=0.214…`). Decisión durable
+  en **ADR 0012**; pendiente de validación independiente. Siguiente feature lista:
+  `evaluacion-recuperacion` (FT00018, depende de FT00017) o
+  `english-identifiers-rename` (FT00047).
 - Última verificación: 2026-10-10 (Sessions 032–038). **Cambio de alcance 1.0.0 =
   TODO el BOE** (secciones I, II.A, II.B, III, IV, V.A, V.B y V.C; ningún campo ni
   sección se excluye) y nueva norma MUST de **`@SerialName` explícito** en cada
@@ -2517,4 +2534,76 @@
 - Estado: **FT00016 `passing`** (implementada y autoverificada). Pendiente:
   validación independiente (`feature-validator`).
 - Siguiente mejor paso: validar `pgvector-indexado` (FT00016). Siguiente rol:
+  `validator`.
+
+### Session 049
+
+- Fecha: 2026-10-10
+- Objetivo: ejecutar **FT00017 `recuperacion-hibrida`** como **implementer**
+  (`feature-implementer` + skill `rag-datapublico`) sobre el spec
+  `docs/specs/recuperacion-hibrida.md`. Decisión de alcance del orquestador: se
+  **aprueba** el `FragmentIndexer` mínimo tal como define el spec (cierra el
+  aplazamiento de FT00016 y permite la prueba E2E opt-in), **sin** indexar el
+  corpus completo, sin *batching*, sin transacción multi-repositorio y sin wiring.
+- Claim: rama `feat/ft00017-recuperacion-hibrida` (parte de
+  `feat/ft00016-pgvector-indexado`), claim `b9560ad`. Sin commits ni push (los hace
+  el orquestador).
+- Completado (producto, **librería sin wiring**):
+  - `rag/retrieval/SearchFilter.kt` (nuevo): valor interno sin sufijo (**no**
+    `@Serializable`): `publishedFrom`/`publishedTo` ISO-8601, `category`
+    (`CategoriaDto`), `section` (`SeccionBoeDto`) y `organization`.
+  - `rag/retrieval/SearchFilterSql.kt` (nuevo, puro): `whereClause(filter)` (cláusula
+    ` AND …` sobre el alias `p` de `publicacion`, o `""`) y `parameters(filter)` en
+    el **mismo orden documentado** (`publishedFrom`, `publishedTo`, `category`,
+    `section`, `organization`); parametrizado con `?`, fechas con *cast* `?::date`
+    y fail-fast `IllegalArgumentException` de fecha no ISO (`LocalDate.parse`).
+  - `rag/retrieval/HybridSearch.kt` (nuevo, servicio): valida
+    `query.isNotBlank()` y `limit >= 1`, vectoriza con `embedQuery` y delega en
+    `findNearest(vector, filter, limit)`; `DEFAULT_LIMIT = 10`.
+  - `rag/indexing/FragmentIndexer.kt` (nuevo, servicio): `chunk` → `save` →
+    `embedPassage` + `saveEmbedding`, devuelve el nº de fragmentos; **idempotente**
+    por el *upsert* `(publicacion_id, orden)`.
+  - `persistence/FragmentRepository.kt` (modify): `findNearest(queryEmbedding,
+    filter, limit)` (plantilla con marcador `{filterClause}` → `JOIN publicacion`,
+    `embedding IS NOT NULL`, `ORDER BY <=>`, `LIMIT`; *binding* literal → filtro →
+    literal → límite) y `findEmbedding` (`embedding::text` + `PgVector.parse`, que
+    cierra su uso de producción); el 2-arg de FT00016 **delega** con
+    `SearchFilter()`. Fail-fast de `limit < 1`, dimensión ≠384 y fecha no ISO.
+- **Alcance respetado (Non-Goal del spec)**: **sin** migración nueva (V1/V2/V3
+  intactas), **sin** tocar `PgVector`, `ArticleChunker`, `rag/embeddings/`,
+  `infra/`, `Application.kt`, `ingesta/`, `:shared`, `:composeApp`, la raíz del
+  build, CI ni `init.sh`; sin dependencias Gradle nuevas. Sin endpoints/UI, sin
+  evaluación (FT00018), sin reranking/índice léxico.
+- Tests nuevos del **gate** (sin red ni BD): `SearchFilterSqlTest` (8),
+  `HybridSearchTest` (5), `FragmentIndexerTest` (3) = **16**. Opt-in nuevos:
+  `HybridSearchLiveTest` (1, `DB_LIVE_TEST=1`) y `FragmentIndexerLiveTest` (1,
+  `DB_LIVE_TEST=1` + `EMBEDDING_LIVE_TEST=1`).
+- Verificación (desde `..`, `JAVA_HOME` del JBR 21): `./gradlew :backend:test
+  --rerun-tasks` → BUILD SUCCESSFUL, **202 tests, 0 fallos/errores** (antes 184);
+  `./gradlew build --no-daemon -PskipClient` → BUILD SUCCESSFUL (23 tareas;
+  `:backend:detekt` + `:cpdCheck`); `./gradlew test` → 3 módulos; `./gradlew
+  detekt` y `:cpdCheck` → BUILD SUCCESSFUL; `env -u JAVA_HOME .harness/init.sh` →
+  **exit 0**. Ningún test del gate toca red, BD ni el modelo.
+- **Pruebas opt-in ejecutadas de verdad** (Docker/Colima + PostgreSQL
+  `pgvector/pgvector:pg17` migrado con `:backend:flywayMigrate`; modelo E5 en
+  `backend/models/multilingual-e5-small`): `DB_LIVE_TEST=1 … --tests
+  '*HybridSearchLiveTest' --rerun-tasks` → 1 test, 0 fallos (categoría, rango de
+  fechas inclusivo, filtro vacío = similitud pura, AND combinado, exclusión de
+  nulos, *round-trip* de `findEmbedding`); `DB_LIVE_TEST=1 EMBEDDING_LIVE_TEST=1 …
+  --tests '*FragmentIndexerLiveTest' --rerun-tasks` → 1 test, 0 fallos; salida real
+  `FragmentIndexerLiveTest: first=0.10408729935212568 second=0.21421988095163447`.
+  Entorno limpiado (`docker compose down -v`, `.env` borrado).
+- Docs durables: `ARCHITECTURE.md` (`rag/retrieval/` + `rag/indexing/`, frontera
+  PostgreSQL con el `JOIN`/filtros, sigue sin wiring), `CONSTRAINTS.md` (nueva
+  sección **«Recuperación híbrida e indexado»**), **ADR 0012**
+  (`docs/adr/0012-recuperacion-hibrida-filtros.md`) + índice, skill
+  `rag-datapublico` §4, `docs/desarrollo-local.md` (producto),
+  `feature_list.json` (FT00017 → **`passing`** + evidencia).
+- Riesgo o duda sin resolver: con `JOIN` + `WHERE`, PostgreSQL puede preferir *seq
+  scan* en tablas pequeñas; el uso real con volumen llega con FT00018/operación. El
+  filtro por organismo es igualdad exacta (normalización → FT00028). El indexado
+  fragmento a fragmento es lento en el N100 (*batching* diferido).
+- Estado: **FT00017 `passing`** (implementada y autoverificada). Pendiente:
+  validación independiente (`feature-validator`). **No** se marca `accepted`.
+- Siguiente mejor paso: validar `recuperacion-hibrida` (FT00017). Siguiente rol:
   `validator`.

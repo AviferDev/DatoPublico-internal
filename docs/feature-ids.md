@@ -32,7 +32,7 @@
 | FT00014 | chunking-articulos | Fragmentación por artículo o sección | rag | accepted |
 | FT00015 | embeddings-locales-onnx | Servicio de embeddings locales (ONNX) | rag | accepted |
 | FT00016 | pgvector-indexado | Almacenamiento vectorial en pgvector | rag | accepted |
-| FT00017 | recuperacion-hibrida | Recuperación híbrida de fragmentos | rag | not_started |
+| FT00017 | recuperacion-hibrida | Recuperación híbrida de fragmentos | rag | accepted |
 | FT00018 | evaluacion-recuperacion | Evaluación de recuperación (precision/recall) | rag | not_started |
 | FT00019 | contrato-resumen-ciudadano | Contrato del resumen ciudadano | simplificacion-ia | not_started |
 | FT00020 | generacion-resumen-go | Generación de resumen con OpenCode | simplificacion-ia | not_started |
