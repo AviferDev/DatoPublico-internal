@@ -61,3 +61,4 @@ Aceptado (<AAAA-MM-DD>). [Quién decide y, si aplica, qué ADR supersede/ajusta.
 | [0001](0001-dos-repositorios-harness-privado.md) | Dos repositorios: producto público + harness privado | Aceptado |
 | [0002](0002-fuente-texto-boe-xml.md) | El texto y los metadatos del BOE se toman del XML estructurado (`xml.php`) | Aceptado |
 | [0003](0003-jdbc-hikari-sin-orm.md) | Capa de datos con JDBC + HikariCP (sin ORM) y esquema relacional inicial | Aceptado |
+| [0004](0004-ingesta-programada-interna.md) | Ingesta programada interna por corrutina (sin cron externo) | Aceptado |

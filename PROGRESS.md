@@ -7,7 +7,7 @@
 - Camino de arranque estándar: `./init.sh` (desde `.harness/`)
 - Camino de verificación estándar: `./gradlew build` y `./gradlew test` desde la
   raíz del repo público (`..`) — **bootstrapped** (Gradle 8.10.2 + JDK 21).
-- Última verificación: 2026-10-10 (Sessions 032–035). **Cambio de alcance 1.0.0 =
+- Última verificación: 2026-10-10 (Sessions 032–038). **Cambio de alcance 1.0.0 =
   TODO el BOE** (secciones I, II.A, II.B, III, IV, V.A, V.B y V.C; ningún campo ni
   sección se excluye) y nueva norma MUST de **`@SerialName` explícito** en cada
   propiedad `@Serializable`. **FT00002** (`bootstrap-shared-dtos`) y **FT00006**
@@ -32,17 +32,15 @@
   (`bootstrap-shared-dtos`) **`accepted` y fusionada** (PR #2, merge `ca781f3`;
   ampliada en el PR #6 a las 8 secciones y `@SerialName`).
 
-- Feature en curso: ninguna. **FT00008 `publicacion-persistencia`** implementada,
-  autoverificada, **validada de forma independiente (`accept`) y fusionada en
-  `main`** (Session 036; PR #9, rebase → `6f3e856`+`305b344`):
-  migración `V2` (tablas
-  `publicacion`/`fragmento`/`resumen`/`cola_revision`), `infra/` (config derivada
-  de `POSTGRES_*` + pool HikariCP: `DatabaseConfig`/`Database`) y `persistence/`
-  (4 repositorios JDBC + entidades), más `Publicacion.plazo`. Decisión durable en
-  **ADR 0003**. Gate sin
-  BD verde y prueba real opt-in `DB_LIVE_TEST=1` verde; detalle en
-  `docs/validations/publicacion-persistencia.md`. Siguiente feature lista:
-  `ingesta-job-diario` (FT00009).
+- Última feature cerrada: **FT00009 `ingesta-job-diario` → `accepted`** (Session 038;
+  job programado en `:backend` (`ingesta/job/`) que a las **09:30** y en una **segunda
+  pasada** (18:00, `Europe/Madrid`, configurable por `INGESTA_*`) descarga el sumario,
+  parsea cada publicación y la persiste de forma **idempotente** (upsert por `id`);
+  `HttpTimeout` explícito en los clientes HTTP; cableado **condicional y no bloqueante**
+  en `Application.kt`; decisión durable en **ADR 0004**; validación independiente
+  `accept`; detalle en `docs/validations/ingesta-job-diario.md`). Hito anterior:
+  **FT00008 `publicacion-persistencia` → `accepted` y fusionada** (Session 036; PR #9,
+  `6f3e856`+`305b344`). Siguiente feature lista: `ingesta-observabilidad` (FT00010).
 - Bloqueo actual: ninguno para el bootstrap. Pendiente de producto: **nombre y
   marca** (bloquea la fase de producción, no el bootstrap).
 - Convención de nombres (aclarada 2026-10-10): **todo tipo `@Serializable`/de
@@ -1731,3 +1729,99 @@
   (`refactor(FT00008): rename … English`); CI en verde run `38049632428`; rama
   remota eliminada. Estado final: **`accepted`** y fusionada.
 - Siguiente mejor paso: `ingesta-job-diario` (FT00009).
+
+### Session 037
+
+- Fecha: 2026-10-10
+- Objetivo: implementar `ingesta-job-diario` (FT00009) en el repo público, rama
+  `feat/ft00009-ingesta-job-diario`: job programado (09:30 + segunda pasada) que
+  descarga el sumario, parsea cada publicación y la persiste de forma idempotente,
+  con cableado condicional en el arranque.
+- Completado (producto):
+  - `ingesta/job/IngestaConfig.kt`: config pura desde `INGESTA_*`
+    (`ENABLED`=true, `TIMEZONE`=Europe/Madrid, `PRIMARY_TIME`=09:30,
+    `SECONDARY_TIME`=18:00); recorta espacios y falla en claro ante valor inválido.
+  - `ingesta/job/IngestaSchedule.kt`: `nextRun(now)` puro y **estricto** (descarta
+    el instante igual a `now`), hoy o mañana.
+  - `ingesta/job/IngestaJob.kt`: `IngestaResult` + interfaz `IngestaJob` +
+    `IngestaJobDiario` (sumario → parser → `save` en `Dispatchers.IO`; fallo por
+    entrada contado, no aborta; fallo del sumario en `error` sin propagar;
+    `categoria`/`plazo` `null`).
+  - `ingesta/job/IngestaScheduler.kt`: bucle de corrutina con reloj (`now`) y
+    `delay` inyectables, log-resumen mínimo (SLF4J) y captura de excepciones para
+    no morir.
+  - `BoeSumarioHttpClient.kt`/`BoeTextoHttpClient.kt`: `HttpTimeout` explícito
+    (connect 10 s; request/socket 30 s).
+  - `Application.kt`: `configureIngesta()` arranca la ingesta solo con
+    `INGESTA_ENABLED` y `DatabaseConfig` resoluble; fallo registrado y no
+    bloqueante; `ApplicationStopped` cancela el scope y cierra clientes y pool.
+  - `backend/build.gradle.kts`: `implementation(libs.kotlinx.coroutines.core)`.
+- Tests (gate, sin red ni BD): `IngestaConfigTest` (7), `IngestaScheduleTest` (5,
+  escenario 1), `IngestaJobTest` (5, escenarios 2–4 con dobles) y
+  `IngestaSchedulerTest` (1, escenario 5 con tiempo virtual). Opt-in real:
+  `IngestaJobLiveTest` (escenario 6; se omite sin `DB_LIVE_TEST`).
+- Verificación ejecutada (desde `..`, `JAVA_HOME` del JBR 21):
+  - Gate sin red ni BD: `./gradlew :backend:test --rerun-tasks -PskipClient` →
+    **80 tests, 0 fallos** (XML sin failures/errors); `./gradlew build --no-daemon
+    -PskipClient` → BUILD SUCCESSFUL; `./gradlew test` → 3 módulos;
+    `./gradlew detekt -PskipClient --rerun-tasks` (Detekt + `:cpdCheck`) → sin
+    hallazgos; `env -u JAVA_HOME .harness/init.sh` → exit 0.
+  - Arranque manual `:backend:run`: **sin** `POSTGRES_PASSWORD` → log
+    `Ingesta no arrancada: Contraseña de base de datos no definida…`, `/health`
+    200; **con** BD (`docker-compose`) → log `Ingesta programada: horas=[09:30,
+    18:00] zona=Europe/Madrid`, `/health` 200.
+  - Opt-in real: `docker compose up -d` (Colima; `POSTGRES_PORT=55432`) +
+    `:backend:flywayMigrate` (`V1`+`V2` Success); `DB_LIVE_TEST=1 … '*IngestaJobLiveTest'`
+    → verde (2 filas, sin duplicados, `actualizado_en` avanzado). Entorno limpiado
+    (`docker compose down -v`; 0 filas `FT00009-LIVE-%`; sin `.env`).
+- Doc durable: **ADR `docs/adr/0004-ingesta-programada-interna.md`** (+ índice),
+  `ARCHITECTURE.md` (`ingesta/job/` + cableado condicional + fronteras),
+  `CONSTRAINTS.md` (MUST de `HttpTimeout` explícito), skill
+  `ktor-backend-architecture` (§Estado actual e ingesta), `docs/desarrollo-local.md`
+  (variables `INGESTA_*`, job y prueba opt-in) y nota de implementación en
+  `docs/specs/ingesta-job-diario.md`.
+- Estado: **FT00009 `passing`**, **pendiente de validación independiente**
+  (`feature-validator`). Sin ampliar alcance (sin endpoints, sin migraciones, sin
+  clasificación/backfill/observabilidad). Commit/push/PR/CI a cargo del
+  orquestador.
+- Riesgo o duda sin resolver: el job asume el esquema aplicado (no migra al
+  arrancar); Hikari falla rápido si el PostgreSQL configurado no está alcanzable
+  (el fallo se registra y no bloquea el arranque); la ventana de la segunda pasada
+  es un default configurable (`18:00`/`Europe/Madrid`).
+- Siguiente mejor paso: validación independiente de FT00009 (`feature-validator`);
+  después, `ingesta-observabilidad` (FT00010).
+
+### Session 038
+
+- Fecha: 2026-10-10
+- Objetivo: cerrar `ingesta-job-diario` (FT00009) de punta a punta: plan →
+  implementación → validación independiente → commit/PR.
+- Completado:
+  - **Claim** (orquestador): rama `feat/ft00009-ingesta-job-diario` desde
+    `origin/main` con commit vacío `chore(FT00009): claim` y push inmediato.
+  - **Plan** (`planner`): spec `docs/specs/ingesta-job-diario.md` (atómico,
+    ~14-19 ficheros, sin `parts`).
+  - **Implementación** (`implementer`): ver Session 037 (paquete `ingesta/job/`,
+    `HttpTimeout`, cableado condicional en `Application.kt`, `coroutines-core`).
+  - **Validación independiente** (`validator`): veredicto **`accept`**
+    (reprodujo 80 tests/0 fallos, gate sin red ni BD, opt-in `DB_LIVE_TEST=1`
+    contra PostgreSQL real y arranque con/sin BD; sin hallazgos
+    Critical/High/Medium; notas Low). Informe en
+    `docs/validations/ingesta-job-diario.md`.
+  - **Aceptación persistida**: `feature_list.json` (FT00009 → `accepted` +
+    evidencia del validator) y `docs/feature-ids.md` (FT00009 → `accepted`).
+  - **Commit de producto**: `2a995d8 feat(FT00009): complete ingesta-job-diario`
+    en `feat/ft00009-ingesta-job-diario` (14 ficheros, <30); **PR #10**
+    (https://github.com/AviferDev/DatoPublico/pull/10). **CI en verde**: run
+    `38054160619`, job 'Build and test' SUCCESS (2m51s) para el head `2a995d8`.
+- Estado: **FT00009 `accepted`** (no fusionada aún: pendiente de revisión/fusión
+  explícita del dueño). Sin ampliar alcance (sin endpoints, sin migraciones, sin
+  clasificación/backfill/observabilidad).
+- Riesgo o duda sin resolver: el job asume el esquema aplicado (no migra al
+  arrancar); Hikari falla rápido si el PostgreSQL configurado no está alcanzable
+  (el fallo se registra y no bloquea el arranque); la ventana de la segunda pasada
+  es un default configurable (`18:00`/`Europe/Madrid`). Deuda Low del validator:
+  cierre defensivo en la construcción del runtime y aclaración del fail-fast de
+  `INGESTA_*`.
+- Siguiente mejor paso: `ingesta-observabilidad` (FT00010, depende de FT00009
+  `accepted`) — rol `planner`.

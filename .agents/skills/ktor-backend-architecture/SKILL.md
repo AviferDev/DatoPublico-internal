@@ -14,10 +14,14 @@ Consulta, Destacado).
 **Estado actual:** ya existe el **esqueleto del backend** (FT00004): composition
 root en `Application.kt`, paquetes `plugins/` e `infra/`, endpoint `GET /health`,
 configuración por entorno y logging JSON (Logback). Existe **`ingesta/`**
-(`sumario/` y `publicacion/`, FT00006/FT00007, sin wiring) y **`persistence/`**
+(`sumario/` y `publicacion/`, FT00006/FT00007) e **`ingesta/job/`** (FT00009:
+`IngestaConfig`, `IngestaSchedule`, `IngestaJob`/`IngestaJobDiario` e
+`IngestaScheduler`) que `Application.kt` **cablea de forma condicional y no
+bloqueante** (solo con `INGESTA_ENABLED` y config de BD resoluble; cierre en
+`ApplicationStopped`). Existe **`persistence/`**
 (repositorios JDBC + entidades, FT00008) con `infra/DatabaseConfig` (derivada de
-`POSTGRES_*`) e `infra/Database` (pool HikariCP), también sin wiring. Los
-paquetes de dominio `clasificacion/`, `rag/`, `resumen/`, `destacados/`,
+`POSTGRES_*`) e `infra/Database` (pool HikariCP), que la ingesta crea y cierra.
+Los paquetes de dominio `clasificacion/`, `rag/`, `resumen/`, `destacados/`,
 `consulta/` y `api/` aún no existen. El resto del documento sigue siendo el
 **patrón objetivo acordado**, derivado de `docs/technical-discovery.md` y
 `docs/roadmap.md`; deriva los detalles reales del código cuando existan.
@@ -135,7 +139,10 @@ servicio, su(s) repositorio(s), sus modelos y sus clientes; lo transversal
 
 ## Ingesta y operación
 
-- Job diario a las **9:30** (cron) con **segunda pasada** por la tarde.
+- Job diario a las **9:30** (scheduler interno por corrutina, sin cron externo;
+  ADR 0004) con **segunda pasada** por la tarde (18:00 por defecto, en
+  `Europe/Madrid`, configurable por `INGESTA_*`). Reejecutar la misma fecha no
+  duplica (*upsert* por `id`).
 - Ingesta de **todo el sumario del BOE** (secciones I, II.A, II.B, III, IV, V.A,
   V.B y V.C); clasificación en las **11 categorías** curadas a partir de
   sección/epígrafe del BOE y extracción de **plazos** de convocatorias.

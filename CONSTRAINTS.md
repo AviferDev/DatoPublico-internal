@@ -28,6 +28,9 @@
 - **MUST**: la descarga del texto oficial es una **llamada de red** y queda sujeta
   a la regla de tests opt-in (`BOE_LIVE_TEST=1`) de la sección «Operación»;
   nunca se ejecuta en el gate ni en la CI.
+- **MUST**: las **llamadas de red del backend** fijan un `HttpTimeout` explícito
+  (conexión ~10 s, petición/socket ~30 s) para que una descarga colgada del BOE no
+  bloquee indefinidamente la ventana del job (FT00009).
 
 ## IA y coste
 

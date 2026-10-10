@@ -24,7 +24,7 @@
 | FT00006 | boe-sumario-cliente | Cliente del sumario diario del BOE | ingesta-boe | accepted |
 | FT00007 | boe-parser-publicacion | Parser de publicaciones (metadatos y texto) | ingesta-boe | accepted |
 | FT00008 | publicacion-persistencia | Persistencia de publicaciones, fragmentos y resúmenes | ingesta-boe | accepted |
-| FT00009 | ingesta-job-diario | Job diario de ingesta idempotente | ingesta-boe | not_started |
+| FT00009 | ingesta-job-diario | Job diario de ingesta idempotente | ingesta-boe | accepted |
 | FT00010 | ingesta-observabilidad | Observabilidad de la ingesta diaria | ingesta-boe | not_started |
 | FT00011 | backfill-historico | Backfill del histórico reciente | ingesta-boe | not_started |
 | FT00012 | categorizacion-publicaciones | Clasificación por categoría y extracción de plazos | ingesta-boe | not_started |
