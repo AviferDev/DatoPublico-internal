@@ -67,7 +67,8 @@
   119 tests, 0 fallos; `build`/`test`/`detekt`+`:cpdCheck`/`init.sh` exit 0);
   fail-fast del CLI sin BD verificado; validación independiente `accept`
   (Session 041); opt-in `DB_LIVE_TEST=1` **no ejecutado** (Docker no disponible,
-  limitación aceptada). Siguiente feature lista: `categorizacion-publicaciones`
+  limitación aceptada). **Fusionada** (PR #12, squash → `bd3b39e`; CI run
+  `38070095920` en verde). Siguiente feature lista: `categorizacion-publicaciones`
   (FT00012, depende de FT00008) o `english-identifiers-rename` (FT00047).
 - Bloqueo actual: ninguno para el bootstrap. Pendiente de producto: **nombre y
   marca** (bloquea la fase de producción, no el bootstrap).
@@ -2063,7 +2064,10 @@
 - Commit/PR (orquestador): commit de producto `6d18eda
   feat(FT00011): complete backfill-historico` en `feat/ft00011-backfill-historico`
   (15 ficheros; claim `3c07504`); **PR #12**
-  (https://github.com/AviferDev/DatoPublico/pull/12) hacia `main`, pendiente de
-  revisión/fusión explícita del dueño y del run de CI.
-- Siguiente mejor paso: revisar/fusionar el PR #12; después,
-  `categorizacion-publicaciones` (FT00012).
+  (https://github.com/AviferDev/DatoPublico/pull/12) hacia `main`.
+- Merge (orquestador, Session 041): **PR #12 fusionado** en `main` por **squash** →
+  `bd3b39e feat(FT00011): complete backfill-historico` (2026-10-10); CI en verde
+  (run `38070095920`, 'Build and test' SUCCESS). Rama remota eliminada por GitHub y
+  rama local borrada; `main` local actualizado a `bd3b39e`.
+- Siguiente mejor paso: `categorizacion-publicaciones` (FT00012, depende de
+  FT00008 `accepted`). Siguiente rol: `planner`.
