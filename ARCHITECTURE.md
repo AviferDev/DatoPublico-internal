@@ -9,7 +9,10 @@
 - **`:shared`** — DTOs y lógica compartida con `kotlinx.serialization`.
   Namespace `es.aviferdev.datopublico`.
 - **`:backend`** — Ktor: ingesta del BOE, RAG, resúmenes, destacados y API.
-  Namespace `es.aviferdev.datopublico.backend`.
+  Namespace `es.aviferdev.datopublico.backend`. Ya existe el **esqueleto**
+  (composition root `Application.kt`, `plugins/` e `infra/`, `GET /health`,
+  configuración por entorno y logging JSON); el resto de paquetes llega con sus
+  features.
 - **`:composeApp`** — cliente Compose Multiplatform (Android, iOS, Web).
   Namespace `es.aviferdev.datopublico`.
 

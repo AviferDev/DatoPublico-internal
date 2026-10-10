@@ -11,11 +11,13 @@ Guía práctica para trabajar en `:backend`. Antes de tocar el backend, lee
 Norma, Empleo público, Becas y subvenciones, Fragmento, Resumen ciudadano,
 Consulta, Destacado).
 
-**Estado actual:** el backend todavía **no existe** (fase pre-bootstrap; el
-esqueleto Ktor llega con `bootstrap-ktor-healthcheck`). El patrón de este
-documento es el **objetivo acordado**, derivado de `docs/technical-discovery.md`
-y `docs/roadmap.md`. No inventes una arquitectura distinta; cuando el código
-exista, deriva los detalles reales del propio código.
+**Estado actual:** ya existe el **esqueleto del backend** (FT00004): composition
+root en `Application.kt`, paquetes `plugins/` e `infra/`, endpoint `GET /health`,
+configuración por entorno y logging JSON (Logback). Los paquetes de dominio
+(`ingesta/`, `clasificacion/`, `rag/`, `resumen/`, `destacados/`, `consulta/`,
+`api/`) aún no existen. El resto del documento sigue siendo el **patrón objetivo
+acordado**, derivado de `docs/technical-discovery.md` y `docs/roadmap.md`; deriva
+los detalles reales del código cuando existan.
 
 ## Stack y topología de build (decidido)
 
@@ -161,7 +163,8 @@ servicio, su(s) repositorio(s), sus modelos y sus clientes; lo transversal
   En **local**, las migraciones se aplican con una tarea **explícita**
   (`./gradlew :backend:flywayMigrate`; `flywayInfo` para inspeccionar), **no**
   enganchada a `build`/`check` (la CI corre sin BD). El backend en producción
-  aplicará migraciones al arrancar (FT00004+).
+  aplicará migraciones al arrancar (feature posterior a FT00004; el esqueleto de
+  FT00004 no cablea Flyway).
 - En macOS el proyecto usa **Colima**; si se rompe la red host↔contenedor,
   `colima restart` (los contenedores con `restart=unless-stopped` vuelven solos).
 - Servidor real: **Intel N100 / 8 GB**. Ajustes: `shared_buffers` PostgreSQL

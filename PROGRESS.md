@@ -7,12 +7,15 @@
 - Camino de arranque estándar: `./init.sh` (desde `.harness/`)
 - Camino de verificación estándar: `./gradlew build` y `./gradlew test` desde la
   raíz del repo público (`..`) — **bootstrapped** (Gradle 8.10.2 + JDK 21).
-- Siguiente feature lista: `bootstrap-ktor-healthcheck` (FT00004, depende de
-  FT00001). FT00003 (`bootstrap-postgres-pgvector`) queda **`accepted`** (Session
+- Última feature cerrada: `bootstrap-ktor-healthcheck` (FT00004) → **`accepted`**
+  (Session 025; validación independiente `accept` y CI en verde). Siguiente
+  feature lista: `bootstrap-cmp-targets` (FT00005, depende de FT00001). FT00003
+  (`bootstrap-postgres-pgvector`) queda **`accepted`** (Session
   023) tras la reparación de seguridad, la derivación de la conexión y la limpieza
   de comentarios. FT00002 (`bootstrap-shared-dtos`) **`accepted`** y **fusionada**
   (PR #2, merge `ca781f3`); habilita `contrato-resumen-ciudadano` (FT00019) y
   `boe-sumario-cliente` (FT00006).
+
 - Bloqueo actual: ninguno para el bootstrap. Pendiente de producto: **nombre y
   marca** (bloquea la fase de producción, no el bootstrap).
 - Convención de nombres (2026-10-10): **todos los tipos serializables del
@@ -20,7 +23,18 @@
   **`Dto`**; la config de serialización (`DatoPublicoJson`) sin `Dto`; sin
   prefijos. En `ARCHITECTURE.md` §«Convenciones de nombres» y **MUST** en
   `CONSTRAINTS.md`.
-- Última verificación: 2026-10-10. **FT00002 `bootstrap-shared-dtos`:
+- Última verificación: 2026-10-10. **FT00004 `bootstrap-ktor-healthcheck`:
+  `accepted`** (Sessions 024–025): esqueleto Ktor/Netty con `GET /health` (`200
+  {"status":"ok"}` en `:backend:run`, en el puerto por defecto 8080 y en 8090 por
+  entorno), configuración por entorno con fail-fast ante puerto inválido, logging
+  JSON (Logback + logstash, una línea por evento en stdout) y
+  `:backend:test --rerun-tasks` con 9 tests verdes; gate sin BD en verde
+  (`./gradlew test` 3 módulos, `./gradlew build --no-daemon`,
+  `env -u JAVA_HOME .harness/init.sh` → exit 0). Validación independiente
+  (`feature-validator`) con veredicto `accept` (reejecutó arranque, tests,
+  fail-fast y gate sin BD; sin hallazgos de seguridad; deuda menor L1–L4).
+  Producto: commit `9266729`, PR #4, CI en verde (run 38034700464). Hitos previos:
+  **FT00002 `bootstrap-shared-dtos`:
   `accepted`** (validación independiente `accept` de los renombrados de
   contenedores y de enums); PR #2 con CI en verde (run 37998033440, head
   872fb2b) y **fusionado** (`ca781f3`). Gate verde desde `..` con JDK 21 (JBR):
@@ -908,4 +922,117 @@
 - Estado: **FT00003 `accepted`**. Siguiente feature lista:
   `bootstrap-ktor-healthcheck` (FT00004).
 - Siguiente mejor paso: implementar `bootstrap-ktor-healthcheck` (FT00004) con el
+  flujo.
+
+### Session 024
+
+- Fecha: 2026-10-10
+- Objetivo: implementar `bootstrap-ktor-healthcheck` (FT00004) en el repo público:
+  esqueleto del backend Ktor (Netty) con configuración por entorno, logging
+  estructurado JSON y healthcheck `GET /health`, sin depender de la base de datos;
+  dejar los artefactos listos para validación independiente (commit/push/PR los
+  gestiona el orquestador).
+- Completado (producto, rama `feat/ft00004-bootstrap-ktor-healthcheck`):
+  - `gradle/libs.versions.toml`: `logback = 1.5.12` y `logstashLogback = 8.0`;
+    aliases `ktor-server-content-negotiation`, `ktor-server-call-logging`,
+    `ktor-server-test-host`, `logback-classic` y `logstash-logback-encoder`.
+  - `backend/build.gradle.kts`: plugins `application`, `io.ktor.plugin` y
+    `org.jetbrains.kotlin.plugin.serialization`; `mainClass` =
+    `es.aviferdev.datopublico.backend.ApplicationKt` (no `EngineMain`, sin
+    `application.conf`); dependencias de servidor Ktor + logback/logstash y
+    `ktor-server-test-host` para tests. La configuración Flyway queda intacta y
+    fuera de `build`/`check`.
+  - `Application.kt` (composition root: `embeddedServer(Netty, port, host,
+    module = Application::module)`, sin BD/Hikari/Flyway),
+    `infra/AppConfig.kt` (`fromEnv(map)` con defaults y fail-fast de puerto) y
+    `plugins/` (`Serialization` con `DatoPublicoJson` de `:shared`, `Monitoring`
+    con `CallLogging`, `Routing` y `Health` con `HealthDto` + `GET /health`).
+  - `backend/src/main/resources/logback.xml`: `ConsoleAppender` +
+    `LogstashEncoder` (una línea JSON por evento, solo stdout) con
+    `app=datopublico-backend`, `env=${APP_ENV:-local}` y nivel raíz
+    `${LOG_LEVEL:-INFO}`.
+  - Tests: `plugins/HealthTest` (`testApplication`, 2 tests) e
+    `infra/AppConfigTest` (6 tests); `SmokeTest` intacto.
+  - Documentación durable: `ARCHITECTURE.md` (`:backend` deja de ser
+    pre-bootstrap), `CONSTRAINTS.md` (MUST de arranque independiente de BD y
+    servicios + config por entorno con fail-fast), `docs/desarrollo-local.md`
+    (arranque del backend, variables y logs JSON) y la skill
+    `ktor-backend-architecture` (`Estado actual`); `init.sh` sin cambios.
+- Verificación ejecutada (desde `..`, `JAVA_HOME` del JBR 21):
+  - **Hallazgo de implementación**: sin el plugin de serialización en `:backend`,
+    `HealthDto` no generaba serializador (`Serializer for class 'HealthDto' is not
+    found`); se añadió `org.jetbrains.kotlin.plugin.serialization` y el test pasó.
+  - `SERVER_PORT=8090 APP_ENV=staging ./gradlew :backend:run` → log JSON
+    `Responding at http://0.0.0.0:8090` (`"env":"staging"`); `curl` →
+    `200` `{"status":"ok"}` con `Content-Type: application/json` y línea de
+    CallLogging `200 OK: GET - /health`; proceso detenido y puerto 8090 libre.
+  - Sin variables: `./gradlew :backend:run` → `Responding at
+    http://0.0.0.0:8080` y `curl http://10.123.123.65:8080/health` →
+    `200 {"status":"ok"}`. **Nota de entorno**: en esta máquina
+    `127.0.0.1:8080` lo ocupa el mux SSH de Colima, así que `curl
+    localhost:8080` responde a ese otro servicio; la comprobación del puerto por
+    defecto se hizo contra la IP de LAN (artefacto del entorno, no del código).
+  - Fail-fast: `SERVER_PORT=no-es-un-numero ./gradlew :backend:run` → exit 1 con
+    `IllegalArgumentException: Puerto inválido: 'no-es-un-numero'. Define
+    SERVER_PORT (o PORT) como un entero entre 1 y 65535.`; sin procesos
+    escuchando.
+  - `./gradlew :backend:test --rerun-tasks` → BUILD SUCCESSFUL; XML: SmokeTest
+    `1/0/0`, AppConfigTest `6/0/0`, HealthTest `2/0/0` (9 tests, 0 fallos).
+  - Gate sin BD (sin `.env`): `./gradlew test` → BUILD SUCCESSFUL (3 módulos);
+    `./gradlew build --no-daemon` → BUILD SUCCESSFUL (25 tareas);
+    `./gradlew build --dry-run --no-daemon | grep -i flyway` → sin resultados;
+    `env -u JAVA_HOME .harness/init.sh` → exit 0.
+- Ficheros creados/modificados: `gradle/libs.versions.toml`,
+  `backend/build.gradle.kts`,
+  `backend/src/main/kotlin/es/aviferdev/datopublico/backend/{Application.kt,infra/AppConfig.kt,plugins/Serialization.kt,plugins/Monitoring.kt,plugins/Routing.kt,plugins/Health.kt}`,
+  `backend/src/main/resources/logback.xml`,
+  `backend/src/test/kotlin/es/aviferdev/datopublico/backend/{plugins/HealthTest.kt,infra/AppConfigTest.kt}`
+  (bloque de producto); `docs/desarrollo-local.md` (producto);
+  `.harness/{ARCHITECTURE.md,CONSTRAINTS.md,PROGRESS.md,feature_list.json}`,
+  `.harness/docs/feature-ids.md`,
+  `.harness/.agents/skills/ktor-backend-architecture/SKILL.md`.
+- Riesgo o duda sin resolver: el commit/push/PR y el run de CI los hace el
+  orquestador; queda pendiente la **validación independiente** de FT00004. El
+  escenario 1 no se pudo comprobar por `localhost:8080` por el mux SSH de Colima.
+- Siguiente mejor paso: validación independiente de FT00004
+  (`feature-validator`); después, `bootstrap-cmp-targets` (FT00005).
+
+### Session 025
+
+- Fecha: 2026-10-10
+- Objetivo: cerrar FT00004 (`bootstrap-ktor-healthcheck`): validación
+  independiente → commit → push → PR → CI → aceptación.
+- Completado:
+  - **Validación independiente** (`feature-validator`): veredicto **`accept`**.
+    Reejecutó el plan completo: `:backend:test --rerun-tasks` (SmokeTest 1/0/0,
+    AppConfigTest 6/0/0, HealthTest 2/0/0), arranque real `:backend:run` con
+    `/health` → `200 {"status":"ok"}` (`application/json`, puerto 8090 por entorno
+    y 8080 por defecto), fail-fast de puerto inválido (exit 1, nada escuchando),
+    gate sin BD (`build` 25 tareas, `test` 3 módulos, `--dry-run | grep flyway`
+    vacío, `init.sh` exit 0) y sin hallazgos de seguridad. Confirmó el alcance por
+    grep (sin hikari/datasource/flyway/cors/ratelimit/openapi/EngineMain/
+    application.conf en `backend/src`) y que la atribución de la evidencia era
+    real (los recuentos 9 tests / 25 tareas coinciden).
+  - Commit de producto en `feat/ft00004-bootstrap-ktor-healthcheck`:
+    `9266729 feat(FT00004): complete bootstrap-ktor-healthcheck` (12 ficheros,
+    +310/−5). Pusheado.
+  - **PR #4** hacia `main`: https://github.com/AviferDev/DatoPublico/pull/4
+  - **CI en verde**: run `38034700464`, head `9266729` (job "Build and test"
+    SUCCESS).
+  - `.harness/feature_list.json`: FT00004 → **`accepted`** (notas y evidencia con
+    la validación independiente y la deuda menor L1–L4). `docs/feature-ids.md`:
+    FT00004 → `accepted`.
+- Notas *Low* del validator (no bloquean; deuda para features de observabilidad):
+  - L1 — `Monitoring.kt` usa el `format` por defecto de `CallLogging`, que colorea;
+    el campo `message` de los logs JSON lleva escapes ANSI (mejora: `format` sin
+    color).
+  - L2 — `AppConfig.environment`/`logLevel` se declaran y los consume Logback
+    (`${APP_ENV}`/`${LOG_LEVEL}`), no el código.
+  - L3 — KDoc de `Monitoring.kt` dice «nivel configurado» pero `CallLogging` está a
+    `Level.INFO` fijo (el nivel raíz sí lo aplica Logback).
+  - L4 — `localhost:8080` en `docs/desarrollo-local.md` es artefacto del mux SSH
+    de Colima en esta máquina.
+- Estado: **FT00004 `accepted`** (PR #4 pendiente de revisión/fusión). Siguiente
+  feature lista: `bootstrap-cmp-targets` (FT00005).
+- Siguiente mejor paso: implementar `bootstrap-cmp-targets` (FT00005) con el
   flujo.

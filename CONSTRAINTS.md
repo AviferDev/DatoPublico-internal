@@ -57,5 +57,10 @@
   host/db/usuario) debe bastar para que Flyway apunte al mismo sitio.
 - **MUST**: el PostgreSQL local de desarrollo se publica **solo en loopback**
   (`127.0.0.1`), nunca en `0.0.0.0`.
+- **MUST**: el arranque del backend **no** depende de la base de datos ni de
+  servicios externos: se registran solo los subsistemas/rutas cuyas dependencias
+  existen (el healthcheck `GET /health` queda operativo sin PostgreSQL). La
+  configuración es **por entorno**, con valores por defecto no sensibles y
+  **fail-fast** (arranque abortado con mensaje claro) si un valor es inválido.
 - **N100 / 8 GB**: backfill por lotes en baja carga; `shared_buffers` ~1 GB,
   heap JVM ~1 GB, swap activado.
