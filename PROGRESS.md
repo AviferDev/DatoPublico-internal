@@ -68,6 +68,22 @@
   en **ADR 0012**; pendiente de validación independiente. Siguiente feature lista:
   `evaluacion-recuperacion` (FT00018, depende de FT00017) o
   `english-identifiers-rename` (FT00047).
+- **FT00018 `evaluacion-recuperacion` → `passing`** (Session 050): **evaluación de
+  la recuperación** en `:backend` como **librería y CLI one-shot sin wiring** —
+  paquete nuevo `rag/evaluation/` (`RetrievalMetrics` puro: `precision@k`/`recall@k`/
+  MRR; golden set versionado `rag/eval/golden-set.json` + `RetrievalGoldenSetLoader`
+  con fail-fast; `RetrievalEvaluator` con `fun interface Retriever` y medias sin
+  `NaN`; `RetrievalEvaluationLog` con eventos `retrieval.evaluation.*`;
+  `RetrievalEvaluationMain` CLI) y tarea Gradle `:backend:evaluateRetrieval` (fuera
+  de `build`/`check`). Reutiliza `HybridSearch`/`FragmentIndexer` (FT00017) sin
+  modificarlos. Gate sin red ni BD ni modelo verde (`:backend` **224 tests**, 0
+  fallos; `RetrievalMetricsTest` 7, `RetrievalGoldenSetTest` 9,
+  `RetrievalEvaluatorTest` 5; `build -PskipClient`/`test`/`detekt`+`:cpdCheck`/
+  `init.sh` exit 0) y ejecución real **opt-in ejecutada** con PostgreSQL + modelo E5
+  (`precision=0.6 recall=1.0 mrr=1.0`; `RetrievalEvaluationLiveTest` 1/0/0). Decisión
+  durable en **ADR 0013**; pendiente de validación independiente. Sin migración ni
+  persistencia del histórico. Siguiente feature lista: `contrato-resumen-ciudadano`
+  (FT00019) o `english-identifiers-rename` (FT00047).
 - Última verificación: 2026-10-10 (Sessions 032–038). **Cambio de alcance 1.0.0 =
   TODO el BOE** (secciones I, II.A, II.B, III, IV, V.A, V.B y V.C; ningún campo ni
   sección se excluye) y nueva norma MUST de **`@SerialName` explícito** en cada
@@ -2606,4 +2622,78 @@
 - Estado: **FT00017 `passing`** (implementada y autoverificada). Pendiente:
   validación independiente (`feature-validator`). **No** se marca `accepted`.
 - Siguiente mejor paso: validar `recuperacion-hibrida` (FT00017). Siguiente rol:
+  `validator`.
+
+### Session 050
+
+- Fecha: 2026-10-10
+- Objetivo: implementar `evaluacion-recuperacion` (FT00018) en el repo público
+  como **librería y herramienta one-shot sin wiring**: golden set versionado +
+  evaluación de la recuperación (precision@k, recall@k, MRR) con un comando
+  (`:backend:evaluateRetrieval`) y resultado registrado (log JSON + stdout).
+- Completado (producto, **librería sin wiring**):
+  - `rag/evaluation/RetrievalMetrics.kt` (nuevo, puro): `FragmentRef` (valor interno
+    sin sufijo) + `precisionAtK`/`recallAtK`/`reciprocalRank` con casos límite
+    documentados y fail-fast de `k < 1`.
+  - `rag/evaluation/RetrievalGoldenSet.kt` (nuevo): DTOs `@Serializable` con sufijo
+    `Dto` y `@SerialName` explícito en **cada** propiedad
+    (`RetrievalGoldenSetDto`/`RetrievalCorpusItemDto`/`RetrievalQueryDto`/
+    `RetrievalFilterDto`/`RetrievalRelevantDto`), modelo interno sin sufijo
+    (`RetrievalGoldenSet`/`RetrievalQuery`) y `RetrievalGoldenSetLoader` (parse/load
+    puros con fail-fast `IllegalArgumentException`: `k >= 1`, corpus/consultas no
+    vacíos, ids únicos y cada `FragmentRef` existente en el corpus).
+  - `rag/evaluation/RetrievalEvaluator.kt` (nuevo): `fun interface Retriever`
+    (satisface `HybridSearch::search`) + `evaluate(dataset, k)` que recupera una vez
+    por consulta, mapea `FragmentMatch`→`FragmentRef` (`toRef()`) y agrega medias sin
+    `NaN` (`mean()`); resultados `RetrievalEvaluationResult`/`RetrievalQueryResult`.
+  - `rag/evaluation/RetrievalEvaluationLog.kt` (nuevo): eventos
+    `retrieval.evaluation.started`/`completed` con mapas de campos **puros** y
+    `StructuredArguments` (canal = stdout).
+  - `rag/evaluation/RetrievalEvaluationMain.kt` (nuevo, CLI): resuelve conexión
+    (`POSTGRES_*`) y rutas del modelo (`EMBEDDING_MODEL_PATH`/`EMBEDDING_TOKENIZER_PATH`
+    o `backend/models/multilingual-e5-small/`), indexa el corpus del dataset
+    (`FragmentIndexer`, persistiendo antes la publicación) y evalúa con
+    `HybridSearch`; fail-fast de DB/modelo y cierre de modelo + pool en `finally`.
+  - `backend/src/main/resources/rag/eval/golden-set.json` (nuevo, version 1.0.0,
+    k=3): corpus de 4 publicaciones (secciones III/I/II.B/V.B) con encabezados
+    `Artículo N` e ids `EVAL-`; 5 consultas con `filter`/`relevant` coherentes.
+  - `backend/build.gradle.kts` (modify): tarea `JavaExec` `evaluateRetrieval`
+    (grupo `application`), **fuera** de `build`/`check`.
+- **Alcance respetado (Non-Goal del spec)**: sin tocar `rag/retrieval/`,
+  `rag/indexing/`, `rag/chunking/`, `rag/embeddings/`, `persistence/`, `infra/`,
+  migraciones, `Application.kt`, `ingesta/`, `:shared`, `:composeApp`, CI ni
+  `init.sh`; sin dependencias Gradle nuevas y sin migración.
+- Tests nuevos del **gate** (sin red, BD ni modelo): `RetrievalMetricsTest` (7),
+  `RetrievalGoldenSetTest` (9) y `RetrievalEvaluatorTest` (5) = **21**. Opt-in
+  nuevo: `RetrievalEvaluationLiveTest` (1, `DB_LIVE_TEST=1` + `EMBEDDING_LIVE_TEST=1`).
+- Verificación (desde `..`, `JAVA_HOME` del JBR 21): `./gradlew :backend:test
+  --rerun-tasks` → BUILD SUCCESSFUL, **224 tests, 0 fallos/errores** (antes 202);
+  `./gradlew build --no-daemon -PskipClient` → BUILD SUCCESSFUL (23 tareas;
+  `:backend:detekt` + `:cpdCheck`); `./gradlew test --rerun-tasks` → 3 módulos;
+  `./gradlew detekt --rerun-tasks` → BUILD SUCCESSFUL (`cpdCheck` + 3 `detekt`);
+  `env -u JAVA_HOME .harness/init.sh` → **exit 0**. Ningún test del gate toca red,
+  BD ni el modelo.
+- **Prueba opt-in ejecutada de verdad** (Docker/Colima + PostgreSQL
+  `pgvector/pgvector:pg17` migrado con `:backend:flywayMigrate`, puerto 55432 para no
+  colisionar con otros contenedores; modelo E5 en `backend/models/multilingual-e5-small`):
+  `DB_LIVE_TEST=1 EMBEDDING_LIVE_TEST=1 ./gradlew :backend:evaluateRetrieval` →
+  BUILD SUCCESSFUL; `event=retrieval.evaluation.started` (dataset_version=1.0.0,
+  k=3, queries=5) y `event=retrieval.evaluation.completed` con
+  `precision=0.6 recall=1.0 mrr=1.0`; resumen por consulta (4 con precision 0.5 y
+  recall/mrr 1.0; q-subvenciones-investigacion precision/recall/mrr 1.0).
+  `DB_LIVE_TEST=1 EMBEDDING_LIVE_TEST=1 ./gradlew :backend:test --tests
+  '*RetrievalEvaluationLiveTest' --rerun-tasks` → 1 test, 0 fallos (umbral
+  conservador `recall@k >= 0.6`, `MRR >= 0.5`). Entorno limpiado
+  (`docker compose down -v`, `.env` borrado).
+- Docs durables: `ARCHITECTURE.md` (`rag/evaluation/`), `CONSTRAINTS.md` (nueva
+  sección **«Evaluación de recuperación»**), **ADR 0013**
+  (`docs/adr/0013-evaluacion-recuperacion-golden-set.md`) + índice, skill
+  `rag-datapublico` §7, `docs/desarrollo-local.md` (producto),
+  `feature_list.json` (FT00018 → **`passing`** + evidencia).
+- Riesgo o duda sin resolver: el corpus del golden set es pequeño; las cifras reales
+  son evidencia, no una aserción ajustada. Con `JOIN` + `WHERE` PostgreSQL puede
+  preferir *seq scan* en tablas pequeñas (la evaluación mide calidad, no el plan).
+- Estado: **FT00018 `passing`** (implementada y autoverificada). Pendiente:
+  validación independiente (`feature-validator`). **No** se marca `accepted`.
+- Siguiente mejor paso: validar `evaluacion-recuperacion` (FT00018). Siguiente rol:
   `validator`.

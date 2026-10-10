@@ -70,3 +70,4 @@ Aceptado (<AAAA-MM-DD>). [Quién decide y, si aplica, qué ADR supersede/ajusta.
 | [0010](0010-embeddings-locales-e5-onnx.md) | Embeddings locales E5 int8 vía ONNX Runtime tras una interfaz de proveedor | Aceptado |
 | [0011](0011-pgvector-columna-hnsw.md) | Almacenamiento vectorial en pgvector: columna `vector(384)` nullable + índice HNSW coseno | Aceptado |
 | [0012](0012-recuperacion-hibrida-filtros.md) | Recuperación híbrida: filtros SQL parametrizados por metadatos + similitud e indexado mínimo | Aceptado |
+| [0013](0013-evaluacion-recuperacion-golden-set.md) | Evaluación de la recuperación con golden set versionado, métricas puras y CLI one-shot opt-in | Aceptado |

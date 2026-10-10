@@ -182,6 +182,29 @@ ingesta BOE → chunking → embeddings (ONNX) → pgvector → recuperación h�
 - **Chat:** respuestas con citas correctas, refutación de afirmaciones falsas y
   comportamiento ante preguntas sin fundamento.
 
+### Estado actual del producto (FT00018)
+
+- La **evaluación de la recuperación** ya está implementada en `:backend`, paquete
+  `es.aviferdev.datopublico.backend.rag.evaluation`: `RetrievalMetrics` (puro:
+  `precision@k`/`recall@k`/`reciprocalRank` con `FragmentRef`), el **golden set
+  versionado** (`rag/eval/golden-set.json`, DTOs `@Serializable` con sufijo `Dto` y
+  `RetrievalGoldenSetLoader` con fail-fast: `k >= 1`, ids únicos y cada fragmento
+  relevante existente en el corpus), `RetrievalEvaluator` (`fun interface Retriever`
+  + medias sin `NaN`) y la CLI one-shot `RetrievalEvaluationMain` (tarea
+  `:backend:evaluateRetrieval`, **fuera** de `build`/`check`). Decisión durable en
+  `docs/adr/0013`.
+- **Reutiliza FT00017 sin modificarla**: indexa el corpus del propio dataset con
+  `FragmentIndexer` (idempotente) y evalúa cada consulta con `HybridSearch`. **Sin
+  wiring** (`Application.kt`/job/backfill intactos) y **sin** persistir el
+  histórico: el resultado es log JSON (`event=retrieval.evaluation.started`/
+  `completed` con `precision`/`recall`/`mrr`) + resumen en stdout; sin migración.
+- **Verificación**: el gate cubre `RetrievalMetricsTest`, `RetrievalGoldenSetTest` y
+  `RetrievalEvaluatorTest` **sin red, BD ni modelo**; la ejecución real es
+  **opt-in** (`DB_LIVE_TEST=1` + `EMBEDDING_LIVE_TEST=1`) con umbral conservador
+  (`recall@k >= 0.6`, `MRR >= 0.5`), contra el PostgreSQL de `docker-compose` y el
+  modelo E5 real. La evaluación de resúmenes (golden set de publicaciones) y de chat
+  llega con FT00024.
+
 ## Riesgos conocidos
 
 - Chunking por expresiones regulares es **heurístico**; la vía de producto debería

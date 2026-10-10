@@ -184,6 +184,28 @@
   `build`/`test`/`init.sh`/CI; el gate cubre la traducción SQL, el servicio y el
   indexado con **dobles deterministas**, sin red ni BD.
 
+## Evaluación de recuperación
+
+- **MUST**: el **golden set** de evaluación es **versionado** en los recursos de
+  `:backend` (`rag/eval/golden-set.json`) y su estructura y validaciones son las
+  del spec FT00018: `k >= 1`, corpus y consultas no vacíos, ids únicos y **cada
+  fragmento relevante existente en el corpus** (`publicationId` presente y
+  `order >= 0`). Un dataset inválido falla con `IllegalArgumentException` **sin**
+  abrir conexión. Decisión durable en `docs/adr/0013`.
+- **MUST**: las métricas de recuperación (`precision@k`, `recall@k` y MRR) son
+  **puras** (sin red, BD, modelo, reloj ni estado) y testables en el gate con
+  dobles deterministas; el evaluador **agrega medias sin `NaN`** (media de una
+  lista vacía = `0.0`) y **no** conoce el proveedor de embeddings ni Ktor.
+- **MUST**: la evaluación **no cambia la recuperación**: reutiliza
+  `SearchFilter`/`HybridSearch`/`FragmentIndexer` tal cual. La ejecución real es
+  **opt-in** (`DB_LIVE_TEST=1` + `EMBEDDING_LIVE_TEST=1`) con la tarea
+  `:backend:evaluateRetrieval` **fuera** de `build`/`check`/`init.sh` y de la CI;
+  el test live afirma un **umbral conservador y documentado** (no perfección).
+- **MUST NOT**: la evaluación **no persiste el histórico** (log JSON estructurado
+  `event=retrieval.evaluation.*` + stdout) ni añade migración; **no** se cablea en
+  `Application.kt`/job/backfill y **no** se anticipa lo diferido (resúmenes/chat,
+  endpoints/UI, reranking/fusión léxica, indexado del corpus completo).
+
 ## Persistencia y base de datos
 
 - **MUST**: el acceso a datos usa **JDBC + HikariCP**, **sin ORM** (nada de

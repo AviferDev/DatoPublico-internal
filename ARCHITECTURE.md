@@ -90,6 +90,16 @@
   ni en el job/backfill, no hay endpoints/UI ni migración nueva, y la prueba real
   es **opt-in** (`DB_LIVE_TEST=1` y, para el modelo, `EMBEDDING_LIVE_TEST=1`). Ver
   `docs/adr/0012`.
+  FT00018 añade **`rag/evaluation/`**: la **evaluación de la recuperación** con un
+  **golden set versionado** (recurso `rag/eval/golden-set.json`), métricas **puras**
+  (`RetrievalMetrics`: `precision@k`/`recall@k`/MRR), el loader con fail-fast
+  (`RetrievalGoldenSetLoader`), el evaluador con un `Retriever` inyectable
+  (`RetrievalEvaluator`) y la CLI one-shot `RetrievalEvaluationMain` (tarea
+  `:backend:evaluateRetrieval`, **fuera** de `build`/`check`). Indexa el corpus del
+  propio dataset con el modelo E5 real y evalúa cada consulta con `HybridSearch`
+  (reutiliza FT00017 **sin modificarla**). Sigue siendo **sin wiring**; la prueba
+  real es **opt-in** (`DB_LIVE_TEST=1` + `EMBEDDING_LIVE_TEST=1`) y **no** se
+  persiste el histórico (log JSON + stdout, sin migración). Ver `docs/adr/0013`.
   Existe **`persistence/`** (FT00008): repositorios **JDBC**
   + entidades `...Entity` de `publicacion`, `fragmento`, `resumen` y
   `cola_revision`, más los helpers JDBC compartidos; la configuración de
