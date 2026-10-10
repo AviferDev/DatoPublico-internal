@@ -32,6 +32,15 @@
   (`bootstrap-shared-dtos`) **`accepted` y fusionada** (PR #2, merge `ca781f3`;
   ampliada en el PR #6 a las 8 secciones y `@SerialName`).
 
+- Feature en curso: ninguna. **FT00008 `publicacion-persistencia`** implementada,
+  autoverificada y **validada de forma independiente (`accept`)** (Session 036):
+  migración `V2` (tablas
+  `publicacion`/`fragmento`/`resumen`/`cola_revision`), `infra/` (config derivada
+  de `POSTGRES_*` + pool HikariCP) y `persistencia/` (4 repositorios JDBC +
+  entidades), más `Publicacion.plazo`. Decisión durable en **ADR 0003**. Gate sin
+  BD verde y prueba real opt-in `DB_LIVE_TEST=1` verde; detalle en
+  `docs/validations/publicacion-persistencia.md`. Siguiente feature lista:
+  `ingesta-job-diario` (FT00009).
 - Bloqueo actual: ninguno para el bootstrap. Pendiente de producto: **nombre y
   marca** (bloquea la fase de producción, no el bootstrap).
 - Convención de nombres (aclarada 2026-10-10): **todo tipo `@Serializable`/de
@@ -1647,3 +1656,57 @@
   XML en memoria (aceptable por documento; vigilar una ley muy extensa).
 - Siguiente mejor paso: validación independiente de FT00007 (`feature-validator`);
   después, `publicacion-persistencia` (FT00008).
+
+### Session 036
+
+- Fecha: 2026-10-10
+- Objetivo: implementar `publicacion-persistencia` (FT00008) en el repo público,
+  rama `feat/ft00008-publicacion-persistencia`: capa de persistencia sobre
+  PostgreSQL (migración + repositorios JDBC) con sus tests.
+- Completado (producto):
+  - Migración `backend/src/main/resources/db/migration/V2__persistencia_publicaciones.sql`
+    (V1 intacta) con `publicacion` (categoria y `plazo_*` nullable), `fragmento`
+    (`UNIQUE (publicacion_id, orden)`), `resumen` (`publicacion_id UNIQUE`,
+    `cifras_clave text[]`) y `cola_revision`; FK `ON DELETE CASCADE` e índices.
+    **Sin** embedding ni HNSW (FT00016).
+  - `infra/ConfiguracionBd.kt` (data class pura; deriva `jdbc:postgresql://host:port/db`
+    de `POSTGRES_*`, defaults no sensibles, fail-fast sin `POSTGRES_PASSWORD`,
+    `toString` redacta la contraseña) e `infra/BaseDatos.kt` (factory de
+    `HikariDataSource`, pool ≤5).
+  - Paquete `persistencia/`: `PublicacionRepositorio` (+`PublicacionEntity`,
+    *upsert* `ON CONFLICT (id) DO UPDATE`), `FragmentoRepositorio`,
+    `ResumenRepositorio`, `ColaRevisionRepositorio` y helpers JDBC compartidos
+    (`Jdbc.kt`). **Sin ORM** y **sin wiring** en `Application.kt`.
+  - `Publicacion` gana `plazo: PlazoDto? = null` (aditivo). Driver PostgreSQL y
+    HikariCP al `implementation` de `:backend` (`libs.versions.toml` +
+    `backend/build.gradle.kts`).
+- Tests (gate, sin BD): `ConfiguracionBdTest` (8: derivación, defaults, overrides,
+  fail-fast y redacción), `PublicacionPersistenciaTest` (5: mapeo ida/vuelta,
+  nombres de enum, plazo, nulos) y `MigracionSqlTest` (4: cuatro tablas, FK en
+  cascada, no-embedding). Opt-in real: `PublicacionPersistenciaLiveTest`
+  (guardar/recuperar con categoría/sección/epígrafe/plazo, *upsert* sin duplicar
+  con `actualizado_en` avanzado, nulos y FK CASCADE; lee `POSTGRES_*` del entorno
+  o de `.env`).
+- Verificación ejecutada (desde `..`, `JAVA_HOME` del JBR 21):
+  - Gate sin BD (Docker parado): `./gradlew :backend:test --rerun-tasks -PskipClient`
+    → **61 tests, 0 fallos**; `./gradlew build --no-daemon -PskipClient` →
+    BUILD SUCCESSFUL; `./gradlew test --no-daemon` → 3 módulos; `./gradlew detekt
+    -PskipClient --rerun-tasks` (Detekt + `:cpdCheck`) → sin hallazgos;
+    `.harness/init.sh` → exit 0.
+  - BD real: `docker compose up -d` (`datopublico-postgres` healthy);
+    `:backend:flywayMigrate` → BUILD SUCCESSFUL; `:backend:flywayInfo` → `V1`+`V2`
+    en **Success**; `\dt`/`information_schema.tables` con las cuatro tablas; FK
+    `delete_rule = CASCADE`. Test opt-in `DB_LIVE_TEST=1 … '*PublicacionPersistenciaLiveTest'`
+    → verde (1 test). Entorno limpiado (`docker compose down -v`, `.env` borrado).
+- Doc durable: `ARCHITECTURE.md` (frontera **Backend → PostgreSQL**, `persistencia/`
+  e `infra/`), `CONSTRAINTS.md` (§«Persistencia y base de datos»), **ADR
+  `docs/adr/0003-jdbc-hikari-sin-orm.md`** (+ índice), `docs/desarrollo-local.md`
+  y skill `ktor-backend-architecture` (§Estado actual).
+- Estado: **FT00008 `accepted`** (validación independiente `feature-validator`,
+  2026-10-10, veredicto **`accept`**; informe en
+  `docs/validations/publicacion-persistencia.md`). Sin hallazgos
+  Critical/High/Medium; deuda Low (índice `cola_revision(resumen_id)` → FT00023;
+  `.first()` sobre `RETURNING id`). Alcance amplio (4 tablas) pero repositorios
+  secundarios mínimos.
+- Siguiente mejor paso: commit/PR del producto y CI (orquestador); después,
+  `ingesta-job-diario` (FT00009).

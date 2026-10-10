@@ -15,8 +15,13 @@
   `ingesta/sumario/` (cliente del sumario diario del BOE + modelo interno y
   filtrado de secciones) e `ingesta/publicacion/` (parser del **texto XML**
   oficial `xml.php`, cliente de texto, modelo `Publicacion` y combinador
-  sumario + texto). El resto de paquetes llega con sus features. La ingesta
-  **no** se cablea en el arranque.
+  sumario + texto). Existe **`persistencia/`** (FT00008): repositorios **JDBC**
+  + entidades `...Entity` de `publicacion`, `fragmento`, `resumen` y
+  `cola_revision`, más los helpers JDBC compartidos; la configuración de
+  conexión (`infra/ConfiguracionBd`, derivada de `POSTGRES_*`) y el pool
+  (`infra/BaseDatos`, HikariCP ≤5) viven en `infra/`. El resto de paquetes
+  llega con sus features. La ingesta y la persistencia **no** se cablean en el
+  arranque.
 - **`:composeApp`** — cliente Compose Multiplatform (Android, iOS, Web).
   Namespace `es.aviferdev.datopublico`. Ya **existe y compila** para
   `androidTarget`, `iosArm64`/`iosSimulatorArm64` (framework `ComposeApp`) y
@@ -52,12 +57,21 @@
   red y las pruebas contra el BOE son opt-in. La **fuente de verdad** del texto y
   los metadatos es el XML estructurado, no el HTML (`txt.php`) ni el PDF
   (ver `docs/adr/0002`).
+- **Backend → PostgreSQL** (JDBC + **HikariCP**, **sin ORM**; migraciones
+  **Flyway**; ver `docs/adr/0003`): los repositorios de `persistencia/` escriben
+  y leen `publicacion` (con `categoria` y `plazo` nullable), `fragmento`,
+  `resumen` y `cola_revision`. La conexión se **deriva** de `POSTGRES_*` (fuente
+  única, la misma que Compose/Flyway) y falla en claro si falta la contraseña. El
+  *upsert* de publicación por `id` es idempotente. Lo diferido no se anticipa: la
+  columna `embedding vector(384)` y su índice HNSW llegan con FT00016, y los
+  valores de categoría/plazo con FT00012. La persistencia **no** se cablea en el
+  arranque.
 - **Backend:** `plugins/` (HTTP) → servicios → dominio puro → repositorios y
   clientes → `infra/`.
 - **IA:** embeddings **locales** (ONNX) y generación/chat **remoto** (OpenCode),
   cada uno tras una interfaz intercambiable.
-- **Datos:** PostgreSQL + pgvector; migraciones Flyway. Sin cuentas ni datos
-  personales.
+- **Datos:** PostgreSQL + pgvector; migraciones Flyway (`V1` esquema base, `V2`
+  persistencia). Sin cuentas ni datos personales.
 
 ## Reglas transversales
 

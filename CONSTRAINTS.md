@@ -39,6 +39,24 @@
 - **MUST NOT**: publicar afirmaciones fuera del contexto recuperado (si el corpus
   no lo sustenta, se declara `sin_fundamento`/`refutada`).
 
+## Persistencia y base de datos
+
+- **MUST**: el acceso a datos usa **JDBC + HikariCP**, **sin ORM** (nada de
+  Exposed/Hibernate). Los repositorios viven en `persistencia/` (interfaz +
+  entidad `...Entity` + implementación JDBC) y el pool/configuración en `infra/`;
+  la conexión se **deriva** de `POSTGRES_*` (fuente única). Decisión durable en
+  `docs/adr/0003`.
+- **MUST**: la escritura de una publicación es **upsert por `id`**
+  (`INSERT … ON CONFLICT (id) DO UPDATE`), **idempotente**: reejecutar la ingesta
+  (FT00009) no crea filas duplicadas.
+- **MUST**: las pruebas que **tocan la base de datos real** son **opt-in** por
+  `DB_LIVE_TEST=1` contra el PostgreSQL de `docker-compose`, y quedan **fuera**
+  de `build`/`test`/`init.sh` y de la CI (patrón `BOE_LIVE_TEST`). El gate cubre
+  config de conexión, mapeo y contrato SQL de la migración **sin** PostgreSQL.
+- **MUST**: las migraciones Flyway son versionadas y **nunca** se edita una ya
+  aplicada; lo diferido (p. ej. la columna `embedding vector(384)` de `fragmento`
+  y su índice HNSW, de FT00016) **no** se anticipa.
+
 ## Nombres y contratos
 
 - **MUST**: **todo tipo `@Serializable`/de transporte** lleva sufijo `Dto`: el

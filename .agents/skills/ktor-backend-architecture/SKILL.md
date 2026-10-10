@@ -13,11 +13,14 @@ Consulta, Destacado).
 
 **Estado actual:** ya existe el **esqueleto del backend** (FT00004): composition
 root en `Application.kt`, paquetes `plugins/` e `infra/`, endpoint `GET /health`,
-configuración por entorno y logging JSON (Logback). Los paquetes de dominio
-(`ingesta/`, `clasificacion/`, `rag/`, `resumen/`, `destacados/`, `consulta/`,
-`api/`) aún no existen. El resto del documento sigue siendo el **patrón objetivo
-acordado**, derivado de `docs/technical-discovery.md` y `docs/roadmap.md`; deriva
-los detalles reales del código cuando existan.
+configuración por entorno y logging JSON (Logback). Existe **`ingesta/`**
+(`sumario/` y `publicacion/`, FT00006/FT00007, sin wiring) y **`persistencia/`**
+(repositorios JDBC + entidades, FT00008) con `infra/ConfiguracionBd` (derivada de
+`POSTGRES_*`) e `infra/BaseDatos` (pool HikariCP), también sin wiring. Los
+paquetes de dominio `clasificacion/`, `rag/`, `resumen/`, `destacados/`,
+`consulta/` y `api/` aún no existen. El resto del documento sigue siendo el
+**patrón objetivo acordado**, derivado de `docs/technical-discovery.md` y
+`docs/roadmap.md`; deriva los detalles reales del código cuando existan.
 
 ## Stack y topología de build (decidido)
 
