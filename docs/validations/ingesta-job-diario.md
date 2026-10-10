@@ -13,11 +13,11 @@
 
 | Comando | Resultado |
 | --- | --- |
-| `./gradlew :backend:test --rerun-tasks -PskipClient` | BUILD SUCCESSFUL; **80** tests, 0 fallos/errores. Nuevos: `IngestaConfigTest` 7, `IngestaScheduleTest` 5, `IngestaJobTest` 5, `IngestaSchedulerTest` 1, `IngestaJobLiveTest` 1 (opt-in). |
+| `./gradlew :backend:test --rerun-tasks -PskipClient` | BUILD SUCCESSFUL; **80** tests, 0 fallos/errores. Nuevos: `IngestionConfigTest` 7, `IngestionScheduleTest` 5, `IngestionJobTest` 5, `IngestionSchedulerTest` 1, `IngestionJobLiveTest` 1 (opt-in). |
 | `./gradlew detekt -PskipClient --rerun-tasks` | BUILD SUCCESSFUL (`:backend:detekt`, `:shared:detekt`, `:cpdCheck` sin hallazgos). |
 | `env -u JAVA_HOME .harness/init.sh` | **exit 0** («Gate OK»: build -PskipClient + detekt + `:cpdCheck`). |
 | `.env`(55432) + `docker compose up -d` + `:backend:flywayMigrate` | `datopublico-postgres` healthy; `V1`/`V2` en **Success**. |
-| `DB_LIVE_TEST=1 ./gradlew :backend:test --tests '*IngestaJobLiveTest' --rerun-tasks` | **Verde**; `system-out` con el pool Hikari conectado a PostgreSQL real (`PgConnection`); 0 filas `FT00009-LIVE-%` tras limpieza. |
+| `DB_LIVE_TEST=1 ./gradlew :backend:test --tests '*IngestionJobLiveTest' --rerun-tasks` | **Verde**; `system-out` con el pool Hikari conectado a PostgreSQL real (`PgConnection`); 0 filas `FT00009-LIVE-%` tras limpieza. |
 | `:backend:run` sin `POSTGRES_PASSWORD` + `curl /health` | Log `Ingesta no arrancada: Contraseña de base de datos no definida…`; **`/health` → 200 `{"status":"ok"}`**. |
 | `:backend:run` con `POSTGRES_PASSWORD` (+ contenedor arriba) + `curl /health` | Log **`Ingesta programada: horas=[09:30, 18:00] zona=Europe/Madrid`**; **`/health` → 200**. |
 | `git status` / `git diff --name-only` | 14 ficheros (5 modificados + 9 nuevos); **sin** tocar `settings.gradle.kts`, raíz, `gradle/libs.versions.toml`, `:shared`, `:composeApp`, CI ni migraciones. |
@@ -28,15 +28,15 @@
 
 ## Escenarios del spec (1–7)
 
-1. **Horario estricto** — `IngestaSchedule.nextRun` (puro) con `IngestaScheduleTest`:
+1. **Horario estricto** — `IngestionSchedule.nextRun` (puro) con `IngestionScheduleTest`:
    09:00→09:30, 09:31→18:00, 18:01→día siguiente 09:30 y `now == 09:30`→18:00
    en `Europe/Madrid`. ✅
-2. **Descarga → parseo → persistencia** — `IngestaJobDiario`; 3 entradas →
+2. **Descarga → parseo → persistencia** — `DailyIngestionJob`; 3 entradas →
    `total=3/guardadas=3/fallidas=0`. ✅
 3. **Idempotencia (doble)** — dos ejecuciones mantienen 2 filas (upsert por `id`). ✅
 4. **Fallo parcial no aborta** — `BoeTextoException` por entrada → `guardadas=2/fallidas=1`;
    fallo de repositorio también cuenta; fallo del sumario → `error` poblado sin propagar. ✅
-5. **Tiempo virtual** — `IngestaSchedulerTest` con reloj/`delay` inyectados → 2
+5. **Tiempo virtual** — `IngestionSchedulerTest` con reloj/`delay` inyectados → 2
    ejecuciones (una por ventana) y el bucle sobrevive a una excepción. ✅
 6. **Upsert real (opt-in)** — reproducido contra PostgreSQL real. ✅
 7. **Gate sin red ni BD** — verde; los opt-in se omiten sin sus variables. ✅
@@ -50,11 +50,11 @@
   cerrarían (el cierre empieza tras crear ambos clientes). En la práctica las
   factorías `HttpClient(CIO)` no lanzan. Sugerencia opcional futura: envolver toda la
   construcción en un `try` con cierre de lo ya creado.
-- **Low — interpretación del fail-fast**: `IngestaConfig.fromEnv()` se llama fuera del
+- **Low — interpretación del fail-fast**: `IngestionConfig.fromEnv()` se llama fuera del
   `try` de `configureIngesta()`, así que un `INGESTA_*` inválido **aborta el arranque**
   (incluso con `INGESTA_ENABLED=false`). Coherente con el MUST de fail-fast y con el
   patrón de `AppConfig`; solo aclaratorio respecto a la redacción «no impide el arranque».
-- **Info** — `HttpClient.close()` se hace a nivel de *wiring* (`IngestaRuntime`), que es
+- **Info** — `HttpClient.close()` se hace a nivel de *wiring* (`IngestionRuntime`), que es
   donde corresponde el ciclo de vida (equivalente funcional al sugerido en el spec).
 - **Info** — los `*LiveTest` se autoprotegen con `if/else` y cuentan como «passed»
   (patrón ya establecido del repo: `BoeSumarioLiveTest`, `PublicationPersistenceLiveTest`);
@@ -70,13 +70,13 @@ correctamente; clientes HTTP y pool cerrados en `ApplicationStopped`.
 
 ## Alcance y arquitectura
 
-- Cambios acotados a: `ingesta/job/{IngestaConfig,IngestaSchedule,IngestaJob,IngestaScheduler}.kt`
+- Cambios acotados a: `ingesta/job/{IngestionConfig,IngestionSchedule,IngestionJob,IngestionScheduler}.kt`
   (nuevos), `ingesta/{sumario/BoeSumarioHttpClient,publicacion/BoeTextoHttpClient}.kt`
   (`HttpTimeout`), `Application.kt` (wiring condicional + `ApplicationStopped`),
   `backend/build.gradle.kts` (`coroutines-core`) y `docs/desarrollo-local.md`; tests en
   `ingesta/job/`.
 - `ingesta/job/` sigue *feature-first* (interfaz + impl en el mismo fichero, colaboradores
-  por constructor); `IngestaConfig`/`IngestaSchedule` puros y testeables; `IngestaJobDiario`
+  por constructor); `IngestionConfig`/`IngestionSchedule` puros y testeables; `DailyIngestionJob`
   usa `withContext(Dispatchers.IO)`; el *wiring* vive en `Application.kt` (composition root,
   sin DI), condicional y no bloqueante. Coherente con `ARCHITECTURE.md` y la skill
   `ktor-backend-architecture`.
@@ -96,3 +96,22 @@ correctamente; clientes HTTP y pool cerrados en `ApplicationStopped`.
 Ninguno bloqueante. La aceptación final la persiste el orquestador en `feature_list.json`
 (estado `accepted` + evidencia). Notas Low a arrastrar: cierre defensivo en la
 construcción del runtime y aclaración del fail-fast de `INGESTA_*`.
+
+## Nota posterior (2026-10-10, limpieza solicitada por el dueño)
+
+Tras la aceptación, y como consecuencia de la regla MUST nueva «todo el código en
+inglés» (`CONSTRAINTS.md` §«Nombres y contratos»), los identificadores del código
+de FT00009 se renombraron a inglés **sin cambio de comportamiento ni de JSON**:
+`IngestaConfig`→`IngestionConfig`, `IngestaJob`/`IngestaJobDiario`→
+`IngestionJob`/`DailyIngestionJob`, `IngestaResult`→`IngestionResult`,
+`IngestaSchedule`→`IngestionSchedule`, `IngestaScheduler`→`IngestionScheduler`,
+`IngestaRuntime`→`IngestionRuntime`, y los métodos/propiedades
+(`ejecutar`→`run`, `totalEntradas`→`totalEntries`, `guardadas`→`saved`,
+`fallidas`→`failed`, `iniciar`→`start`, `registrarResumen`→`logSummary`). Los
+tests se renombraron igual (`IngestionConfigTest`, `IngestionScheduleTest`,
+`IngestionJobTest`, `IngestionSchedulerTest`, `IngestionJobLiveTest`) y sus
+métodos pasaron a inglés. Los nombres citados en las tablas de arriba son los del
+estado **previo** a esta limpieza; el KDoc y los comentarios siguen en castellano
+y el paquete `ingesta/job` y las claves `INGESTA_*` se conservan (deuda FT00047).
+Gate reejecutado en verde tras el renombrado (`:backend:test -PskipClient` →
+80 tests/0 fallos; `build`/`test`/`detekt`+`:cpdCheck`/`init.sh`).

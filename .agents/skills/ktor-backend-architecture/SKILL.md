@@ -15,8 +15,8 @@ Consulta, Destacado).
 root en `Application.kt`, paquetes `plugins/` e `infra/`, endpoint `GET /health`,
 configuración por entorno y logging JSON (Logback). Existe **`ingesta/`**
 (`sumario/` y `publicacion/`, FT00006/FT00007) e **`ingesta/job/`** (FT00009:
-`IngestaConfig`, `IngestaSchedule`, `IngestaJob`/`IngestaJobDiario` e
-`IngestaScheduler`) que `Application.kt` **cablea de forma condicional y no
+`IngestionConfig`, `IngestionSchedule`, `IngestionJob`/`DailyIngestionJob` e
+`IngestionScheduler`) que `Application.kt` **cablea de forma condicional y no
 bloqueante** (solo con `INGESTA_ENABLED` y config de BD resoluble; cierre en
 `ApplicationStopped`). Existe **`persistence/`**
 (repositorios JDBC + entidades, FT00008) con `infra/DatabaseConfig` (derivada de

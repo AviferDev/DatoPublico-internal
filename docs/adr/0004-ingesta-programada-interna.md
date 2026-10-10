@@ -22,11 +22,11 @@ decidir **cómo se programa** el job, **qué ventana horaria** usa por defecto y
 ## Decisión
 
 1. **Scheduler interno por corrutina.** El job se lanza como una corrutina del
-   propio backend (`IngestaScheduler`), no con el plugin experimental de
+   propio backend (`IngestionScheduler`), no con el plugin experimental de
    *scheduling* de Ktor ni con un cron externo. El reloj (`now`) y la espera
    (`delay`) son **inyectables** para poder probar el disparo con tiempo virtual.
 2. **Ventana `09:30` + segunda pasada `18:00` en `Europe/Madrid`, configurable.**
-   El default (documentado en `IngestaConfig`) resuelve la duda abierta de la
+   El default (documentado en `IngestionConfig`) resuelve la duda abierta de la
    ventana de la tarde; se ajusta por entorno (`INGESTA_*`) sin tocar código.
 3. **Idempotencia por `upsert` de `id`.** La segunda pasada re-parsea la **misma
    fecha** para aplicar correcciones que publique el BOE; `PublicationRepository.save`

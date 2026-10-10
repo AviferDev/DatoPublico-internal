@@ -10,6 +10,17 @@
 - `status`: passing (implementado y autoverificado 2026-10-10; rama `feat/ft00009-ingesta-job-diario`)
 - `source`: `feature_list.json`
 
+> **Nota de limpieza (2026-10-10).** Tras la aceptación, los identificadores del
+> código de esta feature se renombraron a **inglés** (regla MUST nueva en
+> `CONSTRAINTS.md` §«Nombres y contratos»): `IngestaConfig`→`IngestionConfig`,
+> `IngestaJob`/`IngestaJobDiario`→`IngestionJob`/`DailyIngestionJob`,
+> `IngestaResult`→`IngestionResult`, `IngestaSchedule`→`IngestionSchedule`,
+> `IngestaScheduler`→`IngestionScheduler`, y los métodos/propiedades
+> (`ejecutar`→`run`, `totalEntradas`→`totalEntries`, `guardadas`→`saved`,
+> `fallidas`→`failed`, `iniciar`→`start`). El **cuerpo del spec conserva los
+> nombres del plan**; el comportamiento y el JSON no cambian. Las claves de
+> entorno siguen siendo `INGESTA_*` y el paquete `ingesta/job` (heredado).
+
 > **Alcance de «deduplicación».** La verificación oficial («ejecutar el job dos
 > veces sobre la misma fecha no crea duplicados») la garantiza el *upsert* por
 > `id` de `PublicationRepository.save` (FT00008). La deduplicación **entre
@@ -98,7 +109,7 @@ Then las otras `M-1` se persisten, el resultado reporta `fallidas = 1` y el job
 
 ### Scenario 5: el job se programa y dispara (tiempo virtual)
 
-Given un `IngestaScheduler` con un reloj y un `delay` inyectables y virtuales,
+Given un `IngestionScheduler` con un reloj y un `delay` inyectables y virtuales,
 When se avanza el tiempo hasta la ventana de la primera pasada y luego hasta la
 segunda,
 Then el job se ejecuta una vez por ventana (dos ejecuciones) y el bucle no muere
@@ -165,40 +176,40 @@ sus variables).
 
 ## Technical Approach
 
-1. **Configuración `ingesta/job/IngestaConfig.kt`** (pura, testeable): horario y
+1. **Configuración `ingesta/job/IngestionConfig.kt`** (pura, testeable): horario y
    zona de la ingesta, con `fromEnv`. Claves (defaults no sensibles):
    `INGESTA_ENABLED` (`true`), `INGESTA_TIMEZONE` (`Europe/Madrid`),
    `INGESTA_PRIMARY_TIME` (`09:30`), `INGESTA_SECONDARY_TIME` (`18:00`). Valida
    formato (`LocalTime`, zona IANA) con fail-fast y mensaje claro. Resuelve la
    duda abierta «ventana horaria de la segunda pasada» con un default documentado.
 
-2. **`ingesta/job/IngestaSchedule.kt`** (puro, sin E/S): dado `now: ZonedDateTime`
+2. **`ingesta/job/IngestionSchedule.kt`** (puro, sin E/S): dado `now: ZonedDateTime`
    y la lista de horas, `nextRun(now): ZonedDateTime` devuelve el **siguiente**
    instante estrictamente posterior (hoy o mañana). Es la pieza que hace
    verificable «9:30 + segunda pasada» sin esperar tiempo real.
 
-3. **`ingesta/job/IngestaJob.kt`** (orquestador, `suspend`): `ejecutar(fecha:
-   LocalDate): IngestaResult`. Pasos: `BoeSumarioClient.obtenerSumario(fecha)` →
+3. **`ingesta/job/IngestionJob.kt`** (orquestador, `suspend`): `ejecutar(fecha:
+   LocalDate): IngestionResult`. Pasos: `BoeSumarioClient.obtenerSumario(fecha)` →
    por cada `EntradaSumario`, `BoePublicacionParser.parsear(entrada)` →
    `PublicationRepository.save(publicacion)` (upsert idempotente). Los accesos a
    BD van en `withContext(Dispatchers.IO)`. **Un fallo por entrada** (p. ej.
    `BoeTextoException`) se cuenta en `fallidas` y **no** aborta el resto; un fallo
    del sumario completo (`BoeSumarioException`) devuelve el resultado con `error`
-   sin propagar. Resultado: `IngestaResult(fecha, totalEntradas, guardadas,
+   sin propagar. Resultado: `IngestionResult(fecha, totalEntradas, guardadas,
    fallidas, error)`. KDoc deja claro que reejecutar la misma fecha no duplica
    (upsert por `id`) y que `categoria`/`plazo` llegan `null` (FT00012).
 
-4. **`ingesta/job/IngestaScheduler.kt`**: bucle de corrutina que calcula el
-   siguiente disparo con `IngestaSchedule` (reloj inyectable, p. ej.
+4. **`ingesta/job/IngestionScheduler.kt`**: bucle de corrutina que calcula el
+   siguiente disparo con `IngestionSchedule` (reloj inyectable, p. ej.
    `java.time.Clock`) y espera con una función `delay` inyectable (para tests de
-   tiempo virtual). Al despertar, llama a `IngestaJob.ejecutar(LocalDate.now(zone))`
+   tiempo virtual). Al despertar, llama a `IngestionJob.ejecutar(LocalDate.now(zone))`
    y registra un **log-resumen** mínimo (fecha, total, guardadas, fallidas) en
    `Dispatchers.IO`; captura excepciones para no matar el bucle. No usa el plugin
    experimental de *scheduling* de Ktor: corrutina propia, sin nuevas
    dependencias ni API experimental.
 
 5. **Wiring condicional en `Application.kt`**: en `module()`, si
-   `IngestaConfig.fromEnv()` tiene `enabled = true` **y**
+   `IngestionConfig.fromEnv()` tiene `enabled = true` **y**
    `DatabaseConfig.fromEnv()` resuelve (hay `POSTGRES_PASSWORD`), se crea el
    `DataSource` (`Database.createDataSource`), se construyen los clientes
    (`boeSumarioHttpClient()` + `BoeTextoHttpClient` con `boeTextoHttpClient()`),
@@ -231,26 +242,26 @@ nuevos a inglés si sigue la limpieza de FT00008, de forma consistente):
 
 - `gradle/libs.versions.toml` — sin cambios (coroutines-core ya está declarada).
 - `backend/build.gradle.kts` — modify; `implementation(libs.kotlinx.coroutines.core)`.
-- `backend/src/main/kotlin/…/backend/ingesta/job/IngestaConfig.kt` — create.
-- `backend/src/main/kotlin/…/backend/ingesta/job/IngestaSchedule.kt` — create.
-- `backend/src/main/kotlin/…/backend/ingesta/job/IngestaJob.kt` — create
-  (orquestador + `IngestaResult`).
-- `backend/src/main/kotlin/…/backend/ingesta/job/IngestaScheduler.kt` — create.
+- `backend/src/main/kotlin/…/backend/ingesta/job/IngestionConfig.kt` — create.
+- `backend/src/main/kotlin/…/backend/ingesta/job/IngestionSchedule.kt` — create.
+- `backend/src/main/kotlin/…/backend/ingesta/job/IngestionJob.kt` — create
+  (orquestador + `IngestionResult`).
+- `backend/src/main/kotlin/…/backend/ingesta/job/IngestionScheduler.kt` — create.
 - `backend/src/main/kotlin/…/backend/ingesta/sumario/BoeSumarioHttpClient.kt` —
   modify; `HttpTimeout`.
 - `backend/src/main/kotlin/…/backend/ingesta/publicacion/BoeTextoHttpClient.kt` —
   modify; `HttpTimeout`, `HttpClient.close()`.
 - `backend/src/main/kotlin/…/backend/Application.kt` — modify; wiring condicional
   + ciclo de vida.
-- `backend/src/test/kotlin/…/backend/ingesta/job/IngestaConfigTest.kt` — create
+- `backend/src/test/kotlin/…/backend/ingesta/job/IngestionConfigTest.kt` — create
   (gate, sin red/BD).
-- `backend/src/test/kotlin/…/backend/ingesta/job/IngestaScheduleTest.kt` — create
+- `backend/src/test/kotlin/…/backend/ingesta/job/IngestionScheduleTest.kt` — create
   (gate; escenario 1 determinista).
-- `backend/src/test/kotlin/…/backend/ingesta/job/IngestaJobTest.kt` — create
+- `backend/src/test/kotlin/…/backend/ingesta/job/IngestionJobTest.kt` — create
   (gate; orquestación, idempotencia con doble de repositorio, fallo parcial).
-- `backend/src/test/kotlin/…/backend/ingesta/job/IngestaSchedulerTest.kt` — create
+- `backend/src/test/kotlin/…/backend/ingesta/job/IngestionSchedulerTest.kt` — create
   (gate; tiempo virtual con `runTest`/`delay` inyectado).
-- `backend/src/test/kotlin/…/backend/ingesta/job/IngestaJobLiveTest.kt` — create
+- `backend/src/test/kotlin/…/backend/ingesta/job/IngestionJobLiveTest.kt` — create
   (opt-in `DB_LIVE_TEST=1`; real Postgres + sumario/parser de prueba).
 - `docs/desarrollo-local.md` — modify; variables `INGESTA_*`, ejecución manual del
   job y pruebas opt-in.
@@ -286,11 +297,11 @@ Harness: `ARCHITECTURE.md`, `CONSTRAINTS.md` (si procede), `docs/adr/0004-…` +
 
 ## Implementation Plan
 
-1. `IngestaConfig` (env + validación) e `IngestaSchedule` (cálculo puro) con sus
+1. `IngestionConfig` (env + validación) e `IngestionSchedule` (cálculo puro) con sus
    tests de gate.
-2. `IngestaJob` + `IngestaResult` sobre las interfaces existentes; tests de
+2. `IngestionJob` + `IngestionResult` sobre las interfaces existentes; tests de
    gate (orquestación, idempotencia con doble, fallo parcial).
-3. `IngestaScheduler` con reloj/`delay` inyectables; test de tiempo virtual.
+3. `IngestionScheduler` con reloj/`delay` inyectables; test de tiempo virtual.
 4. `HttpTimeout` en las factorías de cliente; `call.close()` del `HttpClient` en
    el cierre (si procede).
 5. Wiring condicional en `Application.kt` (DataSource + scheduler + cierre en
@@ -302,11 +313,11 @@ Harness: `ARCHITECTURE.md`, `CONSTRAINTS.md` (si procede), `docs/adr/0004-…` +
 
 ## Implementation Tasks
 
-- [ ] `IngestaConfig` (env `INGESTA_*` + validación fail-fast) e `IngestaSchedule`
+- [ ] `IngestionConfig` (env `INGESTA_*` + validación fail-fast) e `IngestionSchedule`
       (`nextRun` estricto).
-- [ ] `IngestaJob` + `IngestaResult`: sumario → parser → `save` (upsert) en
+- [ ] `IngestionJob` + `IngestionResult`: sumario → parser → `save` (upsert) en
       `Dispatchers.IO`; fallo por entrada contado, no aborta.
-- [ ] `IngestaScheduler`: bucle de corrutina con reloj/`delay` inyectables y
+- [ ] `IngestionScheduler`: bucle de corrutina con reloj/`delay` inyectables y
       log-resumen mínimo; nunca muere por excepción.
 - [ ] `HttpTimeout` en `boeSumarioHttpClient()` y `boeTextoHttpClient()`; cierre
       del cliente HTTP.
@@ -325,19 +336,19 @@ Harness: `ARCHITECTURE.md`, `CONSTRAINTS.md` (si procede), `docs/adr/0004-…` +
 Desde la raíz del producto (`..`, JDK 21 vía JBR/`JAVA_HOME`):
 
 - **Gate sin red ni BD (Docker parado):** `./gradlew :backend:test --rerun-tasks
-  -PskipClient` → BUILD SUCCESSFUL con `IngestaConfigTest`, `IngestaScheduleTest`,
-  `IngestaJobTest` e `IngestaSchedulerTest` en verde (el opt-in se omite sin
+  -PskipClient` → BUILD SUCCESSFUL con `IngestionConfigTest`, `IngestionScheduleTest`,
+  `IngestionJobTest` e `IngestionSchedulerTest` en verde (el opt-in se omite sin
   `DB_LIVE_TEST`). `./gradlew build --no-daemon -PskipClient`, `./gradlew test`,
   `./gradlew detekt` (Detekt + `:cpdCheck`) y `.harness/init.sh` → exit 0.
-- **Scenario 1 (horario):** `IngestaScheduleTest` fija los cuatro instantes del
+- **Scenario 1 (horario):** `IngestionScheduleTest` fija los cuatro instantes del
   escenario (09:00→09:30, 09:31→18:00, 18:01→mañana 09:30, y `now` == 09:30 →
   18:00) en `Europe/Madrid`.
-- **Scenario 3 (idempotencia en gate):** `IngestaJobTest` ejecuta el job dos veces
+- **Scenario 3 (idempotencia en gate):** `IngestionJobTest` ejecuta el job dos veces
   sobre un repositorio de doble en memoria y comprueba que el número de filas no
   cambia.
 - **Scenario 6 (opt-in, BD real):** `cp .env.example .env && docker compose up -d`
   + `./gradlew :backend:flywayMigrate`; luego
-  `DB_LIVE_TEST=1 ./gradlew :backend:test --tests '*IngestaJobLiveTest'` → verde
+  `DB_LIVE_TEST=1 ./gradlew :backend:test --tests '*IngestionJobLiveTest'` → verde
   (una fila por `id`, `actualizado_en` avanzado). Entorno limpiado después
   (`docker compose down -v`, `.env` borrado).
 - **Arranque condicional (manual):** `./gradlew :backend:run` **sin**
@@ -350,8 +361,8 @@ Desde la raíz del producto (`..`, JDK 21 vía JBR/`JAVA_HOME`):
 
 ## Evidence To Capture
 
-- Salida de `./gradlew :backend:test` con `IngestaConfigTest`/`IngestaScheduleTest`/
-  `IngestaJobTest`/`IngestaSchedulerTest` (recuento, 0 fallos) y el opt-in
+- Salida de `./gradlew :backend:test` con `IngestionConfigTest`/`IngestionScheduleTest`/
+  `IngestionJobTest`/`IngestionSchedulerTest` (recuento, 0 fallos) y el opt-in
   etiquetado.
 - Escenario 1 con los cuatro instantes; escenario 3 con el recuento de filas
   invariante; escenario 6 con `flywayMigrate` y la consulta a `publicacion`
@@ -405,12 +416,12 @@ Desde la raíz del producto (`..`, JDK 21 vía JBR/`JAVA_HOME`):
 Implementado por el `implementer` sin ampliar alcance; estado `passing`, pendiente
 de validación independiente. Desviaciones/aclaraciones respecto al plan:
 
-- **`IngestaJob` es interfaz + implementación** `IngestaJobDiario`
-  (mismo fichero `IngestaJob.kt`), siguiendo el patrón del paquete
+- **`IngestionJob` es interfaz + implementación** `DailyIngestionJob`
+  (mismo fichero `IngestionJob.kt`), siguiendo el patrón del paquete
   (`BoeSumarioClient`/`BoeSumarioHttpClient`, `BoePublicacionParser`/
   `BoePublicacionHttpParser`). Así el scheduler depende de la interfaz y se prueba
   con un doble sin tocar la BD.
-- **`IngestaConfig.fromEnv` recorta espacios** en los valores del entorno antes de
+- **`IngestionConfig.fromEnv` recorta espacios** en los valores del entorno antes de
   validarlos (acepta `" false "`).
 - **HikariCP falla rápido sin PostgreSQL**: `Database.createDataSource` valida la
   conexión al construir el pool, así que el arranque **con** `POSTGRES_PASSWORD`
@@ -427,8 +438,8 @@ de validación independiente. Desviaciones/aclaraciones respecto al plan:
   levantó con `POSTGRES_PORT=55432` para no chocar con otros contenedores y se
   limpió con `docker compose down -v` (sin `.env` versionado).
 - **Gate** (sin red ni BD): `:backend:test --rerun-tasks -PskipClient` → **80
-  tests, 0 fallos** (19 nuevos: `IngestaConfigTest` 7, `IngestaScheduleTest` 5,
-  `IngestaJobTest` 5, `IngestaSchedulerTest` 1, `IngestaJobLiveTest` 1 omitido por
+  tests, 0 fallos** (19 nuevos: `IngestionConfigTest` 7, `IngestionScheduleTest` 5,
+  `IngestionJobTest` 5, `IngestionSchedulerTest` 1, `IngestionJobLiveTest` 1 omitido por
   variable); `build --no-daemon -PskipClient`, `test` (3 módulos), `detekt`
   (+`:cpdCheck`) e `.harness/init.sh` → verdes. Opt-in `DB_LIVE_TEST=1` contra
   PostgreSQL real → verde.

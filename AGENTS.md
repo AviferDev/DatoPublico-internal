@@ -99,6 +99,9 @@ Antes de escribir código:
 - Actualiza los artefactos del repo en lugar de fiarte de resúmenes de chat.
 - **Documenta con KDoc** todo el Kotlin que añadas o modifiques (ver `CONSTRAINTS.md`
   §«Documentación de código»).
+- Escribe **todo el código en inglés**: los **identificadores** (paquetes, tipos,
+  funciones, propiedades, constantes y tests) van en inglés; el **KDoc y los
+  comentarios** van en castellano (`CONSTRAINTS.md` §«Nombres y contratos»).
 - Respeta las reglas **MUST** de estilo y UI de `CONSTRAINTS.md`: **un solo `return`**
   por función, **sin `else if`**, máximo **40 líneas** por función, **reutilizar** antes
   de escribir, **crear la capa que falte**, `@Preview` en toda función `@Composable`,

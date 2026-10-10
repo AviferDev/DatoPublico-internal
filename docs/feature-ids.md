@@ -62,7 +62,8 @@
 | FT00044 | legal-avisos | Avisos legales y disclaimer | operacion | not_started |
 | FT00045 | beta-cerrada | Beta cerrada y corrección de bugs | operacion | not_started |
 | FT00046 | publicacion-1.0.0 | Publicación pública 1.0.0 | operacion | not_started |
+| FT00047 | english-identifiers-rename | Renombrado de identificadores a inglés | calidad | not_started |
 
 ## Siguiente FT libre
 
-**FT00047**
+**FT00048**

@@ -51,6 +51,13 @@
   §«Convenciones de nombres» y **MUST** en `CONSTRAINTS.md`.
 - Estilo (2026-10-10): **una sola salida por función** (prohibido el *early
   return*, también en tests; sin `return@…`). `CONSTRAINTS.md` §«Estilo de código».
+- Idioma del código (2026-10-10): **todo el código va en inglés** —los
+  **identificadores** (paquetes, tipos, funciones, propiedades, constantes y
+  tests) en inglés; el **KDoc/comentarios** en castellano— en
+  `CONSTRAINTS.md` §«Nombres y contratos», `ARCHITECTURE.md` y `AGENTS.md`. El
+  código heredado en castellano (`PublicacionDto`, `CategoriaDto`,
+  `EntradaSumario`, `Publicacion`, `BoeSumarioClient`…) es deuda a renombrar:
+  feature **FT00047**.
 - Última verificación: 2026-10-10. **FT00006 `boe-sumario-cliente`: `accepted`**
   (Sessions 029–031; revalidado tras el refactor de **retorno único**): cliente
   del sumario diario del BOE en `:backend`
@@ -1738,16 +1745,16 @@
   descarga el sumario, parsea cada publicación y la persiste de forma idempotente,
   con cableado condicional en el arranque.
 - Completado (producto):
-  - `ingesta/job/IngestaConfig.kt`: config pura desde `INGESTA_*`
+  - `ingesta/job/IngestionConfig.kt`: config pura desde `INGESTA_*`
     (`ENABLED`=true, `TIMEZONE`=Europe/Madrid, `PRIMARY_TIME`=09:30,
     `SECONDARY_TIME`=18:00); recorta espacios y falla en claro ante valor inválido.
-  - `ingesta/job/IngestaSchedule.kt`: `nextRun(now)` puro y **estricto** (descarta
+  - `ingesta/job/IngestionSchedule.kt`: `nextRun(now)` puro y **estricto** (descarta
     el instante igual a `now`), hoy o mañana.
-  - `ingesta/job/IngestaJob.kt`: `IngestaResult` + interfaz `IngestaJob` +
-    `IngestaJobDiario` (sumario → parser → `save` en `Dispatchers.IO`; fallo por
+  - `ingesta/job/IngestionJob.kt`: `IngestionResult` + interfaz `IngestionJob` +
+    `DailyIngestionJob` (sumario → parser → `save` en `Dispatchers.IO`; fallo por
     entrada contado, no aborta; fallo del sumario en `error` sin propagar;
     `categoria`/`plazo` `null`).
-  - `ingesta/job/IngestaScheduler.kt`: bucle de corrutina con reloj (`now`) y
+  - `ingesta/job/IngestionScheduler.kt`: bucle de corrutina con reloj (`now`) y
     `delay` inyectables, log-resumen mínimo (SLF4J) y captura de excepciones para
     no morir.
   - `BoeSumarioHttpClient.kt`/`BoeTextoHttpClient.kt`: `HttpTimeout` explícito
@@ -1756,10 +1763,10 @@
     `INGESTA_ENABLED` y `DatabaseConfig` resoluble; fallo registrado y no
     bloqueante; `ApplicationStopped` cancela el scope y cierra clientes y pool.
   - `backend/build.gradle.kts`: `implementation(libs.kotlinx.coroutines.core)`.
-- Tests (gate, sin red ni BD): `IngestaConfigTest` (7), `IngestaScheduleTest` (5,
-  escenario 1), `IngestaJobTest` (5, escenarios 2–4 con dobles) y
-  `IngestaSchedulerTest` (1, escenario 5 con tiempo virtual). Opt-in real:
-  `IngestaJobLiveTest` (escenario 6; se omite sin `DB_LIVE_TEST`).
+- Tests (gate, sin red ni BD): `IngestionConfigTest` (7), `IngestionScheduleTest` (5,
+  escenario 1), `IngestionJobTest` (5, escenarios 2–4 con dobles) y
+  `IngestionSchedulerTest` (1, escenario 5 con tiempo virtual). Opt-in real:
+  `IngestionJobLiveTest` (escenario 6; se omite sin `DB_LIVE_TEST`).
 - Verificación ejecutada (desde `..`, `JAVA_HOME` del JBR 21):
   - Gate sin red ni BD: `./gradlew :backend:test --rerun-tasks -PskipClient` →
     **80 tests, 0 fallos** (XML sin failures/errors); `./gradlew build --no-daemon
@@ -1771,7 +1778,7 @@
     200; **con** BD (`docker-compose`) → log `Ingesta programada: horas=[09:30,
     18:00] zona=Europe/Madrid`, `/health` 200.
   - Opt-in real: `docker compose up -d` (Colima; `POSTGRES_PORT=55432`) +
-    `:backend:flywayMigrate` (`V1`+`V2` Success); `DB_LIVE_TEST=1 … '*IngestaJobLiveTest'`
+    `:backend:flywayMigrate` (`V1`+`V2` Success); `DB_LIVE_TEST=1 … '*IngestionJobLiveTest'`
     → verde (2 filas, sin duplicados, `actualizado_en` avanzado). Entorno limpiado
     (`docker compose down -v`; 0 filas `FT00009-LIVE-%`; sin `.env`).
 - Doc durable: **ADR `docs/adr/0004-ingesta-programada-interna.md`** (+ índice),
@@ -1814,6 +1821,20 @@
     en `feat/ft00009-ingesta-job-diario` (14 ficheros, <30); **PR #10**
     (https://github.com/AviferDev/DatoPublico/pull/10). **CI en verde**: run
     `38054160619`, job 'Build and test' SUCCESS (2m51s) para el head `2a995d8`.
+  - **Limpieza post-aceptación (petición del dueño)**: regla **MUST** nueva «todo
+    el código en inglés» (identificadores; KDoc/comentarios en castellano) en
+    `CONSTRAINTS.md` §«Nombres y contratos», `ARCHITECTURE.md` y `AGENTS.md`, y
+    renombrado de los identificadores de FT00009 a inglés **sin cambio de
+    comportamiento ni de JSON** (`Ingesta*`→`Ingestion*`,
+    `IngestaJobDiario`→`DailyIngestionJob`, `ejecutar`→`run`, `guardadas`→`saved`,
+    `fallidas`→`failed`, `totalEntradas`→`totalEntries`, `iniciar`→`start`; ver
+    ADR 0004 y `docs/desarrollo-local.md`). La deuda del resto del código heredado
+    en castellano se registra como feature **FT00047**
+    (`english-identifiers-rename`). Gate reejecutado en verde
+    (`:backend:test -PskipClient` → 80 tests/0 fallos; `build`/`test`/`detekt`+
+    `:cpdCheck`/`init.sh`). Commit `0e7262c refactor(FT00009): rename job identifiers
+    to English` en la misma rama/PR #10; **CI en verde**: run `38055156093`, job
+    'Build and test' SUCCESS (2m38s) para el head `0e7262c`.
 - Estado: **FT00009 `accepted`** (no fusionada aún: pendiente de revisión/fusión
   explícita del dueño). Sin ampliar alcance (sin endpoints, sin migraciones, sin
   clasificación/backfill/observabilidad).

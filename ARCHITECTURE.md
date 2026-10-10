@@ -15,9 +15,9 @@
   `ingesta/sumario/` (cliente del sumario diario del BOE + modelo interno y
   filtrado de secciones), `ingesta/publicacion/` (parser del **texto XML**
   oficial `xml.php`, cliente de texto, modelo `Publicacion` y combinador
-  sumario + texto) e `ingesta/job/` (FT00009: config del horario `IngestaConfig`,
-  cálculo puro del siguiente disparo `IngestaSchedule`, orquestador
-  `IngestaJob`/`IngestaJobDiario` y scheduler por corrutina `IngestaScheduler`).
+  sumario + texto) e `ingesta/job/` (FT00009: config del horario `IngestionConfig`,
+  cálculo puro del siguiente disparo `IngestionSchedule`, orquestador
+  `IngestionJob`/`DailyIngestionJob` y scheduler por corrutina `IngestionScheduler`).
   Existe **`persistence/`** (FT00008): repositorios **JDBC**
   + entidades `...Entity` de `publicacion`, `fragmento`, `resumen` y
   `cola_revision`, más los helpers JDBC compartidos; la configuración de
@@ -92,6 +92,14 @@
 
 ## Convenciones de nombres
 
+- **Todo el código (identificadores) va en inglés**: paquetes, tipos, funciones,
+  propiedades, constantes, parámetros, variables y nombres de tests; el **KDoc y
+  los comentarios van en castellano** (documentación del proyecto). Los
+  identificadores que son datos/*tokens* de la fuente (*wire*) no se traducen. El
+  código heredado en castellano (`PublicacionDto`, `CategoriaDto`,
+  `EntradaSumario`, `Publicacion`, `BoeSumarioClient`…) se renombra de forma
+  incremental (deuda **FT00047**); el código nuevo no añade identificadores en
+  castellano.
 - **Todo tipo `@Serializable`/de transporte** lleva sufijo **`Dto`**: el contrato
   de **`:shared`** (las `data class` `PublicacionDto`, `ResumenDto`, `PlazoDto`,
   `ResumenDiarioDto` y los **enums de wire** `CategoriaDto`, `SeccionBoeDto`) y

@@ -62,6 +62,15 @@
 
 ## Nombres y contratos
 
+- **MUST**: **todo el código va en inglés**. Los **identificadores** (paquetes,
+  tipos, funciones, propiedades, constantes, parámetros, variables y los nombres
+  de clases y métodos de test) se escriben en **inglés**; no se introducen
+  identificadores en castellano. El **KDoc y los comentarios** van en castellano
+  (idioma de la documentación del proyecto), igual que los mensajes dirigidos al
+  operador. No se traducen los identificadores que son **datos/tokens de la
+  fuente** (p. ej. los valores de wire de `CategoriaDto`/`SeccionBoeDto`). El
+  código anterior a esta regla con identificadores en castellano es **deuda** a
+  renombrar de forma incremental (FT00047); el código nuevo no añade más.
 - **MUST**: **todo tipo `@Serializable`/de transporte** lleva sufijo `Dto`: el
   contrato de `:shared` — las `data class` (`PublicacionDto`, `ResumenDto`,
   `PlazoDto`, `ResumenDiarioDto`) y los **enums de wire** (`CategoriaDto`,
