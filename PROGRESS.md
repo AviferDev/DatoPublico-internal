@@ -2158,5 +2158,10 @@
   parciales; festivos no modelados), documentada en ADR 0007 y `CONSTRAINTS.md`.
 - Estado: **FT00012 `accepted`**. Siguiente feature lista: `destacados-diarios`
   (FT00013, depende de FT00012).
-- Siguiente mejor paso: commit del harness y commit/PR de producto (orquestador);
-  después, `destacados-diarios` (FT00013).
+- Commit/PR (orquestador): commit de producto `af52246
+  feat(FT00012): complete categorizacion-publicaciones` (9 ficheros; claim
+  `627647a`); **PR #13** (https://github.com/AviferDev/DatoPublico/pull/13) hacia
+  `main`; CI en verde run `38072876836` (2m35s). Pendiente de revisión/fusión
+  explícita del dueño.
+- Siguiente mejor paso: revisar/fusionar el PR #13; después,
+  `destacados-diarios` (FT00013).
