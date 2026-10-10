@@ -6,7 +6,8 @@
 - Spec: `.harness/docs/specs/chunking-articulos.md`
 - Rama: `feat/ft00014-chunking-articulos` (commit `d586536 chore(FT00014): claim`;
   cambios de la feature **sin commitear** en el árbol de trabajo)
-- Estado en `feature_list.json`: `not_started` (sin `evidence`) — ver *Harness*.
+- Estado en `feature_list.json`: `accepted` (persistido por el orquestador el
+  2026-10-10; commit de producto `725c469`, PR #15, CI run `38076749103` en verde).
 
 > Historial: primera validación (2026-10-10) → **`revise`** por un hallazgo Medium
 > (identificadores en castellano en `ArticleChunkerTest.kt`) y un Low (KDoc

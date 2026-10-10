@@ -2349,6 +2349,13 @@
   valida `maxTokens`/`charsPerToken` inyectados.
 - Aceptación persistida: `feature_list.json` (FT00014 → **`accepted`** +
   evidencia), `docs/feature-ids.md` (FT00014 → `accepted`) y este `PROGRESS.md`.
+- Commit/PR/CI (orquestador): commit de producto
+  `725c469 feat(FT00014): complete chunking-articulos` (5 ficheros, +525/−2;
+  claim `d586536`); **PR #15**
+  (https://github.com/AviferDev/DatoPublico/pull/15) hacia `main`. **CI en
+  verde**: run `38076749103`, job 'Build and test' SUCCESS (2m48s) para el head
+  `725c469`. Harness commiteado en `main` (`e15591d`) y empujado. Pendiente de
+  revisión/fusión explícita del dueño.
 - Riesgo o duda sin resolver: la estimación de tokens (`charsPerToken = 3`) es
   **provisional** hasta el tokenizador real de FT00015 (inyectable por
   constructor); la detección de encabezados es heurística por texto (mitigada por
@@ -2357,5 +2364,5 @@
 - Estado: **FT00014 `accepted`**. Siguiente feature lista:
   `embeddings-locales-onnx` (FT00015, depende de FT00014) o
   `english-identifiers-rename` (FT00047).
-- Siguiente mejor paso: commit del harness y commit/PR de producto (orquestador);
-  después, `embeddings-locales-onnx` (FT00015).
+- Siguiente mejor paso: revisar/fusionar el PR #15; después,
+  `embeddings-locales-onnx` (FT00015, depende de FT00014).
