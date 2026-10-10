@@ -48,7 +48,13 @@
   plantilla `.env.example` solo admite *placeholders* explícitos no secretos.
 - **MUST**: un secreto ausente debe **fallar con mensaje claro** (fail-fast), no
   caer en un valor por defecto silencioso. `POSTGRES_PASSWORD` es obligatorio en
-  `docker-compose` (`:?`) y `FLYWAY_PASSWORD` no tiene default en el build.
+  `docker-compose` (`:?`) y la contraseña de Flyway no tiene default en el build
+  (usa `FLYWAY_PASSWORD` o `POSTGRES_PASSWORD`).
+- **MUST NOT**: duplicar la configuración de conexión entre herramientas. Las
+  piezas de conexión tienen una **única fuente de verdad** (`POSTGRES_*`, la
+  misma que consume `docker-compose`) y las variables propias de cada herramienta
+  (`FLYWAY_*`) son solo *overrides* opcionales: cambiar `POSTGRES_PORT` (o
+  host/db/usuario) debe bastar para que Flyway apunte al mismo sitio.
 - **MUST**: el PostgreSQL local de desarrollo se publica **solo en loopback**
   (`127.0.0.1`), nunca en `0.0.0.0`.
 - **N100 / 8 GB**: backfill por lotes en baja carga; `shared_buffers` ~1 GB,

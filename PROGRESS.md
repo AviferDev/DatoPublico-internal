@@ -8,10 +8,11 @@
 - Camino de verificación estándar: `./gradlew build` y `./gradlew test` desde la
   raíz del repo público (`..`) — **bootstrapped** (Gradle 8.10.2 + JDK 21).
 - Siguiente feature lista: `bootstrap-ktor-healthcheck` (FT00004, depende de
-  FT00001). FT00003 (`bootstrap-postgres-pgvector`) queda **`accepted`** tras la
-  reparación de seguridad (ver Session 020). FT00002 (`bootstrap-shared-dtos`)
-  **`accepted`** y **fusionada** (PR #2, merge `ca781f3`); habilita
-  `contrato-resumen-ciudadano` (FT00019) y `boe-sumario-cliente` (FT00006).
+  FT00001). FT00003 (`bootstrap-postgres-pgvector`) queda **`accepted`** (Session
+  023) tras la reparación de seguridad, la derivación de la conexión y la limpieza
+  de comentarios. FT00002 (`bootstrap-shared-dtos`) **`accepted`** y **fusionada**
+  (PR #2, merge `ca781f3`); habilita `contrato-resumen-ciudadano` (FT00019) y
+  `boe-sumario-cliente` (FT00006).
 - Bloqueo actual: ninguno para el bootstrap. Pendiente de producto: **nombre y
   marca** (bloquea la fase de producción, no el bootstrap).
 - Convención de nombres (2026-10-10): **todos los tipos serializables del
@@ -25,12 +26,12 @@
   872fb2b) y **fusionado** (`ca781f3`). Gate verde desde `..` con JDK 21 (JBR):
   `./gradlew :shared:jvmTest`, `./gradlew test` (3 módulos) y `./gradlew build`.
   FT00001 `bootstrap-monorepo-gradle`: **`accepted`** (PR #1 fusionado, merge
-  `912c328`). **FT00003 `bootstrap-postgres-pgvector`: `accepted`** (Session 020)
-  tras la **reparación de seguridad**: sin credenciales versionadas,
-  `POSTGRES_PASSWORD` obligatorio, Postgres local solo en loopback y fail-fast
-  ante `FLYWAY_PASSWORD` ausente; Docker Compose + migración `V1` reverificados y
-  `./gradlew build` verde sin BD. PR #3 con CI en verde (run 38001658074, head
-  44b8d50).
+  `912c328`). **FT00003 `bootstrap-postgres-pgvector`: `accepted`** (Session 023)
+  tras: reparación de seguridad (sin credenciales versionadas, `POSTGRES_PASSWORD`
+  obligatorio, loopback, fail-fast), derivación de la conexión de Flyway desde
+  `POSTGRES_*` (URL `jdbc:postgresql://host:port/db`; `FLYWAY_*` como override) y
+  limpieza de comentarios (`docs/desarrollo-local.md`). PR #3 con CI en verde (run
+  38033346128, head 55217b6); recomendado squash-merge.
 - PoC exploratoria (no feature), **temporal y ya eliminada**: `poc/boe-rag`
   validó el RAG de punta a punta (embeddings locales ONNX + pgvector + generación
   con cita). Sus lecciones quedan en la skill `rag-datapublico`. Ver Session 002.
@@ -775,6 +776,135 @@
     commit/PR/CI/aceptación). `docs/feature-ids.md`: FT00003 → `accepted`.
 - Ficheros: `.harness/feature_list.json`, `.harness/docs/feature-ids.md`,
   `.harness/PROGRESS.md`.
+- Estado: **FT00003 `accepted`**. Siguiente feature lista:
+  `bootstrap-ktor-healthcheck` (FT00004).
+- Siguiente mejor paso: implementar `bootstrap-ktor-healthcheck` (FT00004) con el
+  flujo.
+
+### Session 021
+
+- Fecha: 2026-10-10
+- Objetivo: reparar el hallazgo L2 de FT00003
+  (`bootstrap-postgres-pgvector`): la conexión de Flyway debe **derivarse** de
+  `POSTGRES_*` en vez de duplicar la URL/contraseña. Sin ampliar alcance.
+- Diagnóstico: `.env.example` fijaba
+  `FLYWAY_URL=jdbc:postgresql://localhost:5432/datopublico` y `FLYWAY_PASSWORD`
+  repetía el valor de `POSTGRES_PASSWORD`. Riesgo: cambiar `POSTGRES_PORT` (o
+  host/db) dejaba a Flyway apuntando a otro sitio.
+- Completado:
+  - `backend/build.gradle.kts`: conexión derivada de las piezas con `FLYWAY_*`
+    como *override* opcional — `host=FLYWAY_HOST?:POSTGRES_HOST?:'localhost'`,
+    `port=FLYWAY_PORT?:POSTGRES_PORT?:'5432'`,
+    `db=FLYWAY_DB?:POSTGRES_DB?:'datopublico'`,
+    `user=FLYWAY_USER?:POSTGRES_USER?:'datopublico'`,
+    `password=FLYWAY_PASSWORD?:POSTGRES_PASSWORD` (fail-fast si faltan ambos) y
+    `url=FLYWAY_URL?:'jdbc:postgresql://$host:$port/$db'`. Se conservan el
+    cargador de `.env` de la raíz y la validación en `doFirst` (así `build`/`check`
+    siguen verdes sin BD); no se imprimen valores.
+  - `.env.example`: solo `POSTGRES_*` como **fuente única de verdad**
+    (`POSTGRES_PASSWORD` obligatoria; `POSTGRES_PORT` opcional con default 5432);
+    `FLYWAY_*` documentadas como *overrides* opcionales comentados, sin duplicar
+    la contraseña.
+  - `CONSTRAINTS.md` §«Operación»: MUST de no duplicar la configuración de
+    conexión entre herramientas (una sola fuente `POSTGRES_*`; `FLYWAY_*` solo
+    *override*).
+  - Nota de reparación en `docs/specs/bootstrap-postgres-pgvector.md`;
+    `feature_list.json` (FT00003 → `in_progress`) y `docs/feature-ids.md`.
+- Verificación ejecutada (desde `..`, `JAVA_HOME` del JBR 21; Docker 29.8.2 +
+  Compose v5.6.0). `.env` con **solo `POSTGRES_*`** (sin `FLYWAY_*`):
+  - `docker compose up -d` → `datopublico-postgres` `Up (healthy)`; `SELECT 1` →
+    `1`; `./gradlew :backend:flywayMigrate` → BUILD SUCCESSFUL;
+    `:backend:flywayInfo` → `V1 | esquema base | SQL | Success`;
+    `flyway_schema_history` → `V1 success=t`; `vector` → `0.8.7`;
+    `esquema_info` → `(esquema_base, FT00003)`.
+  - **Derivación de puerto**: `.env` con `POSTGRES_PORT=5433` (sin tocar
+    `FLYWAY_*`) y volumen fresco → `docker compose ps` publica
+    `127.0.0.1:5433->5432/tcp`; `:backend:flywayMigrate` → BUILD SUCCESSFUL;
+    `flywayInfo` → `V1 ... Success`. También conecta exportando **solo**
+    `POSTGRES_*` (sin `.env` ni `FLYWAY_*`).
+  - **Fail-fast**: sin `.env` ni `POSTGRES_PASSWORD`/`FLYWAY_PASSWORD`,
+    `./gradlew :backend:flywayInfo` → FAILURE con
+    `Contraseña de base de datos no definida: define POSTGRES_PASSWORD en .env
+    (o expórtala, o usa FLYWAY_PASSWORD como override)`.
+  - **CI sin BD**: `docker compose down -v` y `./gradlew build --no-daemon` (sin
+    `.env` ni passwords) → BUILD SUCCESSFUL (17 tareas);
+    `./gradlew build --dry-run | grep -i flyway` → sin resultados; gate estándar
+    `env -u JAVA_HOME .harness/init.sh` → exit 0.
+  - Entorno limpiado: `docker compose down -v` (contenedor, volumen y red
+    eliminados) y `.env` borrado; nada de `.env` versionado.
+- Ficheros modificados: `backend/build.gradle.kts`, `.env.example` (producto);
+  `.harness/{CONSTRAINTS.md,PROGRESS.md,feature_list.json}`,
+  `.harness/docs/{specs/bootstrap-postgres-pgvector.md,feature-ids.md}`.
+- Riesgo o duda sin resolver: el commit/push/PR y el run de CI los hace el
+  orquestador; queda pendiente la **validación independiente** de la reparación.
+- Siguiente mejor paso: validación independiente de FT00003 (`feature-validator`)
+  tras la reparación de conexión; después, `bootstrap-ktor-healthcheck` (FT00004).
+
+### Session 022
+
+- Fecha: 2026-10-10
+- Objetivo: **limpieza de comentarios** de FT00003
+  (`bootstrap-postgres-pgvector`): dejar los comentarios de código al mínimo y
+  mover lo explicativo a un Markdown. Sin cambiar comportamiento ni alcance.
+- Completado:
+  - Nuevo `docs/desarrollo-local.md` (repo de producto): requisitos (JDK 21,
+    Docker/Colima), arranque de la BD (`cp .env.example .env` + `docker compose
+    up -d`), migraciones Flyway (`:backend:flywayMigrate`/`:backend:flywayInfo`,
+    fuera de `build`/`check`), variables (`POSTGRES_*` fuente única; `FLYWAY_*`
+    *overrides*; URL derivada `jdbc:postgresql://host:port/db`) y notas
+    (`flyway-database-postgresql` en el buildscript, loopback, fail-fast sin
+    credenciales). Enlazado desde `README.md` (sección «Desarrollo local»).
+  - `backend/build.gradle.kts`: eliminado el bloque de cabecera y los comentarios
+    largos (~57 líneas de comentario → 4 de una línea, solo en lo no obvio:
+    buildscript, parser de `.env`, `flywayPasswordOrFail` y `doFirst`). Sin
+    cambios en `buildscript`/`dependencies`/lógica.
+  - `docker-compose.yml`: eliminado el bloque de cabecera; queda `# Solo loopback.`.
+  - `.env.example`: eliminado el bloque de cabecera; comentarios mínimos de una
+    línea por clave.
+  - `git diff` de los tres ficheros: **solo comentarios** (sin cambios de
+    comportamiento).
+- Verificación ejecutada (desde `..`, `JAVA_HOME` del JBR 21; Docker 29.8.2 +
+  Compose v5.6.0). `.env` con `POSTGRES_*` (puerto 5432):
+  - `docker compose up -d` → `datopublico-postgres` `Up (healthy)`,
+    `127.0.0.1:5432->5432/tcp`; `SELECT 1;` → `1`.
+  - `./gradlew :backend:flywayMigrate` → BUILD SUCCESSFUL;
+    `:backend:flywayInfo` → `V1 | esquema base | SQL | Success`;
+    `vector` → `0.8.7`; `esquema_info` → `(esquema_base, FT00003)`.
+  - **CI sin BD**: `docker compose down -v` + `.env` borrado y
+    `./gradlew build --no-daemon` → BUILD SUCCESSFUL (17 tareas);
+    `./gradlew build --dry-run | grep -i flyway` → sin resultados.
+  - Entorno limpiado (`docker compose down -v`, `.env` borrado).
+- Ficheros modificados: `docs/desarrollo-local.md` (nuevo), `README.md`,
+  `backend/build.gradle.kts`, `docker-compose.yml`, `.env.example` (producto);
+  `.harness/{PROGRESS.md,feature_list.json}`,
+  `.harness/docs/specs/bootstrap-postgres-pgvector.md`.
+- Riesgo o duda sin resolver: el commit/push/PR y el run de CI los hace el
+  orquestador; queda pendiente la **validación independiente** de la limpieza.
+- Siguiente mejor paso: validación independiente de FT00003 (`feature-validator`)
+  tras la limpieza de comentarios; después, `bootstrap-ktor-healthcheck` (FT00004).
+
+### Session 023
+
+- Fecha: 2026-10-10
+- Objetivo: cerrar las reparaciones de FT00003 (`bootstrap-postgres-pgvector`):
+  derivación de la conexión y limpieza de comentarios.
+- Completado:
+  - Commits de producto en `feat/ft00003-bootstrap-postgres-pgvector`:
+    `bc57224 refactor(FT00003): derivar la conexion de Flyway de POSTGRES_*` y
+    `55217b6 docs(FT00003): reducir comentarios y mover la guia a
+    docs/desarrollo-local.md`. Pusheado.
+  - **CI en verde**: run `38033346128`, head `55217b6` (PR #3).
+  - **Validación independiente**: veredicto **`accept`**; reejecutó la derivación
+    (incluida prueba negativa de puerto y overrides `FLYWAY_*`), el fail-fast, la
+    ausencia de credenciales y confirmó que la limpieza es solo comentarios/docs.
+  - `.harness/feature_list.json`: FT00003 → **`accepted`** (evidencia con commits,
+    PR, CI y aceptación). `docs/feature-ids.md`: FT00003 → `accepted`.
+- Notas *Low* del validator (opcionales, no bloquean):
+  - `docker compose down` también exige `POSTGRES_PASSWORD` (DX): derribar con
+    `POSTGRES_PASSWORD=x docker compose down -v` o documentarlo.
+  - El literal de dev `?: "datopublico"` sigue en el historial de la rama (commit
+    `9231452`): **recomendado squash-merge** del PR #3 para no arrastrarlo a
+    `main`.
 - Estado: **FT00003 `accepted`**. Siguiente feature lista:
   `bootstrap-ktor-healthcheck` (FT00004).
 - Siguiente mejor paso: implementar `bootstrap-ktor-healthcheck` (FT00004) con el

@@ -193,6 +193,52 @@ un default silencioso inseguro. Reparación (sin cambiar el alcance funcional):
 Escenarios y ficheros del spec no cambian; el comportamiento observable es el
 mismo con `.env` presente y **más seguro** cuando falta.
 
+### Nota de reparación de configuración de conexión (2026-10-10, reapertura)
+
+Hallazgo L2 del validador: `.env.example` fijaba `FLYWAY_URL` a
+`jdbc:postgresql://localhost:5432/datopublico` y `FLYWAY_PASSWORD` duplicaba el
+valor de `POSTGRES_PASSWORD`; cambiar `POSTGRES_PORT` no llegaba a Flyway.
+Reparación (sin cambiar el alcance funcional):
+
+- `backend/build.gradle.kts`: la conexión se **deriva** de las piezas con
+  `FLYWAY_*` como *override* opcional: `host = FLYWAY_HOST ?: POSTGRES_HOST ?
+  "localhost"`, `port = FLYWAY_PORT ?: POSTGRES_PORT ?: "5432"`,
+  `db = FLYWAY_DB ?: POSTGRES_DB ?: "datopublico"`,
+  `user = FLYWAY_USER ?: POSTGRES_USER ?: "datopublico"`,
+  `password = FLYWAY_PASSWORD ?: POSTGRES_PASSWORD` (fail-fast si falta) y
+  `url = FLYWAY_URL ?: "jdbc:postgresql://$host:$port/$db"`. Se conservan el
+  cargador de `.env` de la raíz y la validación en `doFirst` (así `build`/`check`
+  siguen verdes sin BD) y no se imprimen valores.
+- `.env.example`: solo `POSTGRES_*` como **fuente única de verdad** (obligatoria
+  `POSTGRES_PASSWORD`; `POSTGRES_PORT` opcional con default 5432); `FLYWAY_*`
+  documentadas como *overrides* opcionales (comentadas), sin duplicar la
+  contraseña.
+- `CONSTRAINTS.md`: MUST de no duplicar la configuración de conexión entre
+  herramientas (una sola fuente `POSTGRES_*`; `FLYWAY_*` solo *override*).
+
+Escenarios 1–4 y ficheros del spec no cambian; el comportamiento observable es el
+mismo con un `.env` de solo `POSTGRES_*` y **coherente** al cambiar el puerto.
+
+### Nota de limpieza de comentarios (2026-10-10)
+
+Petición de estilo (sin cambiar comportamiento): dejar los comentarios de código
+al mínimo y mover lo explicativo a un Markdown.
+
+- Nuevo `docs/desarrollo-local.md` (repo de producto): requisitos (JDK 21,
+  Docker/Colima), arranque de la BD (`.env` + `docker compose up -d`), migraciones
+  Flyway (`:backend:flywayMigrate`/`:backend:flywayInfo`, fuera de `build`/`check`),
+  variables (`POSTGRES_*` fuente única; `FLYWAY_*` *overrides*; URL derivada) y
+  notas (módulo `flyway-database-postgresql` en el buildscript, loopback,
+  fail-fast sin credenciales). Enlazado desde `README.md`.
+- `backend/build.gradle.kts`: eliminado el bloque de cabecera y los comentarios
+  largos; quedan 4 comentarios de **una línea** en lo no obvio (buildscript,
+  parser de `.env`, `flywayPasswordOrFail` y `doFirst`). Sin cambios en
+  `buildscript`/`dependencies`/lógica.
+- `docker-compose.yml`: eliminado el bloque de cabecera; queda un comentario de
+  una línea (`# Solo loopback.`). Sin cambios funcionales.
+- `.env.example`: eliminado el bloque de cabecera; quedan comentarios mínimos de
+  una línea por clave. Sin cambios en las claves.
+
 ## Expected File Changes
 
 Rutas en el repo de producto (`..`):
