@@ -7,20 +7,25 @@
 - Camino de arranque estándar: `./init.sh` (desde `.harness/`)
 - Camino de verificación estándar: `./gradlew build` y `./gradlew test` desde la
   raíz del repo público (`..`) — **bootstrapped** (Gradle 8.10.2 + JDK 21).
-- Última verificación: 2026-10-10 (Sessions 032–034). **Cambio de alcance 1.0.0 =
+- Última verificación: 2026-10-10 (Sessions 032–035). **Cambio de alcance 1.0.0 =
   TODO el BOE** (secciones I, II.A, II.B, III, IV, V.A, V.B y V.C; ningún campo ni
   sección se excluye) y nueva norma MUST de **`@SerialName` explícito** en cada
   propiedad `@Serializable`. **FT00002** (`bootstrap-shared-dtos`) y **FT00006**
   (`boe-sumario-cliente`) reabiertas, implementadas, **validadas (`accept`) y
-  fusionadas** (PR #6).
-- Última feature cerrada: `boe-sumario-cliente` (FT00006) → **`accepted` y
-  fusionada** (Sessions 029–034; validación + revalidación `accept`; retorno único,
-  convención de nombres, y cambio de alcance a todo el BOE + `@SerialName`; detalle
-  en `docs/validations/boe-sumario-cliente.md`). **PR #6 fusionado** (merge por
-  rebase → `main`: `a7b3749` FT00002, `a347e72` FT00006). Hito anterior:
-  `bootstrap-cmp-targets` (FT00005) → **`accepted` y fusionada** (Sessions
-  026–027; run `38037289572`, PR #5 fusionado, merge `136eedf`). Siguiente feature
-  lista: `boe-parser-publicacion` (FT00007, depende de `boe-sumario-cliente`).
+  fusionadas** (PR #6). **FT00007** (`boe-parser-publicacion`) implementada y
+  **validada (`accept`)** (Session 035).
+- Última feature cerrada: `boe-parser-publicacion` (FT00007) → **`accepted`**
+  (Session 035; parser de publicaciones del BOE en `:backend`
+  (`ingesta/publicacion/`) que descarga el texto oficial por el **XML estructurado**
+  (`xml.php`) con parser XML seguro y produce `Publicacion` (metadatos + texto +
+  URL oficial), sin wiring en el arranque; `categoria = null`, diferida a FT00012;
+  validación independiente `accept`; deuda Low: `HttpTimeout` explícito → FT00009;
+  detalle en `docs/validations/boe-parser-publicacion.md` y ADR
+  `docs/adr/0002-fuente-texto-boe-xml.md`). Hito anterior:
+  `boe-sumario-cliente` (FT00006) → **`accepted` y fusionada** (Sessions 029–034;
+  validación + revalidación `accept`; **PR #6 fusionado** por rebase → `main`:
+  `a7b3749` FT00002, `a347e72` FT00006). Siguiente feature lista:
+  `publicacion-persistencia` (FT00008, depende de FT00007 y FT00003).
   FT00003 (`bootstrap-postgres-pgvector`) queda **`accepted`** (Session 023) tras
   la reparación de seguridad y la derivación de la conexión. FT00002
   (`bootstrap-shared-dtos`) **`accepted` y fusionada** (PR #2, merge `ca781f3`;
@@ -1583,3 +1588,61 @@
   `boe-parser-publicacion` (FT00007), que debe cubrir las **8 secciones** y **todos
   los campos** (incluido `urlPdf` y la envoltura `texto`).
 - Siguiente mejor paso: implementar `boe-parser-publicacion` (FT00007) con el flujo.
+
+### Session 035
+
+- Fecha: 2026-10-10
+- Objetivo: implementar `boe-parser-publicacion` (FT00007) en el repo público,
+  rama `feat/ft00007-boe-parser-publicacion`: parser del **texto XML** del BOE que
+  convierte cada `EntradaSumario` (FT00006) en una `Publicacion` con texto y
+  metadatos.
+- Completado (producto, `backend/src/main/kotlin/.../ingesta/publicacion/`):
+  - Modelo interno `Publicacion` (id, título, fecha ISO, organismo, sección,
+    epígrafe, texto, urlOficial, urlXml, urlPdf, rango, `categoria = null`) y
+    `DocumentoBoe` + `MetadatosBoe` (rango, departamento, fechaDisposicion,
+    numeroOficial, urlPdf, origenLegislativo).
+  - `BoeXmlParser` (parser XML del JDK, **seguro**: `FEATURE_SECURE_PROCESSING`,
+    `disallow-doctype-decl`, `ACCESS_EXTERNAL_DTD`/`SCHEMA` vacíos); texto por
+    bloques (`p`/`li`/`dt`/`dd`) con saltos de párrafo y normalización de
+    `\u00a0` y espacios; `<texto>` ausente/vacío → `null`; XML malformado →
+    `BoeTextoException`. Selecciona `<metadatos>`/`<texto>` como **hijos directos**
+    de `<documento>` (evita el `<texto>` anidado en `<analisis>`).
+  - `BoeTextoClient` (interfaz) + `BoeTextoException`; `BoeTextoHttpClient` (Ktor
+    con `HttpClient` inyectado, `GET <urlXml>` absoluto con `Accept:
+    application/xml`, cuerpo UTF-8, `404` → `null`, resto → excepción tipada) +
+    factory CIO `boeTextoHttpClient()` (`expectSuccess = false`, sin base URL).
+  - `PublicacionParser` (puro; prioriza organismo/PDF del sumario, completa desde
+    el XML) y `BoePublicacionParser` (interfaz) + `BoePublicacionHttpParser`
+    (orquesta descarga + parseo; sin `urlXml` no hace petición).
+  - Sin wiring: `Application.kt`, Flyway, `:shared`, `:composeApp` y CI intactos;
+    sin cambios en `build.gradle.kts`/`libs.versions.toml`.
+- Fixtures (capturados con `curl`, HTTP 200) en `backend/src/test/resources/boe/`:
+  `texto-{I-2026-20979 (44.371 car./153 párrafos), IIA-2024-87, IIB-2024-93,
+  III-2024-117, IV-2024-1, VA-2024-25, VB-2024-76, VC-2024-92}.xml` reales, más
+  `texto-sin-texto.xml` **sintético** (marcado como tal, `<texto/>` → `null`).
+- Tests (gate, sin red): `BoeXmlParserTest` (8: por sección, extensa, tablas/dl,
+  normalización, sin texto, sin nodo texto, malformado, XXE/DTD),
+  `PublicacionParserTest` (4), `BoeTextoClientTest` (6, `MockEngine`), y
+  `BoePublicacionParserTest` (4; escenario 1 con `EntradaSumario` del sumario real
+  y `MockEngine` que sirve los fixtures, las 8 secciones, sin `urlXml`, `404`).
+- Verificación ejecutada (desde `..`, `JAVA_HOME` del JBR 21):
+  - `./gradlew :backend:test --rerun-tasks` → BUILD SUCCESSFUL; **43** tests en
+    `:backend`, 0 fallos (23 nuevos en `ingesta/publicacion`).
+  - `./gradlew build --no-daemon -PskipClient` → BUILD SUCCESSFUL (23 tareas);
+    `./gradlew test` → 3 módulos verdes; `./gradlew detekt -PskipClient` (Detekt +
+    `:cpdCheck`) → sin hallazgos; `env -u JAVA_HOME .harness/init.sh` → exit 0.
+  - Opt-in `BOE_LIVE_TEST=1 ./gradlew :backend:test --tests '*BoePublicacionLiveTest'`
+    → fuera del gate; en el JBR de macOS falla con `SunCertPathBuilderException`
+    (truststore sin la raíz **FNMT-RCM**, limitación ya documentada en FT00006).
+    Los fixtures se capturaron con `curl` (llavero del sistema) con HTTP 200.
+- Doc durable: `ARCHITECTURE.md` (`ingesta/publicacion/`, frontera Backend→BOE
+  texto XML), `CONSTRAINTS.md` (nueva sección «Fuentes externas (ingesta)»: MUST de
+  parseo XML seguro + red opt-in), `docs/desarrollo-local.md` (endpoint XML,
+  captura de fixtures, test opt-in) y **ADR `docs/adr/0002-fuente-texto-boe-xml.md`**
+  (+ índice). `docs/specs/boe-parser-publicacion.md`: `status: passing` + nota.
+- Estado: **FT00007 `passing`** (autoverificado, listo para validación
+  independiente). `categoria = null` (FT00012). Deuda: `Publicacion` expone `rango`
+  del XML y deja el resto de metadatos en `DocumentoBoe`; el parser DOM mantiene el
+  XML en memoria (aceptable por documento; vigilar una ley muy extensa).
+- Siguiente mejor paso: validación independiente de FT00007 (`feature-validator`);
+  después, `publicacion-persistencia` (FT00008).

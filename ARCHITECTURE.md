@@ -11,10 +11,12 @@
 - **`:backend`** — Ktor: ingesta del BOE, RAG, resúmenes, destacados y API.
   Namespace `es.aviferdev.datopublico.backend`. Ya existe el **esqueleto**
   (composition root `Application.kt`, `plugins/` e `infra/`, `GET /health`,
-  configuración por entorno y logging JSON) y empieza a existir **`ingesta/`**
-  (`ingesta/sumario/`: cliente del sumario diario del BOE + modelo interno y
-  filtrado de secciones); el resto de paquetes llega con sus features. El
-  cliente de ingesta **no** se cablea en el arranque.
+  configuración por entorno y logging JSON) y existe **`ingesta/`**:
+  `ingesta/sumario/` (cliente del sumario diario del BOE + modelo interno y
+  filtrado de secciones) e `ingesta/publicacion/` (parser del **texto XML**
+  oficial `xml.php`, cliente de texto, modelo `Publicacion` y combinador
+  sumario + texto). El resto de paquetes llega con sus features. La ingesta
+  **no** se cablea en el arranque.
 - **`:composeApp`** — cliente Compose Multiplatform (Android, iOS, Web).
   Namespace `es.aviferdev.datopublico`. Ya **existe y compila** para
   `androidTarget`, `iosArm64`/`iosSimulatorArm64` (framework `ComposeApp`) y
@@ -42,11 +44,14 @@
 
 - **Cliente → API HTTP** (público, solo lectura). El cliente no conoce los
   internals del backend.
-- **Backend → BOE** (API de datos abiertos, solo lectura, **sin clave ni
-  credenciales**): `ingesta/` obtiene el sumario diario; el resto de la
-  integración (parser, persistencia, job) llega con sus features. Es una
-  dependencia **externa en tiempo de ejecución**, no del gate: los tests del gate
-  no hacen red y las pruebas contra el BOE son opt-in.
+- **Backend → BOE** (API de datos abiertos + XML oficial, solo lectura, **sin
+  clave ni credenciales**): `ingesta/` obtiene el sumario diario (JSON) y, por
+  cada entrada, el **texto XML estructurado** (`xml.php`); el resto de la
+  integración (persistencia, job) llega con sus features. Es una dependencia
+  **externa en tiempo de ejecución**, no del gate: los tests del gate no hacen
+  red y las pruebas contra el BOE son opt-in. La **fuente de verdad** del texto y
+  los metadatos es el XML estructurado, no el HTML (`txt.php`) ni el PDF
+  (ver `docs/adr/0002`).
 - **Backend:** `plugins/` (HTTP) → servicios → dominio puro → repositorios y
   clientes → `infra/`.
 - **IA:** embeddings **locales** (ONNX) y generación/chat **remoto** (OpenCode),

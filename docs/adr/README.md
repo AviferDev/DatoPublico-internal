@@ -59,3 +59,4 @@ Aceptado (<AAAA-MM-DD>). [Quién decide y, si aplica, qué ADR supersede/ajusta.
 | ADR | Título | Estado |
 | --- | --- | --- |
 | [0001](0001-dos-repositorios-harness-privado.md) | Dos repositorios: producto público + harness privado | Aceptado |
+| [0002](0002-fuente-texto-boe-xml.md) | El texto y los metadatos del BOE se toman del XML estructurado (`xml.php`) | Aceptado |

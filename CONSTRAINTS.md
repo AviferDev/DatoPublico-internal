@@ -18,6 +18,17 @@
   la API. Ninguna sección ni campo del BOE se excluye por «datos personales» ese
   principio aplica solo a los datos de los usuarios de la app.
 
+## Fuentes externas (ingesta)
+
+- **MUST**: el contenido remoto del BOE se trata como **no confiable**. El XML
+  estructurado (`xml.php`) se parsea con *secure processing* del parser del JDK y
+  con **DTD y entidades externas deshabilitadas** (`disallow-doctype-decl`,
+  `ACCESS_EXTERNAL_DTD`/`ACCESS_EXTERNAL_SCHEMA` vacíos, sin expandir
+  referencias), para evitar XXE y *billion laughs*.
+- **MUST**: la descarga del texto oficial es una **llamada de red** y queda sujeta
+  a la regla de tests opt-in (`BOE_LIVE_TEST=1`) de la sección «Operación»;
+  nunca se ejecuta en el gate ni en la CI.
+
 ## IA y coste
 
 - **MUST**: embeddings **locales** (`multilingual-e5-small` int8, ONNX), tras una
