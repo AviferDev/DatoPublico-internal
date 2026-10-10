@@ -14,7 +14,12 @@
   configuración por entorno y logging JSON); el resto de paquetes llega con sus
   features.
 - **`:composeApp`** — cliente Compose Multiplatform (Android, iOS, Web).
-  Namespace `es.aviferdev.datopublico`.
+  Namespace `es.aviferdev.datopublico`. Ya **existe y compila** para
+  `androidTarget`, `iosArm64`/`iosSimulatorArm64` (framework `ComposeApp`) y
+  `wasmJs` (browser, ejecutable), con la **UI compartida en `commonMain`**
+  (`App()`) y un entrypoint por plataforma; además conserva `jvm()` **solo** para
+  tests/dev. Aún **no** depende de `:shared` (llega con la primera UI que necesite
+  DTOs, FT00032).
 
 ## Fronteras
 

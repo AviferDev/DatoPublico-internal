@@ -33,6 +33,23 @@
   (`DatoPublicoJson`) y, en capas internas, entidades `...Entity`, filas `...Row`
   y modelos de UI `...Ui`, sin prefijos.
 
+## Cliente (Compose Multiplatform)
+
+- **MUST**: la **UI compartida** de `:composeApp` vive en `commonMain`; cada
+  plataforma aporta **solo su entrypoint** (Android `MainActivity`, Wasm `main()`,
+  iOS `MainViewController`). No duplicar pantallas por plataforma.
+- **MUST**: el gate estándar (`./gradlew build`, `.harness/init.sh`) **no** exige
+  Xcode ni un navegador. Los targets iOS se ignoran en hosts no-Apple y los tests
+  de Wasm en navegador (Karma/Chrome) quedan fuera del gate.
+
+## Build y repositorios
+
+- **MUST**: las distribuciones de herramientas de Kotlin/JS-Wasm (Binaryen, Node,
+  Yarn) se declaran como repositorios Ivy en `settings.gradle.kts`, que usa
+  `RepositoriesMode.PREFER_SETTINGS`. El plugin de Kotlin/Wasm las registra a
+  nivel de proyecto, así que `FAIL_ON_PROJECT_REPOS` rompería el build. Mantén el
+  settings como **fuente única de verdad** de repositorios.
+
 ## Operación
 
 - **MUST**: ingesta diaria a las **9:30** más una **segunda pasada**; alerta si no

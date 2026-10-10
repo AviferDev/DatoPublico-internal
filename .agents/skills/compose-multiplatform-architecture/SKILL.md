@@ -9,9 +9,16 @@ Guía práctica para trabajar en `:composeApp`. Antes de tocar el cliente, lee
 `DESIGN.md`, `docs/technical-discovery.md` y `docs/domain-model.md`. `CONTEXT.md`
 fija el lenguaje de dominio.
 
-**Estado actual:** el cliente todavía **no existe** (fase pre-bootstrap; el
-esqueleto llega con `bootstrap-cmp-targets`). El patrón de este documento es el
-**objetivo acordado**. No asumas que el estado actual ya lo cumple y no inventes
+**Estado actual:** `:composeApp` **ya existe y compila** (FT00005,
+`bootstrap-cmp-targets`): Compose Multiplatform para **Android** (`androidTarget`),
+**iOS** (`iosArm64` + `iosSimulatorArm64`, framework `ComposeApp`) y **Web/Wasm**
+(`wasmJs { browser(); binaries.executable() }`), con la UI compartida en
+`commonMain` (`App()`) y un entrypoint mínimo por plataforma. El target `jvm()` se
+conserva **solo** para tests/dev (`:composeApp:jvmTest` y la task raíz `test`).
+Todavía **no** hay pantallas reales, navegación, ViewModels, tema completo,
+recursos ni red; y `:composeApp` **no** depende de `:shared` (llega con la primera
+UI que necesite DTOs, FT00032). El patrón de este documento sigue siendo el
+**objetivo acordado**: no asumas que el estado actual ya lo cumple y no inventes
 otra arquitectura.
 
 ## Topología de build (decidido)
@@ -23,6 +30,11 @@ otra arquitectura.
   - `iosArm64()` + `iosSimulatorArm64()` con `binaries.framework { baseName = ... }`.
   - `wasmJs { browser(); binaries.executable() }` (Web).
 - Gradle Kotlin DSL con **version catalog**.
+- `settings.gradle.kts` usa `RepositoriesMode.PREFER_SETTINGS` y declara los
+  repositorios Ivy de las distribuciones de Kotlin/JS-Wasm (Binaryen, Node,
+  Yarn): el plugin las registra a nivel de proyecto y `FAIL_ON_PROJECT_REPOS`
+  rompería el build. Los tests de Wasm en navegador (Karma/Chrome) quedan **fuera**
+  del gate; el `SmokeTest` corre en `jvmTest`/Android/iOS.
 - La URL del backend se resuelve por plataforma (Android por `BuildConfig` por
   flavor; iOS en runtime desde el `Info.plist`; Wasm desde una config generada en
   build time). **Nunca** cablear `http://localhost` en `commonMain`.

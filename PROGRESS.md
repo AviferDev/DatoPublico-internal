@@ -7,10 +7,13 @@
 - Camino de arranque estándar: `./init.sh` (desde `.harness/`)
 - Camino de verificación estándar: `./gradlew build` y `./gradlew test` desde la
   raíz del repo público (`..`) — **bootstrapped** (Gradle 8.10.2 + JDK 21).
-- Última feature cerrada: `bootstrap-ktor-healthcheck` (FT00004) → **`accepted` y
-  fusionada** (Session 025; validación independiente `accept`, CI en verde y PR #4
-  fusionado, merge `1e32f4c`). Siguiente feature lista: `bootstrap-cmp-targets`
-  (FT00005, depende de FT00001). FT00003
+- Última feature cerrada: `bootstrap-cmp-targets` (FT00005) → **`accepted`**
+  (Session 027; validación independiente `accept`; commit/PR a cargo del
+  orquestador). Hito anterior: `bootstrap-ktor-healthcheck` (FT00004) →
+  **`accepted` y fusionada** (Session 025; validación independiente `accept`, CI
+  en verde y PR #4 fusionado, merge `1e32f4c`). Siguiente feature lista tras
+  acceptar FT00005: `boe-sumario-cliente` (FT00006, depende de FT00002 y FT00004,
+  ambas `accepted`). FT00003
   (`bootstrap-postgres-pgvector`) queda **`accepted`** (Session
   023) tras la reparación de seguridad, la derivación de la conexión y la limpieza
   de comentarios. FT00002 (`bootstrap-shared-dtos`) **`accepted`** y **fusionada**
@@ -24,7 +27,18 @@
   **`Dto`**; la config de serialización (`DatoPublicoJson`) sin `Dto`; sin
   prefijos. En `ARCHITECTURE.md` §«Convenciones de nombres» y **MUST** en
   `CONSTRAINTS.md`.
-- Última verificación: 2026-10-10. **FT00004 `bootstrap-ktor-healthcheck`:
+- Última verificación: 2026-10-10. **FT00005 `bootstrap-cmp-targets`:
+  `accepted`** (Sessions 026–027): esqueleto Compose Multiplatform con targets
+  Android/Wasm/iOS, pantalla mínima única en `commonMain` (`App()`) y entrypoint
+  por plataforma; verificados `:composeApp:assembleDebug` (APK), 
+  `wasmJsBrowserDistribution`, klib+framework iOS, `./gradlew test` (SmokeTest en
+  jvm/Android/iOS; `:shared` 11 + `:backend` 9), `build --no-daemon` (196 tareas)
+  e `init.sh` (exit 0). Validación independiente `accept` (detalle en
+  `docs/validations/bootstrap-cmp-targets.md`); sin hallazgos de seguridad, deuda
+  Low registrada. Dos desviaciones de build aceptadas como acotadas
+  (`settings.gradle.kts` → `PREFER_SETTINGS` + repos Ivy de Binaryen/Node/Yarn;
+  `wasmJsBrowserTest` fuera del gate). Hito previo: **FT00004
+  `bootstrap-ktor-healthcheck`:
   `accepted`** (Sessions 024–025): esqueleto Ktor/Netty con `GET /health` (`200
   {"status":"ok"}` en `:backend:run`, en el puerto por defecto 8080 y en 8090 por
   entorno), configuración por entorno con fail-fast ante puerto inválido, logging
@@ -1042,3 +1056,121 @@
   Flyway); las variables `SERVER_*`/`APP_ENV`/`LOG_LEVEL` están documentadas en
   `docs/desarrollo-local.md` pero no en `.env.example`. Pendiente decidir si se
   cablea el `.env` en `:backend:run` o se aclara la documentación.
+
+### Session 026
+
+- Fecha: 2026-10-10
+- Objetivo: implementar `bootstrap-cmp-targets` (FT00005) en el repo público:
+  esqueleto del cliente **Compose Multiplatform** (Android, Web/Wasm, iOS) con una
+  **pantalla mínima compartida** en `commonMain` y un entrypoint por plataforma,
+  sin ampliar targets de `:shared`, sin pantallas reales/red y manteniendo el gate
+  estándar en verde sin Xcode ni base de datos.
+- Completado (producto, rama `feat/ft00005-bootstrap-cmp-targets`):
+  - `composeApp/build.gradle.kts`: plugins `kotlin.multiplatform` +
+    `compose.multiplatform` + `compose.compiler` + `android.application`; targets
+    `androidTarget()`, `iosArm64()`/`iosSimulatorArm64()` (framework estático
+    `ComposeApp`), `wasmJs { browser(); binaries.executable() }`; se conserva
+    `jvm()`; bloque `android { }` (`namespace`/`applicationId`
+    `es.aviferdev.datopublico`, `compileSdk`/`targetSdk` 35, `minSdk` 26,
+    `compileOptions` Java 21); dependencias por source set (`compose.*` en
+    `commonMain`, `activity-compose` + `compose.preview` en `androidMain`).
+  - `commonMain` (`es.aviferdev.datopublico.app.App()`): `MaterialTheme` con
+    `primary` `#1A4D8F`/`background` `#F7F9FC` de `DESIGN.md`, `Surface` +
+    `Column`/`Text` («DatoPublico» + «Esqueleto Compose Multiplatform»),
+    `@Preview`. Textos literales **a propósito** (recursos fuera de alcance,
+    FT00032+).
+  - Entrypoints: `androidMain/MainActivity.kt` + `androidMain/AndroidManifest.xml`
+    (LAUNCHER, icono de sistema), `wasmJsMain/main.kt`
+    (`ComposeViewport(document.body!!)`) + `wasmJsMain/resources/index.html`
+    (`composeApp.js`), `iosMain/MainViewController.kt` (`ComposeUIViewController`).
+  - Catálogo/propiedades: `androidxActivityCompose = 1.9.3` y alias
+    `androidx-activity-compose`; `android.useAndroidX=true` +
+    `android.nonTransitiveRClass=true`; `local.properties` (gitignored) con
+    `sdk.dir` para la verificación local.
+  - `settings.gradle.kts`: de `FAIL_ON_PROJECT_REPOS` a
+    `RepositoriesMode.PREFER_SETTINGS` + repositorios Ivy de **Binaryen/Node/Yarn**
+    (layout exacto del plugin). `kotlin-js-store/yarn.lock` versionado.
+- Verificación ejecutada (desde `..`, `JAVA_HOME` del JBR 21):
+  - **Hallazgo 1**: con `FAIL_ON_PROJECT_REPOS`, el plugin de Kotlin/Wasm rompe el
+    build en `:composeApp:kotlinBinaryenSetup` (`repository ... was added by
+    unknown code`); se resuelve declarando los repos Ivy en el settings y usando
+    `PREFER_SETTINGS` (documentado y añadido a `CONSTRAINTS.md`).
+  - **Hallazgo 2**: la ruta `nodejs()` para tests Wasm (sugerida por el spec)
+    **falla** (`Skiko .wasm` no carga bajo Node); se mantiene `browser()` y se
+    desactiva `wasmJsBrowserTest` del gate (la máquina no tiene Chrome).
+  - Escenario 1: `./gradlew :composeApp:assembleDebug` → BUILD SUCCESSFUL;
+    `composeApp/build/outputs/apk/debug/composeApp-debug.apk` (8.740.700 bytes).
+  - Escenario 2: `./gradlew :composeApp:wasmJsBrowserDistribution` → BUILD
+    SUCCESSFUL; dist con `index.html`, `composeApp.js` y dos `.wasm`; servida en
+    `127.0.0.1:8123` y abierta en el navegador: la app monta un `<canvas>` (984×154
+    CSS px) sin errores de consola (solo warnings WebGL de Skiko). Sin captura
+    visual (ventana no visible en este entorno).
+  - Escenario 3: `:composeApp:compileKotlinIosSimulatorArm64` → BUILD SUCCESSFUL;
+    `:composeApp:linkDebugFrameworkIosSimulatorArm64` → BUILD SUCCESSFUL;
+    `.../debugFramework/ComposeApp.framework`.
+  - Escenario 5: `./gradlew build --no-daemon` → BUILD SUCCESSFUL (196 tareas,
+    incluido `:composeApp:lint`). **Escenario 6**: `./gradlew test` → BUILD
+    SUCCESSFUL (SmokeTest 1/0/0 en `jvmTest`/`testDebugUnitTest`/
+    `testReleaseUnitTest`/`iosSimulatorArm64Test`; `:shared` 11 tests; `:backend` 9).
+    Gate: `env -u JAVA_HOME .harness/init.sh` → exit 0.
+  - `SmokeTest` intacto; `jvm()` conservado (la task raíz `test` sigue agregando
+    `:composeApp:jvmTest`).
+- Documentación durable: `ARCHITECTURE.md` (`:composeApp` deja de ser
+  pre-bootstrap), `CONSTRAINTS.md` (MUST: UI compartida en `commonMain` y solo
+  entrypoints; gate sin Xcode/navegador; `PREFER_SETTINGS` + repos Ivy de
+  Kotlin/Wasm), skill `compose-multiplatform-architecture` (§Estado actual y
+  topología) y `docs/desarrollo-local.md` (producto). Notas de implementación en
+  `docs/specs/bootstrap-cmp-targets.md`. `init.sh` sin cambios.
+- Ficheros creados/modificados (producto): `composeApp/build.gradle.kts`,
+  `gradle/libs.versions.toml`, `gradle.properties`, `settings.gradle.kts`,
+  `composeApp/src/commonMain/.../App.kt`,
+  `composeApp/src/androidMain/{AndroidManifest.xml,kotlin/.../MainActivity.kt}`,
+  `composeApp/src/iosMain/kotlin/.../MainViewController.kt`,
+  `composeApp/src/wasmJsMain/{kotlin/.../main.kt,resources/index.html}`,
+  `kotlin-js-store/yarn.lock`, `docs/desarrollo-local.md`; harness:
+  `.harness/{ARCHITECTURE.md,CONSTRAINTS.md,PROGRESS.md,feature_list.json}`,
+  `.harness/docs/{feature-ids.md,specs/bootstrap-cmp-targets.md}`,
+  `.harness/.agents/skills/compose-multiplatform-architecture/SKILL.md`.
+- Riesgo o duda sin resolver: commit/push/PR/CI los hace el orquestador; queda
+  pendiente la **validación independiente**. La verificación visual de la pantalla
+  Wasm no produce captura (canvas + ventana no visible); el CI (ubuntu, sin Chrome
+  ni Xcode) debe confirmar el escenario 5.
+- Siguiente mejor paso: validación independiente de FT00005
+  (`feature-validator`); después, `boe-sumario-cliente` (FT00006).
+
+### Session 027
+
+- Fecha: 2026-10-10
+- Objetivo: cerrar `bootstrap-cmp-targets` (FT00005): validación independiente →
+  aceptación → commit → push → PR.
+- Completado:
+  - **Validación independiente** (`feature-validator`): veredicto **`accept`**.
+    Reejecutó con salidas reales: `:composeApp:assembleDebug` (APK 8.740.700 B),
+    `:composeApp:wasmJsBrowserDistribution` (dist servida con `Content-Type`
+    correctos: `*.wasm` → `application/wasm`),
+    `compileKotlinIosSimulatorArm64` + `linkDebugFrameworkIosSimulatorArm64` con
+    `--rerun-tasks` (`ComposeApp.framework` con binario/`Headers`/`Modules`/
+    `Info.plist`), `App()` única (literales embebidos en `.dex`, `.framework` y
+    `.wasm`), `./gradlew test` (0 fallos; mismos recuentos), `build --no-daemon`
+    (196 tareas, `wasmJsBrowserTest SKIPPED`), `build --dry-run | grep flyway`
+    vacío, `:composeApp:lint` «No issues found.» e `init.sh` exit 0. Aceptó las
+    dos desviaciones de build como acotadas y justificadas; sin hallazgos de
+    seguridad. Detalle en `docs/validations/bootstrap-cmp-targets.md`.
+  - `.harness/feature_list.json`: FT00005 → **`accepted`** (evidencia con la
+    validación independiente y la deuda Low). `docs/feature-ids.md`: FT00005 →
+    `accepted`.
+- Notas *Low* del validator (no bloquean; deuda menor):
+  1. `wasmJsBrowserTest` desactivado globalmente también salta en CI (ubuntu, con
+     Chrome); revisar al llegar UI Wasm real (FT00032+).
+  2. `<div id="root">` de `wasmJsMain/resources/index.html` queda sin usar (se
+     monta en `document.body`).
+  3. Textos literales en `App.kt` (intencional por non-goals; recursos → FT00032+).
+  4. Aviso de deprecación de Gradle 9.0 preexistente (ajeno a la feature).
+- Ficheros (harness): `.harness/feature_list.json`, `.harness/docs/feature-ids.md`,
+  `.harness/docs/validations/bootstrap-cmp-targets.md`,
+  `.harness/PROGRESS.md`.
+- Estado: **FT00005 `accepted`** (producto en la rama
+  `feat/ft00005-bootstrap-cmp-targets`; commit/push/PR a cargo del orquestador).
+  Siguiente feature lista: `boe-sumario-cliente` (FT00006).
+- Siguiente mejor paso: tras el PR, implementar `boe-sumario-cliente` (FT00006)
+  con el flujo.

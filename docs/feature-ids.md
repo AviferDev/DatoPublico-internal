@@ -20,7 +20,7 @@
 | FT00002 | bootstrap-shared-dtos | DTOs compartidos con kotlinx.serialization | fundaciones | accepted |
 | FT00003 | bootstrap-postgres-pgvector | PostgreSQL + pgvector en docker-compose | fundaciones | accepted |
 | FT00004 | bootstrap-ktor-healthcheck | Esqueleto Ktor con healthcheck | fundaciones | accepted |
-| FT00005 | bootstrap-cmp-targets | Esqueleto Compose Multiplatform (Android, Web, iOS) | fundaciones | not_started |
+| FT00005 | bootstrap-cmp-targets | Esqueleto Compose Multiplatform (Android, Web, iOS) | fundaciones | accepted |
 | FT00006 | boe-sumario-cliente | Cliente del sumario diario del BOE | ingesta-boe | not_started |
 | FT00007 | boe-parser-publicacion | Parser de publicaciones (metadatos y texto) | ingesta-boe | not_started |
 | FT00008 | publicacion-persistencia | Persistencia de publicaciones, fragmentos y resúmenes | ingesta-boe | not_started |
