@@ -2285,3 +2285,9 @@
   (FT00014, depende de FT00008) o `english-identifiers-rename` (FT00047).
 - Siguiente mejor paso: commit del harness y commit/PR de producto (orquestador);
   después, `chunking-articulos` (FT00014).
+- Commit/PR (orquestador): commit de producto `2c35bc3
+  feat(FT00013): complete destacados-diarios` (4 ficheros; claim `0ddb734`);
+  **PR #14** (https://github.com/AviferDev/DatoPublico/pull/14) hacia `main`; CI en
+  verde run `38074664281` (2m46s). Pendiente de revisión/fusión explícita del dueño.
+- Siguiente mejor paso: revisar/fusionar el PR #14; después, `chunking-articulos`
+  (FT00014).
