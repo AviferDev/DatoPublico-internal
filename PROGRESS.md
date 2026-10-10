@@ -1942,5 +1942,6 @@
   sin hallazgos de seguridad; registro en `docs/validations/ingesta-observabilidad.md`).
   Commit de producto `ee1ab2d feat(FT00010): complete ingesta-observabilidad` en
   `feat/ft00010-ingesta-observabilidad`; **PR #11** abierto hacia `main`
-  (https://github.com/AviferDev/DatoPublico/pull/11). `feature_list.json`:
+  (https://github.com/AviferDev/DatoPublico/pull/11); **CI en verde**: run
+  `38059233088`, job 'Build and test' SUCCESS (3m17s). `feature_list.json`:
   FT00010 → **`accepted`**; `docs/feature-ids.md`: FT00010 → `accepted`.
