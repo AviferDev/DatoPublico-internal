@@ -1708,5 +1708,9 @@
   Critical/High/Medium; deuda Low (índice `cola_revision(resumen_id)` → FT00023;
   `.first()` sobre `RETURNING id`). Alcance amplio (4 tablas) pero repositorios
   secundarios mínimos.
-- Siguiente mejor paso: commit/PR del producto y CI (orquestador); después,
-  `ingesta-job-diario` (FT00009).
+- Cierre: commit de producto `015d882` en `feat/ft00008-publicacion-persistencia`
+  (claim `35e09e0`); **PR #9** (https://github.com/AviferDev/DatoPublico/pull/9);
+  CI en verde run `38048554781`, job 'Build and test' SUCCESS. Harness commiteado
+  en `main` (`733b9a6 docs(FT00008): complete publicacion-persistencia`).
+  Pendiente de revisión/fusión explícita del dueño.
+- Siguiente mejor paso: `ingesta-job-diario` (FT00009).
