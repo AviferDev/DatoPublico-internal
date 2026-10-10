@@ -7,19 +7,25 @@
 - Camino de arranque estándar: `./init.sh` (desde `.harness/`)
 - Camino de verificación estándar: `./gradlew build` y `./gradlew test` desde la
   raíz del repo público (`..`) — **bootstrapped** (Gradle 8.10.2 + JDK 21).
-- Última feature cerrada: `bootstrap-cmp-targets` (FT00005) → **`accepted` y
-  fusionada** (Sessions 026–027; validación independiente `accept`, CI en verde
-  run `38037289572` y PR #5 fusionado, merge `136eedf`). Hito anterior:
-  `bootstrap-ktor-healthcheck` (FT00004) →
-  **`accepted` y fusionada** (Session 025; validación independiente `accept`, CI
-  en verde y PR #4 fusionado, merge `1e32f4c`). Siguiente feature lista tras
-  acceptar FT00005: `boe-sumario-cliente` (FT00006, depende de FT00002 y FT00004,
-  ambas `accepted`). FT00003
+- Última feature cerrada: `boe-sumario-cliente` (FT00006) → **`accepted`**
+  (Session 029; validación independiente `accept`,
+  `docs/validations/boe-sumario-cliente.md`; commit `835420b`, PR #6, CI en verde
+  run `38039279992`; pendiente de fusión). Hito anterior:
+  `bootstrap-cmp-targets` (FT00005) → **`accepted` y fusionada** (Sessions
+  026–027; CI en verde run `38037289572`, PR #5 fusionado, merge `136eedf`).
+  Siguiente feature lista: `boe-parser-publicacion` (FT00007, depende de
+  `boe-sumario-cliente`, `accepted`). FT00003
   (`bootstrap-postgres-pgvector`) queda **`accepted`** (Session
   023) tras la reparación de seguridad, la derivación de la conexión y la limpieza
   de comentarios. FT00002 (`bootstrap-shared-dtos`) **`accepted`** y **fusionada**
   (PR #2, merge `ca781f3`); habilita `contrato-resumen-ciudadano` (FT00019) y
   `boe-sumario-cliente` (FT00006).
+
+- Feature en curso: `boe-sumario-cliente` (FT00006) — implementada y
+  autoverificada, estado **`passing`**, **pendiente de validación independiente**
+  (Session 028). Cliente del sumario diario del BOE en `:backend`
+  (`ingesta/sumario/`), con tests `MockEngine` sin red y un test opt-in contra la
+  API real fuera del gate; **no** se cablea en el arranque.
 
 - Bloqueo actual: ninguno para el bootstrap. Pendiente de producto: **nombre y
   marca** (bloquea la fase de producción, no el bootstrap).
@@ -28,7 +34,16 @@
   **`Dto`**; la config de serialización (`DatoPublicoJson`) sin `Dto`; sin
   prefijos. En `ARCHITECTURE.md` §«Convenciones de nombres» y **MUST** en
   `CONSTRAINTS.md`.
-- Última verificación: 2026-10-10. **FT00005 `bootstrap-cmp-targets`:
+- Última verificación: 2026-10-10. **FT00006 `boe-sumario-cliente`: `accepted`**
+  (Session 029): cliente del sumario diario del BOE en `:backend`
+  (`ingesta/sumario/`) con filtro I/II.A/II.B/III/V.B (excluye IV/V.A),
+  serializador objeto/array, dos fixtures reales byte-idénticos a la API, tests
+  sin red (18 en `:backend`, 0 fallos) y test opt-in `BOE_LIVE_TEST=1` fuera del
+  gate; gate verde (`build` 197 tareas, `test` 3 módulos, `init.sh` exit 0) y
+  validación independiente `accept`
+  (`docs/validations/boe-sumario-cliente.md`). Sin wiring en el arranque;
+  `Application.kt`/Flyway/`:shared`/`:composeApp`/CI intactos. Hito previo:
+  **FT00005 `bootstrap-cmp-targets`:
   `accepted`** (Sessions 026–027): esqueleto Compose Multiplatform con targets
   Android/Wasm/iOS, pantalla mínima única en `commonMain` (`App()`) y entrypoint
   por plataforma; verificados `:composeApp:assembleDebug` (APK), 
@@ -1181,3 +1196,117 @@
   CI en verde run `38037289572`; rama eliminada). Siguiente feature lista:
   `boe-sumario-cliente` (FT00006).
 - Siguiente mejor paso: implementar `boe-sumario-cliente` (FT00006) con el flujo.
+
+### Session 028
+
+- Fecha: 2026-10-10
+- Objetivo: implementar `boe-sumario-cliente` (FT00006) en el repo público: cliente
+  del sumario diario del BOE en `:backend` (secciones I, II.A, II.B, III y V.B),
+  con su modelo interno, serializador «objeto o array», tests sin red y un test
+  opt-in contra la API real.
+- Completado:
+  - **Catálogo y build**: `gradle/libs.versions.toml` añade `ktor-client-cio` y
+    `ktor-client-mock` (version.ref `ktor` 3.0.3); `:backend` añade
+    `implementation` de `ktor-client-core`/`-cio`/`-content-negotiation` y
+    `testImplementation` de `ktor-client-mock` y `kotlinx-coroutines-test`. Flyway,
+    `:shared`, `:composeApp`, la raíz del build y el CI sin cambios.
+  - **Producción** (`backend/src/main/kotlin/.../ingesta/sumario/`):
+    `SumarioWireDto.kt` (DTOs de transporte `@Serializable` con `@SerialName`),
+    `SingleOrArraySerializer.kt` (serializador genérico objeto/array + 5 objetos
+    concretos), `EntradaSumario.kt` (modelo interno sin `Dto`), `BoeSumarioClient.kt`
+    (interfaz + `BoeSumarioException` + mapeo) y `BoeSumarioHttpClient.kt`
+    (`HttpClient` inyectado, `GET {base}/boe/sumario/{YYYYMMDD}` con
+    `Accept: application/json`, `404`→vacío, error tipado; factory CIO +
+    `ContentNegotiation` con `DatoPublicoJson`).
+  - **Fixtures reales** capturados con `curl` (`Accept: application/json`, HTTP
+    200): `backend/src/test/resources/boe/sumario-20261009.json` (item objeto y
+    array; incluye V.A) y `sumario-20240102.json` (item y departamento objeto;
+    incluye IV y V.A).
+  - **Tests**: `SumarioParsingTest` (3), `BoeSumarioClientTest` (5, `MockEngine`) y
+    `BoeSumarioLiveTest` (1, opt-in `BOE_LIVE_TEST=1`, fuera del gate).
+  - **Docs durables**: `ARCHITECTURE.md` (frontera Backend→BOE y `ingesta/sumario/`),
+    `CONSTRAINTS.md` (MUST: gate sin llamadas de red; pruebas externas opt-in fuera
+    de gate/CI) y `docs/desarrollo-local.md` (cliente + check opt-in + nota del
+    truststore). `init.sh` sin cambios.
+- Verificación ejecutada (desde `..`, JAVA_HOME del JBR 21):
+  - `./gradlew :backend:test --rerun-tasks` → BUILD SUCCESSFUL; XML sin
+    failures/errors: SmokeTest 1/0/0, AppConfigTest 6/0/0, HealthTest 2/0/0,
+    SumarioParsingTest 3/0/0, BoeSumarioClientTest 5/0/0, BoeSumarioLiveTest 1/0/0
+    (18 tests). Escenarios 1–5 cubiertos sin red.
+  - **Recuentos reales por sección**: `20261009` → 205 entradas de corpus
+    (I 5 / II.A 16 / II.B 31 / III 69 / V.B 84), V.A (32) descartada; `20240102` →
+    64 entradas (II.A 6 / II.B 24 / III 18 / V.B 16), IV/V.A/V.C descartadas.
+  - **Escenario 6 (opt-in, fuera del gate)**: `BOE_LIVE_TEST=1 ./gradlew
+    :backend:test --tests '*BoeSumarioLiveTest'` → BUILD SUCCESSFUL (1 test, 0
+    fallos); `curl -H 'Accept: application/json'
+    …/boe/sumario/20261009` → HTTP 200 con las mismas entradas no vacías por
+    sección del corpus (205) y V.A (32) fuera.
+  - **Gate sin red ni BD**: `./gradlew build --no-daemon` → BUILD SUCCESSFUL (197
+    tareas); `./gradlew test` → BUILD SUCCESSFUL (3 módulos); `env -u JAVA_HOME
+    .harness/init.sh` → exit 0.
+- Hallazgo de implementación (entorno): el `cacerts` del JBR de Android Studio
+  **no** incluye la raíz **FNMT-RCM** que firma `*.boe.es`, así que el test opt-in
+  en JVM falla con `SunCertPathBuilderException`; se ejecutó añadiendo esa raíz a
+  un truststore temporal (`JAVA_TOOL_OPTIONS=-Djavax.net.ssl.trustStore=…`). `curl`
+  valida por el llavero del sistema. No afecta al gate; documentado en
+  `docs/desarrollo-local.md`.
+- Ficheros creados/modificados (producto): `gradle/libs.versions.toml`,
+  `backend/build.gradle.kts`,
+  `backend/src/main/kotlin/.../ingesta/sumario/{SumarioWireDto,SingleOrArraySerializer,EntradaSumario,BoeSumarioClient,BoeSumarioHttpClient}.kt`,
+  `backend/src/test/kotlin/.../ingesta/sumario/{BoeSumarioClientTest,SumarioParsingTest,BoeSumarioLiveTest}.kt`,
+  `backend/src/test/resources/boe/{sumario-20261009,sumario-20240102}.json`,
+  `docs/desarrollo-local.md`; harness:
+  `.harness/{ARCHITECTURE.md,CONSTRAINTS.md,PROGRESS.md,feature_list.json}` y
+  `.harness/docs/feature-ids.md`.
+- Riesgo o duda sin resolver: commit/push/PR y CI los hace el orquestador; queda
+  pendiente la **validación independiente**. El cliente no se cablea en el arranque
+  (lo harán FT00007/FT00009). El fixture `20240102` no tiene Sección I (sí II.A/II.B/
+  III/V.B); la I se cubre con `20261009`.
+- Estado: **FT00006 `passing`** (implementada y autoverificada), pendiente de
+  validación independiente.
+- Siguiente mejor paso: validación independiente de FT00006 (`feature-validator`).
+
+### Session 029
+
+- Fecha: 2026-10-10
+- Objetivo: cerrar `boe-sumario-cliente` (FT00006): validación independiente →
+  aceptación → commit → push → PR.
+- Completado:
+  - **Claim**: rama `feat/ft00006-boe-sumario-cliente` creada desde `origin/main`
+    y reclamada con el commit vacío `03b00b8 chore(FT00006): claim` (push
+    inmediato). Sin PRs ni ramas de feature previas (nada reclamado).
+  - **Planner** (`feature-spec`): spec `docs/specs/boe-sumario-cliente.md`
+    (cliente del sumario, modelo interno, serializador objeto/array, fixtures
+    reales, test opt-in; `parts: none`).
+  - **Implementer** (`feature-implementer`): cliente del sumario en `:backend`
+    (`ingesta/sumario/`), catálogo/deps Ktor client, dos fixtures reales, tests con
+    `MockEngine` (sin red) + opt-in; docs durables. Estado `passing`.
+  - **Validación independiente** (`feature-validator`): veredicto **`accept`**.
+    Reejecutó `:backend:test --rerun-tasks` (18 tests, 0 fallos), gate sin red/BD
+    (`build --no-daemon` 197 tareas, `test` 3 módulos, `init.sh` exit 0), confirmó
+    fixtures **byte-idénticos** a la API en vivo, recuentos por sección
+    reproducidos (205 y 64; IV/V.A fuera), API real (`curl`: 200/404/400) y
+    escenario 6 opt-in verde con el truststore FNMT temporal; sin hallazgos de
+    seguridad y alcance acotado verificado. Detalle en
+    `docs/validations/boe-sumario-cliente.md`.
+  - `.harness/feature_list.json`: FT00006 → **`accepted`** (evidencia con la
+    validación independiente y la deuda Low). `docs/feature-ids.md`: `accepted`.
+    Spec: cabecera `accepted`.
+  - Commit de producto `835420b feat(FT00006): complete boe-sumario-cliente` en
+    `feat/ft00006-boe-sumario-cliente`; **PR #6** hacia `main`
+    (https://github.com/AviferDev/DatoPublico/pull/6). **CI en verde**: run
+    `38039279992`, job 'Build and test' SUCCESS (4m59s) para el head `835420b`.
+- Notas *Low* del validator (no bloquean; deuda para FT00007/FT00009):
+  1. `BoeSumarioLiveTest` se reporta como «passed» (no «skipped») en el XML del
+     gate (`return@runTest`); no abre sockets.
+  2. `boeSumarioHttpClient()` sin `HttpTimeout` explícito.
+  3. La envoltura `departamento.texto.item` no se modela (hoy solo IV/V.C).
+  4. Campos faltantes → cadena vacía sin filtrar entradas incompletas.
+  5. Cosmético: la evidencia de `20240102` omite V.C (también descartada).
+- Ficheros (harness): `.harness/feature_list.json`, `.harness/docs/feature-ids.md`,
+  `.harness/docs/specs/boe-sumario-cliente.md` (nuevo),
+  `.harness/docs/validations/boe-sumario-cliente.md` (nuevo),
+  `.harness/{ARCHITECTURE.md,CONSTRAINTS.md}`, `.harness/PROGRESS.md`.
+- Estado: **FT00006 `accepted`**. Siguiente feature lista: `boe-parser-publicacion`
+  (FT00007, depende de `boe-sumario-cliente`).
+- Siguiente mejor paso: implementar `boe-parser-publicacion` (FT00007) con el flujo.

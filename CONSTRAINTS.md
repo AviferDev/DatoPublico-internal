@@ -59,6 +59,11 @@
   depende de servicios externos (base de datos). Las migraciones se ejecutan con
   una tarea explícita (`./gradlew :backend:flywayMigrate`) y las tareas Flyway
   **nunca** se enganchan a `build`/`check` (la CI corre sin PostgreSQL).
+- **MUST**: los tests del gate (`./gradlew build`, `./gradlew test`,
+  `.harness/init.sh`) **no** hacen **llamadas de red**. Cualquier prueba contra un
+  servicio externo (p. ej. la API de datos abiertos del BOE) es **opt-in** por
+  variable de entorno y queda **fuera** de `build`/`test`/`init.sh` y de la CI;
+  sin la variable, el test se omite sin abrir sockets (`BOE_LIVE_TEST=1`).
 - **MUST NOT**: incluir credenciales en ficheros versionados, **ni siquiera de
   desarrollo** (sin contraseñas literales ni como *fallback* en código, compose,
   CI o plantillas). La única fuente es el entorno/`.env` (ignorado por git); la
