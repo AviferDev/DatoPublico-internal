@@ -19,8 +19,9 @@
   (`ingesta/publicacion/`) que descarga el texto oficial por el **XML estructurado**
   (`xml.php`) con parser XML seguro y produce `Publicacion` (metadatos + texto +
   URL oficial), sin wiring en el arranque; `categoria = null`, diferida a FT00012;
-  validación independiente `accept`; deuda Low: `HttpTimeout` explícito → FT00009;
-  detalle en `docs/validations/boe-parser-publicacion.md` y ADR
+  validación independiente `accept`; **PR #8 fusionado** en `main` por rebase →
+  `f20cb40`, CI en verde run `38045496356`; deuda Low: `HttpTimeout` explícito →
+  FT00009; detalle en `docs/validations/boe-parser-publicacion.md` y ADR
   `docs/adr/0002-fuente-texto-boe-xml.md`). Hito anterior:
   `boe-sumario-cliente` (FT00006) → **`accepted` y fusionada** (Sessions 029–034;
   validación + revalidación `accept`; **PR #6 fusionado** por rebase → `main`:
