@@ -24,7 +24,8 @@ estudio**, **Medio ambiente**, **Recursos y resoluciones**, **Información públ
 y concesiones** y **Otras disposiciones y anuncios**.
 
 ### Sección / Epígrafe (BOE)
-Metadatos crudos del sumario: la sección (I, II.A, II.B, III, V.B) y el epígrafe
+Metadatos crudos del sumario: la sección (I, II.A, II.B, III, IV, V.A, V.B, V.C)
+y el epígrafe
 del BOE (p. ej. «Subvenciones», «Recursos»). Se conservan junto a la Categoría
 curada para trazabilidad y filtros finos.
 
@@ -43,7 +44,12 @@ I (p. ej. concesión por Real Decreto), la III (bases reguladoras) o la V.B
 (extractos). Puede incluir plazo de solicitud.
 
 ### BOE
-Boletín Oficial del Estado, fuente oficial de publicación en España.
+Boletín Oficial del Estado, fuente oficial de publicación en España. Es
+información **pública**: la 1.0.0 ingiere **todo su sumario** (secciones I, II.A,
+II.B, III, IV, V.A, V.B y V.C) y **todos los campos** que ofrece la API. El
+principio «sin datos personales» aplica a los **datos de quien usa la app**
+(nada de cuentas ni perfiles), no al contenido del BOE, que **nunca se
+restringe**.
 
 ### Sección I
 "Disposiciones generales" del BOE (leyes y reglamentos). Parte del ámbito de
@@ -65,14 +71,27 @@ planes de estudio, impacto ambiental, etc.
 "Anuncios — Otros anuncios oficiales" del BOE: extractos de convocatorias de
 ayudas, información pública y concesiones administrativas.
 
+### Sección IV
+"Administración de Justicia" del BOE: edictos, notificaciones y requisitorias de
+Juzgados y Tribunales. **Incluida en la 1.0.0**: es información pública del BOE.
+
+### Sección V.A
+"Anuncios — A. Contratación del Sector Público" del BOE: licitaciones y
+contratación pública publicadas en el BOE. **Incluida en la 1.0.0** (los
+contratos adjudicados y el detalle de gasto viven en PLACSP, fuente externa que
+sigue en 1.x).
+
+### Sección V.C
+"Anuncios — C. Anuncios particulares" del BOE. **Incluida en la 1.0.0**.
+
 ### Cambio (en 1.0.0)
 Aparición de una **publicación nueva** (norma, empleo o beca) en el BOE. En la
 1.0.0 no se consideran cambios las modificaciones de publicaciones ya existentes.
 
 ### Feed diario
-Lista de las **publicaciones** nuevas de cada día (Secciones I, II.A, II.B, III y
-V.B), cada una con su resumen ciudadano, ordenada por fecha. Incluye una selección
-de **destacados**.
+Lista de las **publicaciones** nuevas de cada día (todas las secciones del BOE:
+I, II.A, II.B, III, IV, V.A, V.B y V.C), cada una con su resumen ciudadano,
+ordenada por fecha. Incluye una selección de **destacados**.
 
 ### Destacados (del día)
 Subconjunto de publicaciones del día consideradas más relevantes mediante una
@@ -123,8 +142,8 @@ Fragmentación del texto oficial por artículo o sección para su indexado.
 
 ### Backfill
 Carga inicial del histórico reciente del BOE para poblar la búsqueda desde el
-primer día. En la 1.0.0: **último año**, de las Secciones I, II.A, II.B, III y
-V.B.
+primer día. En la 1.0.0: **último año**, de **todo el sumario del BOE**
+(secciones I, II.A, II.B, III, IV, V.A, V.B y V.C).
 
 ### Watchlist (futuro)
 Seguimiento personalizado de normas para alertar de cambios posteriores. Se
@@ -147,9 +166,9 @@ Usar `Norma` cuando el ámbito incluya reglamentos. Razón: no todo lo publicado
 en la Sección I es una ley.
 
 ### Transparencia
-Demasiado amplio para este producto. Razón: las becas y subvenciones de la
-Sección III ya están en la 1.0.0, pero el seguimiento de gasto y licitaciones
-(PLACSP, PRTR) sigue en 1.x.
+Demasiado amplio para este producto. Razón: la 1.0.0 cubre **todo el sumario del
+BOE** (incluidas las licitaciones de la Sección V.A), pero el seguimiento de gasto
+y las fuentes externas (PLACSP, PRTR) siguen en 1.x.
 
 ### Resumen
 Usar `Resumen ciudadano` para diferenciarlo del sumario oficial del BOE. Razón:
@@ -165,18 +184,20 @@ No se usa para la simplificación a lenguaje claro: ese proceso se llama
 para pasar a idiomas distintos del castellano, que quedan fuera de la 1.0.0.
 
 ### Contrato público (adjudicado)
-Fuera de la 1.0.0. Razón: los contratos adjudicados no se publican en el BOE sino
-en la Plataforma de Contratación del Sector Público (PLACSP); entra en 1.x.
+El detalle de contratos adjudicados queda fuera de la 1.0.0 (su fuente es la
+Plataforma de Contratación del Sector Público, PLACSP; entra en 1.x). Lo que el
+BOE publique de contratación (Sección V.A) **sí** está en la 1.0.0.
 
 ### Verificación con fuentes externas
 El chat de la 1.0.0 verifica afirmaciones **solo contra el corpus del BOE**. El
 fact-checking que rastrea prensa o redes no forma parte de la 1.0.0 (1.x).
 
 ### Sección IV (Administración de Justicia)
-Fuera de la 1.0.0. Razón: edictos, notificaciones y requisitorias de Juzgados y
-Tribunales incluyen **datos personales**, contrarios al principio de «sin datos
-personales».
+Redacción anterior **superada**: se excluía por «datos personales», pero ese
+principio es sobre los **usuarios de la app**, no sobre el BOE. **Incluida en la
+1.0.0**.
 
 ### Sección V.A (Subastas y licitaciones)
-Fuera de la 1.0.0. Razón: es contratación pública; su fuente canónica es PLACSP y
-su tratamiento llega en 1.x.
+Redacción anterior **superada**: se aparcaba a 1.x por PLACSP. El sumario de la
+Sección V.A del BOE (contratación del sector público) **entra en la 1.0.0**; lo
+que sigue en 1.x es el detalle de adjudicaciones de PLACSP.

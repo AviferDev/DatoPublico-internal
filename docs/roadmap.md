@@ -29,21 +29,21 @@ claro y un criterio de salida por versión, de forma que cada paso acerque a la
     locales** (`multilingual-e5-small` int8 vía ONNX) en el servidor.
 - **Plataformas del producto:** Android, Web e iOS. **iOS es obligatorio en la
   `1.0.0`.**
-- **Alcance de la `1.0.0` (producción):** BOE estatal Secciones **I** (normas),
-  **II.A** (nombramientos y ceses), **II.B** (empleo público), **III** (otras
-  disposiciones) y **V.B** (otros anuncios oficiales); resúmenes IA con enlace a la
+- **Alcance de la `1.0.0` (producción):** **todo el sumario del BOE estatal**
+  (secciones **I**, **II.A**, **II.B**, **III**, **IV**, **V.A**, **V.B** y
+  **V.C**), con **todos los campos** de la fuente; resúmenes IA con enlace a la
   fuente; feed diario con **destacados** y **categorías**; búsqueda con filtros por
   categoría y fecha; **chat RAG** (consulta o verificación de afirmaciones contra
   el BOE, con citas); clientes Android + Web + iOS; **sin cuentas de usuario**.
 - **Fuera de la `1.0.0`** (va a la serie `1.x`): CCAA y UE; cuentas/watchlist;
-  alertas y calendario de plazos; **Sección IV (Administración de Justicia, datos
-  personales)**; contratación pública y licitaciones (Sección V.A / PLACSP);
+  alertas y calendario de plazos; detalle de **adjudicaciones de PLACSP** (la
+  contratación publicada en el BOE, Sección V.A, **sí** entra en la 1.0.0);
   contexto estadístico; fact-checking con fuentes externas; simulador de impacto y
   dossiers PDF.
-- **"Cambio" en 1.0.0:** solo publicaciones nuevas (I, II.A, II.B, III o V.B); no
+- **"Cambio" en 1.0.0:** solo publicaciones nuevas (cualquier sección del BOE); no
   se gestionan modificaciones de publicaciones existentes.
-- **Corpus de búsqueda:** backfill del **último año** de las Secciones I, II.A,
-  II.B, III y V.B.
+- **Corpus de búsqueda:** backfill del **último año** de **todo el sumario del
+  BOE** (secciones I, II.A, II.B, III, IV, V.A, V.B y V.C).
 - **Categoría:** enum curado (11 valores) derivado de la sección/epígrafe del BOE,
   que se conserva como metadato.
 - **Ingesta:** job diario a las **9:30** más una **segunda pasada** por la tarde.
@@ -54,13 +54,16 @@ claro y un criterio de salida por versión, de forma que cada paso acerque a la
 - **Sostenibilidad:** gratuito de interés público (subvenciones/donaciones).
 - **Equipo:** una persona, a tiempo parcial y sin fecha fija.
 - **Diseño:** dirección visual inicial definida en `DESIGN.md`.
-- **Contenido del feed:** todas las publicaciones nuevas de las Secciones I, II.A,
-  II.B, III y V.B. Detalle = resumen ciudadano + enlace a la fuente.
+- **Contenido del feed:** todas las publicaciones nuevas de **todo el sumario del
+  BOE** (secciones I, II.A, II.B, III, IV, V.A, V.B y V.C). Detalle = resumen
+  ciudadano + enlace a la fuente.
 - **Lenguas:** solo castellano.
 - **"A quién afecta":** colectivos amplios.
 - **Analítica:** sin telemetría de uso en la 1.0.0.
 - **Sin cuentas ni datos personales:** el servidor solo almacena datos públicos.
-  El watchlist será local; un futuro push usaría un ID anónimo de dispositivo.
+  El principio «sin datos personales» aplica a **quien usa la app** (sin perfiles
+  ni analítica personal); el contenido del BOE nunca se restringe. El watchlist
+  será local; un futuro push usaría un ID anónimo de dispositivo.
 - **Hosting:** servidor propio (Intel N100, 8 GB RAM).
 
 ## 3. Convenciones
@@ -82,7 +85,7 @@ claro y un criterio de salida por versión, de forma que cada paso acerque a la
 | Versión | Nombre | Objetivo | Producción |
 | --- | --- | --- | --- |
 | `0.1.0` | Fundaciones | Monorepo, CI, entornos, DB, esqueletos | No |
-| `0.2.0` | Ingesta BOE | Descargar y clasificar publicaciones (Secciones I, II.A, II.B, III, V.B) | No |
+| `0.2.0` | Ingesta BOE | Descargar y clasificar publicaciones (todo el sumario del BOE) | No |
 | `0.3.0` | RAG base | Fragmentar, vectorizar y recuperar | No |
 | `0.4.0` | Simplificación IA | Resúmenes claros, trazables y destacados | No |
 | `0.5.0` | API pública | Feed, detalle, búsqueda y chat en backend | No |
@@ -113,14 +116,14 @@ reproducible.
 - `0.1-T07` `README`/guía de arranque y definición de entornos
   (dev/staging/prod).
 
-### `0.2.0` — Ingesta BOE (Secciones I, II.A, II.B, III y V.B)
+### `0.2.0` — Ingesta BOE (todo el sumario)
 **Objetivo:** disponer de las publicaciones del BOE (todas las categorías) de
 forma diaria y fiable.
 **Criterio de salida:** cada día se descargan, clasifican y guardan las
 publicaciones con metadatos fiables.
 
-- `0.2-T01` Cliente de la API de datos abiertos del BOE (sumario diario) para las
-  Secciones I, II.A, II.B, III y V.B.
+- `0.2-T01` Cliente de la API de datos abiertos del BOE (sumario diario) para
+  **todo el sumario** (secciones I, II.A, II.B, III, IV, V.A, V.B y V.C).
 - `0.2-T02` Parser de publicaciones (identificador, título, fecha, organismo,
   sección, epígrafe, texto, URL oficial), con variantes por sección.
 - `0.2-T03` Modelo de datos y persistencia (`publicacion`, categoría, sección,
@@ -132,8 +135,8 @@ publicaciones con metadatos fiables.
 - `0.2-T07` Observabilidad del job (logs y alerta si no hay ingesta).
 - `0.2-T08` Clasificación por **categoría** (enum curado de 11) desde la
   sección/epígrafe, y extracción de **plazos** de convocatorias.
-- `0.2-T09` Backfill del histórico reciente (**último año**, Secciones I, II.A,
-  II.B, III y V.B).
+- `0.2-T09` Backfill del histórico reciente (**último año**, **todo el sumario
+  del BOE**: secciones I, II.A, II.B, III, IV, V.A, V.B y V.C).
 
 ### `0.3.0` — RAG base (chunking + pgvector)
 **Objetivo:** recuperar los fragmentos relevantes de una norma con calidad
@@ -278,9 +281,9 @@ preparada.
   la app es un riesgo asumido (límites/abuso) y la cuota mensual puede agotarse.
   El **chat RAG** es más caro por consulta que el feed: exige rate limiting y
   control de contexto desde el diseño.
-- **Secciones II.A, II.B, III y V.B:** su estructura difiere de la Sección I;
-  parser, chunking, deduplicación (III ↔ V.B) y clasificación requieren validación
-  con datos reales.
+- **Secciones II.A, II.B, III, IV, V.A, V.B y V.C:** su estructura difiere de la
+  Sección I; parser, chunking, deduplicación (III ↔ V.B) y clasificación requieren
+  validación con datos reales.
 - **Relevancia de destacados:** el ranking debe ser transparente y explicable
   para no percibirse como sesgo editorial.
 - **N100 / 8 GB:** suficiente para la 1.0.0, pero el backfill se ejecuta por

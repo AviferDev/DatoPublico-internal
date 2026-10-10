@@ -1,6 +1,6 @@
 ---
 name: rag-datapublico
-description: Guía del pipeline RAG de DatoPublico sobre el BOE (Secciones I, II.A, II.B, III y V.B). Úsala al ingerir o fragmentar publicaciones, generar o almacenar embeddings, indexar en pgvector, montar recuperación híbrida, generar resúmenes o respuestas de chat con citas, aplicar guardrails o evaluar calidad (golden set, precision/recall). Fija las convenciones del proyecto (chunking, multilingual-e5-small int8, protección anti-alucinación, trazabilidad a la fuente) y describe el patrón objetivo y sus riesgos conocidos.
+description: Guía del pipeline RAG de DatoPublico sobre el BOE (todo el sumario: Secciones I, II.A, II.B, III, IV, V.A, V.B y V.C). Úsala al ingerir o fragmentar publicaciones, generar o almacenar embeddings, indexar en pgvector, montar recuperación híbrida, generar resúmenes o respuestas de chat con citas, aplicar guardrails o evaluar calidad (golden set, precision/recall). Fija las convenciones del proyecto (chunking, multilingual-e5-small int8, protección anti-alucinación, trazabilidad a la fuente) y describe el patrón objetivo y sus riesgos conocidos.
 ---
 
 # RAG de DatoPublico (BOE)
@@ -25,10 +25,12 @@ ingesta BOE → chunking → embeddings (ONNX) → pgvector → recuperación h�
 
 ## 1. Ingesta y chunking
 
-- Corpus: Secciones **I** (normas), **II.A** (nombramientos), **II.B** (empleo),
-  **III** (otras disposiciones) y **V.B** (otros anuncios). Cada sección tiene
-  estructura y vocabulario distintos: el chunking necesita **variantes por
-  sección**, no una regla única. Se excluyen IV (Justicia) y V.A (licitaciones).
+- Corpus: **todo el sumario del BOE** — **I** (disposiciones generales), **II.A**
+  (nombramientos), **II.B** (empleo), **III** (otras disposiciones), **IV**
+  (Administración de Justicia), **V.A** (contratación pública), **V.B** (otros
+  anuncios) y **V.C** (anuncios particulares). Cada sección tiene estructura y
+  vocabulario distintos: el chunking necesita **variantes por sección**, no una
+  regla única.
 - Fragmenta por **artículo/disposición** conservando su referencia. No generes
   solapamientos inválidos; los fragmentos deben cubrir el texto.
 - Normaliza: el BOE usa **espacio duro (`\u00a0`)** tras etiquetas como
@@ -98,7 +100,7 @@ ingesta BOE → chunking → embeddings (ONNX) → pgvector → recuperación h�
   `-base` sobre corpus real.
 - Corpus de prueba pequeño; validar con volúmenes reales antes de confiar en las
   métricas.
-- Las Secciones II.A, II.B, III y V.B son más irregulares que la I: parser,
-  chunking y clasificación requieren validación con datos reales; puede haber
-  duplicidad III ↔ V.B (base reguladora y extracto).
+- Las Secciones II.A, II.B, III, IV, V.A, V.B y V.C son más irregulares que la I:
+  parser, chunking y clasificación requieren validación con datos reales; puede
+  haber duplicidad III ↔ V.B (base reguladora y extracto).
 - Coste del chat por tokens: aplicar rate limiting y control de contexto.

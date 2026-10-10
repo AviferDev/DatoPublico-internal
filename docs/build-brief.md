@@ -34,8 +34,8 @@ de un tercero (gestor, abogado o familiar), lo que no escala.
   afecta** (normas, nombramientos, empleo, becas y subvenciones, premios,
   convenios, información pública…), por **categoría**.
 - Mantener **trazabilidad** a la fuente oficial en cada resumen.
-- Ofrecer un **feed diario** de todo lo publicado (Secciones I, II.A, II.B, III y
-  V.B).
+- Ofrecer un **feed diario** de **todo lo publicado en el BOE** (secciones I,
+  II.A, II.B, III, IV, V.A, V.B y V.C), usando **todos los campos** de la fuente.
 - **Destacar** las publicaciones más relevantes del día con un ranking objetivo.
 - Permitir **buscar y filtrar** por categoría y fecha en el histórico reciente.
 - Permitir **preguntar o verificar** afirmaciones en lenguaje natural contra el
@@ -49,13 +49,12 @@ Fuera de la 1.0.0 (van a la serie `1.x`):
 - Detección y explicación de **modificaciones** de publicaciones existentes.
 - **Alertas, notificaciones y calendario de plazos** (empleo y becas). En 1.0.0
   los plazos se muestran, pero no se avisa.
-- **Licitaciones y contratación pública** (Sección V.A del BOE, PLACSP/PRTR); los
-  contratos adjudicados no se publican en el BOE.
-- **Administración de Justicia (Sección IV)**: edictos, notificaciones y
-  requisitorias con **datos personales**, contrarios al principio de «sin datos
-  personales».
-- Cuentas de usuario y cualquier dato personal. El watchlist será **local** y,
-  si hay push en el futuro, usará un **identificador anónimo de dispositivo**.
+- **Contratación pública externa** (PLACSP/PRTR): el detalle de adjudicaciones no
+  se publica en el BOE. Lo que el BOE publique de contratación (Sección V.A) **sí**
+  entra en la 1.0.0 (§Goals).
+- Cuentas de usuario y cualquier dato **de quien usa la app**. El watchlist será
+  **local** y, si hay push en el futuro, usará un **identificador anónimo de
+  dispositivo**.
 - Ámbito autonómico (CCAA) y europeo (UE).
 - Contexto estadístico (INE, datos.gob.es).
 - **Fact-checking con fuentes externas** (prensa/redes), simulador de impacto y
@@ -68,8 +67,9 @@ Fuera de la 1.0.0 (van a la serie `1.x`):
 
 Un corte vertical completo y verificable:
 
-1. Ingesta diaria del BOE (Secciones I, II.A, II.B, III y V.B) a las **9:30 con
-   una segunda pasada**, más backfill del **último año**.
+1. Ingesta diaria de **todo el sumario del BOE** (secciones I, II.A, II.B, III,
+   IV, V.A, V.B y V.C), con **todos sus campos**, a las **9:30 con una segunda
+   pasada**, más backfill del **último año**.
 2. **Clasificación por categoría** (enum curado) usando la sección y el epígrafe
    del BOE como metadato, y extracción de **plazos** en convocatorias.
 3. Fragmentación y vectorización con **`multilingual-e5-small`** (int8,
@@ -103,8 +103,9 @@ Un corte vertical completo y verificable:
 - **Ningún** resumen publicado sin enlace a la fuente oficial.
 - El **chat RAG** responde con citas a la fuente y sin afirmaciones fuera del
   corpus en la mayoría de las pruebas.
-- El feed diario se actualiza (9:30 + segunda pasada) y cubre las Secciones I,
-  II.A, II.B, III y V.B, con la categoría asignada correctamente.
+- El feed diario se actualiza (9:30 + segunda pasada) y cubre **todo el sumario
+  del BOE** (secciones I, II.A, II.B, III, IV, V.A, V.B y V.C), con la categoría
+  asignada correctamente.
 - La beta cerrada es usable en Android, Web e iOS.
 - Google Play y App Store aprueban la publicación.
 
@@ -116,7 +117,9 @@ Un corte vertical completo y verificable:
   avanzar sin comprometer fechas.
 - La confianza del usuario es el activo principal; la trazabilidad y los
   guardrails son la base de esa confianza.
-- **Principio de transparencia:** sin cuentas, sin datos personales y sin
-  analítica. El servidor solo almacena datos públicos.
+- **Principio de transparencia:** sin cuentas, sin **datos de quien usa la app**
+  (nada de perfiles ni analítica personal) y sin telemetría de uso. El contenido
+  del BOE es información pública y no se restringe. El servidor solo almacena
+  datos públicos.
 - El **chat RAG** no guarda historial en el servidor (sin cuentas); el historial
   es efímero o vive en el dispositivo.

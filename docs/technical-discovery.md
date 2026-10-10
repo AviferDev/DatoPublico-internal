@@ -49,18 +49,20 @@ Cliente multiplataforma con **UI compartida**:
 - Migraciones con Flyway; backups periódicos.
 - Índices vectoriales para búsqueda semántica y filtros SQL por metadatos
   (fecha, categoría, sección, organismo).
-- **Corpus:** publicaciones nuevas de las **Secciones I, II.A, II.B, III y V.B**
-  del BOE, en **castellano**, más **backfill del último año**.
+- **Corpus:** publicaciones nuevas de **todo el sumario del BOE** (secciones I,
+  II.A, II.B, III, IV, V.A, V.B y V.C) del BOE, en **castellano**, más **backfill
+  del último año**.
 - **Categoría:** enum curado (11 valores) derivado de la sección/epígrafe; se
   conserva también la sección y el epígrafe crudos del BOE.
 
 ## Integrations
 
-- **BOE:** API de datos abiertos (sumario diario) y textos oficiales, para las
-  Secciones **I** (normas), **II.A** (nombramientos y ceses), **II.B** (empleo
-  público), **III** (otras disposiciones: becas, premios, convenios…) y **V.B**
-  (otros anuncios oficiales). Se **excluyen** IV (Justicia, datos personales) y
-  V.A (licitaciones).
+- **BOE:** API de datos abiertos (sumario diario) y textos oficiales, de **todo
+  el sumario**: **I** (disposiciones generales), **II.A** (nombramientos y ceses),
+  **II.B** (empleo público), **III** (otras disposiciones), **IV** (Administración
+  de Justicia), **V.A** (contratación del sector público), **V.B** (otros anuncios
+  oficiales) y **V.C** (anuncios particulares). Sin exclusiones: la API pública se
+  consume completa y se guardan todos sus campos.
 - **OpenCode (Zen/Go):** generación de resúmenes y chat vía endpoint
   OpenAI-compatible. La clave vive solo en el servidor.
 - **Embeddings locales:** `intfloat/multilingual-e5-small` (int8) vía ONNX
@@ -94,7 +96,8 @@ Cliente multiplataforma con **UI compartida**:
 ## Testing and Verification
 
 - Tests unitarios del backend (ingesta, parsers, clasificación, guardrails).
-- Fixtures reales del BOE (Secciones I, II.A, II.B, III y V.B).
+- Fixtures reales del BOE de **todas** las secciones del sumario (I, II.A, II.B,
+  III, IV, V.A, V.B y V.C).
 - **Golden set** de publicaciones para medir la calidad de los resúmenes.
 - Pruebas de recuperación (precision/recall) y de los **destacados** (ranking).
 - Pruebas del **chat RAG**: respuestas fundamentadas en el corpus, con citas y

@@ -34,7 +34,7 @@
     "depends_on": [
       "bootstrap-monorepo-gradle"
     ],
-    "status": "accepted",
+    "status": "in_progress",
     "verification": [
       "Un test de ida y vuelta de serialización JSON de los DTO base pasa.",
       "`./gradlew :shared:jvmTest` pasa (task raíz `test` la agrega)."
@@ -57,7 +57,8 @@
       "Reparación de convención de nombres — ampliación a enums (2026-10-10, reapertura; estado `in_progress`): se completa la convención para que **todos** los tipos serializables del contrato lleven sufijo `Dto`. Renombrados con `git mv` los enums de wire `Categoria`→`CategoriaDto` (`CategoriaDto.kt`) y `SeccionBoe`→`SeccionBoeDto` (`SeccionBoeDto.kt`); valores y `@SerialName` invariantes (11 valores snake_case y tokens `I`,`II.A`,`II.B`,`III`,`V.B`). Actualizadas las referencias en `PublicacionDto` (`seccion`/`categoria`) y en los tests `SerializationTest`/`CategoriaWireTest`. `DatoPublicoJson` sigue sin `Dto`. El JSON y el token de wire no cambian (renombrado de tipos Kotlin).",
       "Reparación de enums verificada (JAVA_HOME JBR 21, desde `..`): `./gradlew :shared:jvmTest --rerun-tasks` → BUILD SUCCESSFUL (XML: SmokeTest 1/0/0, CategoriaWireTest 3/0/0, SerializationTest 7/0/0); `./gradlew test` → BUILD SUCCESSFUL (3 módulos); `./gradlew build` → BUILD SUCCESSFUL (16 tareas). Grep en `*.kt` de producto: sin referencias stale a `Categoria`/`SeccionBoe` como tipos (solo queda el nombre de la clase de test `CategoriaWireTest`).",
       "Convención durable corregida: `ARCHITECTURE.md` §«Convenciones de nombres» y regla **MUST** en `CONSTRAINTS.md` §«Nombres y contratos» — todos los tipos serializables del contrato en `:shared` (data classes **y enums de wire**) llevan sufijo `Dto` (`CategoriaDto`, `SeccionBoeDto`); `DatoPublicoJson` sin `Dto`; `...Entity`/`...Row`/`...Ui`; sin prefijos. Nota de reparación del spec actualizada (`docs/specs/bootstrap-shared-dtos.md`).",
-      "Reparación de enums cerrada: commit `872fb2b` en `feat/ft00002-bootstrap-shared-dtos`; PR #2; CI en verde: run 37998033440, job 'Build and test' SUCCESS (head 872fb2b). Aceptación independiente (validator): `accept`; renombrado íntegro, contrato de wire invariante y convención consistente (incluye enums). **PR #2 fusionado** en `main` (merge `ca781f3`)."
+      "Reparación de enums cerrada: commit `872fb2b` en `feat/ft00002-bootstrap-shared-dtos`; PR #2; CI en verde: run 37998033440, job 'Build and test' SUCCESS (head 872fb2b). Aceptación independiente (validator): `accept`; renombrado íntegro, contrato de wire invariante y convención consistente (incluye enums). **PR #2 fusionado** en `main` (merge `ca781f3`).",
+      "Cambio de alcance y norma de serialización (2026-10-10, reapertura; estado `in_progress`): la 1.0.0 pasa a cubrir **todo el sumario del BOE**, así que `SeccionBoeDto` amplía sus valores a `I`, `II.A`, `II.B`, `III`, `IV`, `V.A`, `V.B` y `V.C` (antes 5). Nueva norma MUST («Serialización»): **cada propiedad de un `@Serializable` lleva `@SerialName` explícito, aunque el nombre Kotlin coincida**; se anotan `PublicacionDto`, `ResumenDto`, `PlazoDto` y `ResumenDiarioDto` (los enums ya anotaban sus valores). `DatoPublicoJson` sin cambios. Sin cambio de JSON en wire (mismos nombres/tokens). Pendiente de implementar y revalidar."
     ],
     "notes": "Fuente: docs/roadmap.md 0.1-T02, docs/domain-model.md."
   },
@@ -171,14 +172,14 @@
     "ft_id": "FT00006",
     "area": "ingesta-boe",
     "title": "Cliente del sumario diario del BOE",
-    "user_visible_behavior": "El backend obtiene el sumario diario de las Secciones I, II.A, II.B, III y V.B desde la API de datos abiertos del BOE para una fecha dada.",
+    "user_visible_behavior": "El backend obtiene el sumario diario de **todo el BOE** (secciones I, II.A, II.B, III, IV, V.A, V.B y V.C) desde la API de datos abiertos, con **todos los campos** de cada entrada (identificador, control, título, sección, organismo, epígrafe y URLs html/xml/pdf), para una fecha dada.",
     "depends_on": [
       "bootstrap-shared-dtos",
       "bootstrap-ktor-healthcheck"
     ],
-    "status": "accepted",
+    "status": "in_progress",
     "verification": [
-      "Un test con un fixture real del sumario parsea y devuelve las entradas de las Secciones I, II.A, II.B, III y V.B.",
+      "Un test con un fixture real del sumario parsea y devuelve las entradas de **todas** las secciones del BOE (I, II.A, II.B, III, IV, V.A, V.B y V.C), con **todos los campos** (identificador, control, título, sección, organismo, epígrafe y URLs html/xml/pdf).",
       "Una llamada a la API real devuelve 200 y datos no vacíos para una fecha laborable."
     ],
     "evidence": [
@@ -197,7 +198,8 @@
       "Reparación de estilo de código (2026-10-10, reapertura; estado `in_progress`→`passing`). MUST durable nuevo en `CONSTRAINTS.md` §«Estilo de código»: cada función/método tiene **una sola salida** (`return` único); prohibido el *early return* (aplica también a los tests; se evitan los `return@…`). Refactor **sin cambiar comportamiento ni firmas**: (1) `SingleOrArraySerializer.deserialize` → una única `when (decoder)` (`is JsonDecoder -> …`, `else -> decodeSerializableValue(listSerializer)`); (2) `BoeSeccionDto.entradas` (`BoeSumarioClient.kt`) → `seccionBoeDe(codigo)?.let { … }.orEmpty()` (cuerpo de expresión); (3) `AppConfig.parsePort` (preexistente de FT00004) → `raw?.toIntOrNull()` + `require(raw == null || …)` + `return port ?: DEFAULT_PORT`; (4) `BoeSumarioLiveTest` → guarda `if`/`else` que envuelve las aserciones en lugar del `return@runTest` (se mantiene el mensaje de aviso sin `BOE_LIVE_TEST`).",
       "Verificación de la reparación (desde `..`, `JAVA_HOME` del JBR 21): `./gradlew :backend:test --rerun-tasks` → BUILD SUCCESSFUL; XML sin failures/errors (SmokeTest 1, AppConfigTest 6, HealthTest 2, SumarioParsingTest 3, BoeSumarioClientTest 5, BoeSumarioLiveTest 1 = **18 tests**). Gate sin red ni BD: `./gradlew build --no-daemon` → BUILD SUCCESSFUL (**197 tareas**); `./gradlew test` → BUILD SUCCESSFUL (3 módulos); `env -u JAVA_HOME .harness/init.sh` → exit 0 («Gate OK…»). Grep `return` en `backend/src`/`shared/src`/`composeApp/src` (`*.kt`, excluyendo KDoc `@return` y `return@`): solo quedan 5 salidas **únicas** (AppConfig 44, `SingleOrArraySerializer` 25, `BoeSumarioHttpClient` 37, `BoeSumarioClient` 34, `SumarioParsingTest` 67); sin *early returns*. Nota de reparación en `docs/specs/boe-sumario-cliente.md`; commit/push/PR y CI los gestiona el orquestador.",
       "Revalidación independiente (`feature-validator`, 2026-10-10) de la reparación: veredicto **`accept`**. Confirmó el MUST de **retorno único** en `CONSTRAINTS.md` §«Estilo de código» y el refactor **sin cambio de comportamiento** (mismos casos y mensaje en `SingleOrArraySerializer`; equivalencia en `BoeSeccionDto.entradas` y `AppConfig.parsePort` con el mismo `IllegalArgumentException`; `BoeSumarioLiveTest` con guarda `if`/`else` y mismas aserciones). Reprodujo que solo quedan 5 salidas únicas y 0 `return@`, reejecutó `:backend:test --rerun-tasks` (18 tests, 0 fallos), el gate (`build --no-daemon` 197 tareas, `test` 3 módulos, `init.sh` exit 0) y verificó el alcance (solo 4 ficheros de producto + docs del harness; `Application.kt`/Flyway/`:shared`/`:composeApp`/raíz/CI intactos). Sin hallazgos de seguridad; sin bloqueantes. Detalle en `docs/validations/boe-sumario-cliente.md`.",
-      "Commit de la reparación `87af9dc refactor(FT00006): una sola salida por funcion` en `feat/ft00006-boe-sumario-cliente`; **PR #6**. CI en verde: run `38040596946`, job 'Build and test' SUCCESS (5m2s) para el head `87af9dc`."
+      "Commit de la reparación `87af9dc refactor(FT00006): una sola salida por funcion` en `feat/ft00006-boe-sumario-cliente`; **PR #6**. CI en verde: run `38040596946`, job 'Build and test' SUCCESS (5m2s) para el head `87af9dc`.",
+      "Cambio de alcance (2026-10-10, reapertura; estado `in_progress`): el corpus pasa a ser **todo el sumario del BOE** (secciones I, II.A, II.B, III, IV, V.A, V.B y V.C; antes se descartaban IV, V.A y V.C) y se usan **todos los campos** de cada entrada (se incorpora `urlPdf`; el resto ya estaban). El mapeo `seccionBoeDe` añade `4→IV`, `5A→V.A`, `5C→V.C`. Aplica además la norma de serialización (`@SerialName` explícito en cada propiedad). Pendiente de implementar y revalidar."
     ],
     "notes": "Fuente: docs/roadmap.md 0.2-T01, docs/technical-discovery.md. **`accepted`** (2026-10-10): implementada y autoverificada y validada de forma independiente (`feature-validator`, veredicto `accept`, detalle en `docs/validations/boe-sumario-cliente.md`). Cliente de librería: no persiste, no clasifica, no descarga texto y no se cablea en el arranque (lo harán FT00007/FT00009). Deuda Low registrada en la evidencia. Riesgo: cambios de formato o disponibilidad de la fuente (mitigado con serializador objeto/array y tolerancia a campos ausentes). Reabierta el 2026-10-10 para aplicar el MUST durable de **retorno único** (`CONSTRAINTS.md` §«Estilo de código»); refactor sin cambios de comportamiento, revalidado (`accept`) y de nuevo **`accepted`**."
   },
@@ -275,7 +277,7 @@
     "ft_id": "FT00011",
     "area": "ingesta-boe",
     "title": "Backfill del histórico reciente",
-    "user_visible_behavior": "Se cargan por lotes las publicaciones de las Secciones I, II.A, II.B, III y V.B del último año, dejando el corpus poblado para la búsqueda.",
+    "user_visible_behavior": "Se cargan por lotes las publicaciones de **todo el sumario del BOE** (secciones I, II.A, II.B, III, IV, V.A, V.B y V.C) del último año, dejando el corpus poblado para la búsqueda.",
     "depends_on": [
       "ingesta-job-diario"
     ],
@@ -298,7 +300,7 @@
     ],
     "status": "not_started",
     "verification": [
-      "Una muestra real de las Secciones I, II.A, II.B, III y V.B se clasifica correctamente por categoría.",
+      "Una muestra real de **todas** las secciones del BOE (I, II.A, II.B, III, IV, V.A, V.B y V.C) se clasifica correctamente por categoría.",
       "Los casos ambiguos (sin epígrafe o con varios) se resuelven con la categoría más representativa, conservando el epígrafe.",
       "Una convocatoria con plazo en la fuente expone la fecha límite; sin plazo, el campo queda vacío."
     ],

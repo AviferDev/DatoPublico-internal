@@ -6,7 +6,7 @@ estado de features. **El código de producto no vive aquí**, sino en el
 repositorio público, un nivel por encima (`..`).
 
 **DatoPublico** explica en lenguaje claro **qué se ha publicado** en el BOE
-(Secciones I, II.A, II.B, III y V.B: normas, nombramientos, empleo público, becas
+(todo el sumario: normas, nombramientos, empleo público, becas
 y subvenciones, premios, convenios, información pública…) por **categoría** y **a
 quién afecta**, con enlace siempre a la fuente oficial, un feed diario con
 destacados y un chat que verifica afirmaciones contra el BOE. Es gratuito, de

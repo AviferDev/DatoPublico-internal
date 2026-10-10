@@ -6,13 +6,17 @@
 ## Producto y datos
 
 - **MUST**: cada resumen publicado lleva enlace visible a la **fuente oficial**.
-- **MUST NOT**: cuentas de usuario ni almacenamiento de datos personales.
+- **MUST NOT**: cuentas de usuario ni almacenamiento de datos personales **de
+  quien usa la app** (nada de perfiles); el contenido del BOE es información
+  pública y **nunca se restringe**.
 - **MUST NOT**: analítica o telemetría de uso.
 - **MUST**: el chat verifica **solo** contra el corpus del BOE (sin fuentes
   externas) y **no** persiste historial en el servidor.
 - **MUST**: el aviso de contenido generado por IA es visible.
-- **MUST NOT**: ingerir la **Sección IV (Administración de Justicia)** por incluir
-  datos personales, ni la **Sección V.A (licitaciones)** (va a 1.x / PLACSP).
+- **MUST**: el corpus de la 1.0.0 es **todo el sumario del BOE** (secciones I,
+  II.A, II.B, III, IV, V.A, V.B y V.C) y se usan **todos los campos** que ofrece
+  la API. Ninguna sección ni campo del BOE se excluye por «datos personales» ese
+  principio aplica solo a los datos de los usuarios de la app.
 
 ## IA y coste
 
@@ -36,6 +40,14 @@
   `...Row` y modelos de UI `...Ui`. Un **modelo de dominio/valor interno** que no
   sea serializable ni `Entity`/`Row`/`Ui` va **sin sufijo** (p. ej.
   `EntradaSumario`). Sin prefijos en ningún caso.
+
+## Serialización (kotlinx.serialization)
+
+- **MUST**: en todo tipo `@Serializable`, **cada propiedad** lleva `@SerialName`
+  explícito, **aunque el nombre Kotlin coincida** con la clave JSON; no se confía
+  en el nombre por defecto. Aplica al contrato de `:shared` y a los DTOs de
+  transporte de `:backend`. Los valores de los enums de wire también llevan su
+  `@SerialName`.
 
 ## Estilo de código
 

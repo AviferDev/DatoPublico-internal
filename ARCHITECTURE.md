@@ -56,6 +56,9 @@
   `@Serializable`, no solo a los contenedores.
 - La **configuración de serialización** (`DatoPublicoJson`) **no** es un tipo de
   contrato y va **sin** `Dto`.
+- **Todo tipo `@Serializable`**: cada propiedad lleva `@SerialName` explícito,
+  aunque el nombre coincida con la clave de wire (sin depender del nombre por
+  defecto); los valores de los enums de wire también lo llevan.
 - En las capas internas: entidades de persistencia `...Entity`, filas `...Row`,
   modelos de UI `...Ui`. Un **modelo de dominio/valor interno** que no sea
   serializable ni `Entity`/`Row`/`Ui` va **sin sufijo** (p. ej. `EntradaSumario`).

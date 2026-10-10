@@ -30,11 +30,9 @@
 ## Later / Not MVP
 
 - Modificación de publicaciones existentes y texto consolidado.
-- **Sección IV (Administración de Justicia)**: fuera de alcance por incluir datos
-  personales.
+- **Contratación pública externa** (PLACSP): el detalle de adjudicaciones no está
+  en el BOE. La Sección V.A del BOE **sí** entra en la 1.0.0.
 - Cuentas, watchlist y alertas (push nativo).
-- **Alertas y calendario de plazos** (notificaciones de empleo/becas).
-- **Contratación pública (PLACSP) y licitaciones** (Sección V.A).
 - Ámbito autonómico (CCAA) y europeo (UE).
 - Contexto estadístico, **fact-checking con fuentes externas**, simulador y
   dossiers PDF.
@@ -42,15 +40,15 @@
 
 ## Assumptions
 
-- El BOE ofrece API de sumario y acceso a los textos de las Secciones I, II.A,
-  II.B, III y V.B de forma estable.
+- El BOE ofrece API de sumario y acceso a los textos de **todo el sumario**
+  (secciones I, II.A, II.B, III, IV, V.A, V.B y V.C) de forma estable.
 - El endpoint de OpenCode (Zen/Go) permite llamadas desde una aplicación backend.
 - La calidad de `multilingual-e5-small` **int8** es suficiente para la búsqueda;
   si no, se sube a `-base` sin cambiar código.
 - El N100 con 8 GB sostiene backend, PostgreSQL y el modelo de embeddings local
   (`e5-small` int8, ~120 MB).
-- Las publicaciones de las cinco secciones se pueden clasificar de forma fiable en
-  las categorías curadas a partir de la sección y el epígrafe del BOE.
+- Las publicaciones de **todas las secciones** del BOE se pueden clasificar de
+  forma fiable en las categorías curadas a partir de la sección y el epígrafe.
 - El seguimiento de publicaciones (watchlist) puede resolverse **sin cuentas** ni
   datos personales (almacenamiento local + ID anónimo de dispositivo si hay push).
 - El usuario valora la trazabilidad a la fuente por encima de la cantidad.
@@ -69,18 +67,19 @@
 - **Abuso del chat RAG:** el chat es más caro por consulta que el feed; sin
   rate limiting puede agotar la cuota o degradar el servicio.
 - **Cambios de formato o de disponibilidad** de la fuente oficial.
-- **Estructura irregular de las Secciones II.A, II.B, III y V.B**: sus formatos
-  difieren de la Sección I; el parser y el chunking son más frágiles ahí.
+- **Estructura irregular de las Secciones II.A, II.B, III, IV, V.A, V.B y V.C**:
+  sus formatos difieren de la Sección I; el parser y el chunking son más frágiles
+  ahí.
 - **Mapeo de categoría imperfecto**: epígrafes ausentes o solapados pueden asignar
   una categoría poco precisa.
 - **Duplicidad III ↔ V.B**: una convocatoria puede aparecer como base reguladora y
   como extracto; hay que deduplicar.
-- **Volumen**: III y V.B añaden muchas publicaciones cortas; más disco, indexado y
-  coste de resumen. Vigilar el N100.
+- **Volumen**: III, IV, V.A, V.B y V.C añaden muchas publicaciones cortas; más
+  disco, indexado y coste de resumen. Vigilar el N100.
 - **Relevancia subjetiva**: el ranking de destacados puede percibirse como sesgo
   editorial; debe ser explicable y transparente.
-- **Rendimiento del N100.** El backfill del último año en cinco secciones puede
-  tardar horas; RAM justa si compiten todos los servicios.
+- **Rendimiento del N100.** El backfill del último año de **todo el sumario del
+  BOE** puede tardar horas; RAM justa si compiten todos los servicios.
 - **Rechazo en la revisión de Apple** (contenido informativo y uso de IA).
 - **Recurso único:** una persona a tiempo parcial frente a un alcance amplio.
 - Una mala ficha publicada puede dañar la confianza de forma difícil de
@@ -88,8 +87,8 @@
 
 ## Research Tasks
 
-- Probar la extracción real del sumario y de textos de las Secciones I, II.A,
-  II.B, III y V.B, y el mapeo a categorías.
+- Probar la extracción real del sumario y de textos de **todo el BOE** (secciones
+  I, II.A, II.B, III, IV, V.A, V.B y V.C), y el mapeo a categorías.
 - Comparar `multilingual-e5-small` **int8** y `-base` sobre publicaciones reales
   (calidad/coste de cómputo), incluyendo int8 vs fp32 de `small`.
 - Medir tiempos de embedding y de backfill en el N100.

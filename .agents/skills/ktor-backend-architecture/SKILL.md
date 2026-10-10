@@ -133,9 +133,9 @@ servicio, su(s) repositorio(s), sus modelos y sus clientes; lo transversal
 ## Ingesta y operación
 
 - Job diario a las **9:30** (cron) con **segunda pasada** por la tarde.
-- Ingesta de las **Secciones I, II.A, II.B, III y V.B** (fuera IV y V.A);
-  clasificación en las **11 categorías** curadas a partir de sección/epígrafe del
-  BOE y extracción de **plazos** de convocatorias.
+- Ingesta de **todo el sumario del BOE** (secciones I, II.A, II.B, III, IV, V.A,
+  V.B y V.C); clasificación en las **11 categorías** curadas a partir de
+  sección/epígrafe del BOE y extracción de **plazos** de convocatorias.
 - Backfill del **último año** por lotes, en horario de baja carga.
 - Observabilidad: logs estructurados; alerta si falta la ingesta de las 9:30 o la
   segunda pasada; métrica de tokens/consultas del chat. **Sin telemetría de uso.**

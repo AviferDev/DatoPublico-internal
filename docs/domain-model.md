@@ -79,8 +79,9 @@ recibida
 
 ## Important Scenarios
 
-- **Ingesta diaria:** descarga del sumario (Secciones I, II.A, II.B, III y V.B),
-  parseo y persistencia; a las 9:30 con una segunda pasada.
+- **Ingesta diaria:** descarga del sumario (**todo el BOE**: secciones I, II.A,
+  II.B, III, IV, V.A, V.B y V.C), parseo y persistencia; a las 9:30 con una
+  segunda pasada.
 - **Clasificación:** asignar Categoría a partir de la Sección/Epígrafe del BOE, y
   extraer plazos.
 - **Backfill:** carga del histórico del **último año**.
