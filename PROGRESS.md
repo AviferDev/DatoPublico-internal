@@ -76,7 +76,8 @@
   `PublicacionParser` con colaboradores por defecto; sin IA/red/BD ni cambios en
   `:shared`/`Application.kt`/CI. Gate sin red ni BD verde (`:backend` 136 tests, 0
   fallos; `build`/`test`/`detekt`+`:cpdCheck`/`init.sh` exit 0). Decisión durable en
-  **ADR 0007**; validación independiente `accept`. Siguiente feature lista:
+  **ADR 0007**; validación independiente `accept`. **Fusionada** (PR #13, squash →
+  `09ae91d`; CI run `38072876836` en verde). Siguiente feature lista:
   `destacados-diarios` (FT00013, depende de FT00012) o `english-identifiers-rename`
   (FT00047).
 - Bloqueo actual: ninguno para el bootstrap. Pendiente de producto: **nombre y
@@ -2165,3 +2166,9 @@
   explícita del dueño.
 - Siguiente mejor paso: revisar/fusionar el PR #13; después,
   `destacados-diarios` (FT00013).
+- Merge (orquestador, Session 043): **PR #13 fusionado** en `main` por **squash** →
+  `09ae91d feat(FT00012): complete categorizacion-publicaciones` (2026-10-10); CI en
+  verde (run `38072876836`, 2m35s). Rama remota eliminada por GitHub y rama local
+  borrada; `main` local actualizado a `09ae91d`.
+- Siguiente mejor paso: `destacados-diarios` (FT00013, depende de FT00012
+  `accepted`). Siguiente rol: `planner`.
