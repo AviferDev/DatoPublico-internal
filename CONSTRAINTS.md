@@ -26,12 +26,25 @@
 
 ## Nombres y contratos
 
-- **MUST**: en `:shared`, **todos los tipos serializables del contrato** llevan
-  sufijo `Dto`: las `data class` (`PublicacionDto`, `ResumenDto`, `PlazoDto`,
-  `ResumenDiarioDto`) y los **enums de wire** (`CategoriaDto`, `SeccionBoeDto`);
-  la configuración de serialización no es un tipo de contrato y va sin `Dto`
-  (`DatoPublicoJson`) y, en capas internas, entidades `...Entity`, filas `...Row`
-  y modelos de UI `...Ui`, sin prefijos.
+- **MUST**: **todo tipo `@Serializable`/de transporte** lleva sufijo `Dto`: el
+  contrato de `:shared` — las `data class` (`PublicacionDto`, `ResumenDto`,
+  `PlazoDto`, `ResumenDiarioDto`) y los **enums de wire** (`CategoriaDto`,
+  `SeccionBoeDto`) — y también los DTOs de transporte de `:backend`
+  (`HealthDto`, `BoeSumarioResponseDto`, `BoeSeccionDto`…). La configuración de
+  serialización no es un tipo de contrato y va sin `Dto` (`DatoPublicoJson`).
+- **MUST**: en las capas internas, entidades de persistencia `...Entity`, filas
+  `...Row` y modelos de UI `...Ui`. Un **modelo de dominio/valor interno** que no
+  sea serializable ni `Entity`/`Row`/`Ui` va **sin sufijo** (p. ej.
+  `EntradaSumario`). Sin prefijos en ningún caso.
+
+## Estilo de código
+
+- **MUST**: cada función/método tiene **una sola salida** (`return` único);
+  prohibido el *early return* (retornos intermedios). Se resuelve con expresiones
+  (`when`, operador Elvis, `if`/`else` como expresión, `buildList`, etc.). Aplica
+  **también a los tests**. Los códigos de salida temprana de lambdas etiquetadas
+  (`return@…`, p. ej. `return@runTest`) se evitan igualmente: usa guardas `if` y
+  deja el cuerpo sin salidas etiquetadas.
 
 ## Cliente (Compose Multiplatform)
 

@@ -8,9 +8,10 @@
 - Camino de verificación estándar: `./gradlew build` y `./gradlew test` desde la
   raíz del repo público (`..`) — **bootstrapped** (Gradle 8.10.2 + JDK 21).
 - Última feature cerrada: `boe-sumario-cliente` (FT00006) → **`accepted`**
-  (Session 029; validación independiente `accept`,
-  `docs/validations/boe-sumario-cliente.md`; commit `835420b`, PR #6, CI en verde
-  run `38039279992`; pendiente de fusión). Hito anterior:
+  (Sessions 029–031; validación independiente `accept` y revalidación `accept`
+  tras aplicar el MUST de **retorno único** y aclarar la convención de nombres;
+  detalle en `docs/validations/boe-sumario-cliente.md`; commit de reparación
+  `87af9dc`, PR #6, pendiente de fusión). Hito anterior:
   `bootstrap-cmp-targets` (FT00005) → **`accepted` y fusionada** (Sessions
   026–027; CI en verde run `38037289572`, PR #5 fusionado, merge `136eedf`).
   Siguiente feature lista: `boe-parser-publicacion` (FT00007, depende de
@@ -21,21 +22,19 @@
   (PR #2, merge `ca781f3`); habilita `contrato-resumen-ciudadano` (FT00019) y
   `boe-sumario-cliente` (FT00006).
 
-- Feature en curso: `boe-sumario-cliente` (FT00006) — implementada y
-  autoverificada, estado **`passing`**, **pendiente de validación independiente**
-  (Session 028). Cliente del sumario diario del BOE en `:backend`
-  (`ingesta/sumario/`), con tests `MockEngine` sin red y un test opt-in contra la
-  API real fuera del gate; **no** se cablea en el arranque.
-
 - Bloqueo actual: ninguno para el bootstrap. Pendiente de producto: **nombre y
   marca** (bloquea la fase de producción, no el bootstrap).
-- Convención de nombres (2026-10-10): **todos los tipos serializables del
-  contrato** en `:shared` (data classes **y enums de wire**) llevan sufijo
-  **`Dto`**; la config de serialización (`DatoPublicoJson`) sin `Dto`; sin
-  prefijos. En `ARCHITECTURE.md` §«Convenciones de nombres» y **MUST** en
-  `CONSTRAINTS.md`.
+- Convención de nombres (aclarada 2026-10-10): **todo tipo `@Serializable`/de
+  transporte** lleva sufijo **`Dto`** (contrato de `:shared` y DTOs de
+  `:backend`); la config de serialización (`DatoPublicoJson`) sin `Dto`; en capas
+  internas `Entity`/`Row`/`Ui` y **sin sufijo** los modelos de dominio/valor
+  internos (p. ej. `EntradaSumario`); sin prefijos. En `ARCHITECTURE.md`
+  §«Convenciones de nombres» y **MUST** en `CONSTRAINTS.md`.
+- Estilo (2026-10-10): **una sola salida por función** (prohibido el *early
+  return*, también en tests; sin `return@…`). `CONSTRAINTS.md` §«Estilo de código».
 - Última verificación: 2026-10-10. **FT00006 `boe-sumario-cliente`: `accepted`**
-  (Session 029): cliente del sumario diario del BOE en `:backend`
+  (Sessions 029–031; revalidado tras el refactor de **retorno único**): cliente
+  del sumario diario del BOE en `:backend`
   (`ingesta/sumario/`) con filtro I/II.A/II.B/III/V.B (excluye IV/V.A),
   serializador objeto/array, dos fixtures reales byte-idénticos a la API, tests
   sin red (18 en `:backend`, 0 fallos) y test opt-in `BOE_LIVE_TEST=1` fuera del
@@ -1309,4 +1308,92 @@
   `.harness/{ARCHITECTURE.md,CONSTRAINTS.md}`, `.harness/PROGRESS.md`.
 - Estado: **FT00006 `accepted`**. Siguiente feature lista: `boe-parser-publicacion`
   (FT00007, depende de `boe-sumario-cliente`).
+- Siguiente mejor paso: implementar `boe-parser-publicacion` (FT00007) con el flujo.
+
+### Session 030
+
+- Fecha: 2026-10-10
+- Objetivo: **reparación de estilo de código** de `boe-sumario-cliente` (FT00006):
+  dejar registrado como MUST durable el **retorno único** y refactorizar el código
+  que lo incumplía (sin cambiar comportamiento ni firmas).
+- Diagnóstico (decisión del owner): faltaba una regla durable y hay que aplicarla.
+  Había *early returns* en `SingleOrArraySerializer.deserialize`,
+  `BoeSeccionDto.entradas` (`BoeSumarioClient.kt`), `AppConfig.parsePort`
+  (preexistente de FT00004) y un `return@runTest` en `BoeSumarioLiveTest`.
+- Completado:
+  - **MUST durable nuevo** en `CONSTRAINTS.md` §«Estilo de código»: cada
+    función/método tiene **una sola salida** (`return` único); prohibido el *early
+    return*; se resuelve con expresiones (`when`, Elvis, `if`/`else` como
+    expresión, `buildList`…). Aplica **también a los tests**; los `return@…` se
+    evitan con guardas `if`.
+  - **Refactor sin cambios de comportamiento ni firmas**:
+    - `SingleOrArraySerializer.deserialize`: `if (decoder !is JsonDecoder) return …`
+      + `return when …` → una única `when (decoder)` (`is JsonDecoder -> …`,
+      `else -> decodeSerializableValue(listSerializer)`).
+    - `BoeSeccionDto.entradas` (`BoeSumarioClient.kt`): `?: return emptyList()` →
+      `seccionBoeDe(codigo)?.let { … }.orEmpty()` (cuerpo de expresión).
+    - `AppConfig.parsePort`: `if (raw == null) return DEFAULT_PORT` →
+      `raw?.toIntOrNull()` + `require(raw == null || (port != null && port in
+      MIN_PORT..MAX_PORT))` + `return port ?: DEFAULT_PORT`.
+    - `BoeSumarioLiveTest`: `return@runTest` → guarda `if`/`else` que envuelve las
+      aserciones; se mantiene el mensaje de aviso cuando `BOE_LIVE_TEST != 1`.
+  - Nota de reparación en `docs/specs/boe-sumario-cliente.md` (sin reescribir el
+    spec); cabecera del spec a `in_progress` (reabierta). `feature_list.json`
+    (FT00006 → **`passing`**) y `docs/feature-ids.md` (FT00006 → `passing`).
+- Verificación ejecutada (desde `..`, `JAVA_HOME` del JBR 21):
+  - `./gradlew :backend:test --rerun-tasks` → BUILD SUCCESSFUL; XML sin
+    failures/errors: SmokeTest 1/0/0, AppConfigTest 6/0/0, HealthTest 2/0/0,
+    SumarioParsingTest 3/0/0, BoeSumarioClientTest 5/0/0, BoeSumarioLiveTest 1/0/0
+    (**18 tests**, mismos recuentos).
+  - Gate sin red ni BD: `./gradlew build --no-daemon` → BUILD SUCCESSFUL
+    (**197 tareas**); `./gradlew test` → BUILD SUCCESSFUL (3 módulos);
+    `env -u JAVA_HOME .harness/init.sh` → exit 0 («Gate OK…»).
+  - Grep `return` en `backend/src`/`shared/src`/`composeApp/src` (`*.kt`,
+    excluyendo KDoc `@return` y `return@`): solo quedan **5 salidas únicas**
+    (`AppConfig.kt:44`, `SingleOrArraySerializer.kt:25`, `BoeSumarioHttpClient.kt:37`,
+    `BoeSumarioClient.kt:34`, `SumarioParsingTest.kt:67`); sin *early returns*.
+- Ficheros modificados (producto): `SingleOrArraySerializer.kt`,
+  `BoeSumarioClient.kt`, `AppConfig.kt`, `BoeSumarioLiveTest.kt`; harness:
+  `.harness/CONSTRAINTS.md`, `.harness/docs/specs/boe-sumario-cliente.md`,
+  `.harness/feature_list.json`, `.harness/docs/feature-ids.md`, `.harness/PROGRESS.md`.
+- Riesgo o duda sin resolver: commit/push/PR y CI los gestiona el orquestador;
+  queda pendiente la **validación independiente** de la reparación. Es un refactor
+  sin cambio de comportamiento (misma lógica observable y mismos recuentos).
+- Estado: **FT00006 `passing`** (reparación aplicada y autoverificada), pendiente
+  de validación independiente.
+- Siguiente mejor paso: validación independiente de FT00006 tras el MUST de
+  retorno único; después, `boe-parser-publicacion` (FT00007).
+
+### Session 031
+
+- Fecha: 2026-10-10
+- Objetivo: cerrar la reparación de `boe-sumario-cliente` (FT00006): revalidación
+  independiente → aceptación → commit de producto → CI, y **aclarar la convención
+  de nombres** (decisión del owner) tras la duda sobre `EntradaSumario`.
+- Completado:
+  - **Revalidación independiente** (`feature-validator`) de la reparación:
+    veredicto **`accept`**. Confirmó el MUST de retorno único en `CONSTRAINTS.md`,
+    el refactor sin cambio de comportamiento (mismos casos/mensajes; equivalencia
+    en `AppConfig.parsePort` con el mismo `IllegalArgumentException`), 5 salidas
+    únicas y 0 `return@`, y reejecutó `:backend:test --rerun-tasks` (18 tests, 0
+    fallos) y el gate (`build` 197 tareas, `test` 3 módulos, `init.sh` exit 0).
+  - **Aclaración de la convención de nombres** (a raíz de «¿por qué
+    `EntradaSumario` no tiene sufijo?»): sufijo `Dto` para **todo tipo
+    `@Serializable`/de transporte** (contrato de `:shared` **y** DTOs de
+    `:backend`, p. ej. `HealthDto`); `Entity`/`Row`/`Ui` en capas internas; y
+    **sin sufijo** los **modelos de dominio/valor internos** (p. ej.
+    `EntradaSumario`). Actualizado en `CONSTRAINTS.md` §«Nombres y contratos» y
+    `ARCHITECTURE.md` §«Convenciones de nombres». `EntradaSumario` se mantiene sin
+    sufijo; sin cambios de código.
+  - Commit de producto `87af9dc refactor(FT00006): una sola salida por funcion` en
+    `feat/ft00006-boe-sumario-cliente`; **PR #6**. **CI en verde**: run
+    `38040596946`, job 'Build and test' SUCCESS (5m2s) para el head `87af9dc`.
+  - `.harness/feature_list.json`: FT00006 → **`accepted`** (evidencia de la
+    reparación y la revalidación). `docs/feature-ids.md`: `accepted`. Spec:
+    cabecera `accepted`.
+- Ficheros (harness): `.harness/{CONSTRAINTS.md,ARCHITECTURE.md,PROGRESS.md}`,
+  `.harness/feature_list.json` y
+  `.harness/docs/{feature-ids.md,specs/boe-sumario-cliente.md,validations/boe-sumario-cliente.md}`.
+- Estado: **FT00006 `accepted`**. Siguiente feature lista: `boe-parser-publicacion`
+  (FT00007).
 - Siguiente mejor paso: implementar `boe-parser-publicacion` (FT00007) con el flujo.

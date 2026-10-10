@@ -7,8 +7,25 @@
 - `parts`: none (atomic — 1 integración + 1 modelo + tests)
 - `area`: ingesta-boe
 - `depends_on`: bootstrap-shared-dtos (FT00002, `accepted`), bootstrap-ktor-healthcheck (FT00004, `accepted`)
-- `status`: accepted (implementada y validada; rama `feat/ft00006-boe-sumario-cliente`, claim `03b00b8`; ver `docs/validations/boe-sumario-cliente.md`)
+- `status`: accepted (implementada, validada y revalidada tras el MUST de retorno único y la aclaración de la convención de nombres — ver *Nota de reparación* y `docs/validations/boe-sumario-cliente.md`; rama `feat/ft00006-boe-sumario-cliente`, claim `03b00b8`)
 - `source`: `feature_list.json`
+
+## Nota de reparación: retorno único (2026-10-10, reapertura)
+
+Regla durable nueva (ver **MUST** en `CONSTRAINTS.md` §«Estilo de código»): cada
+función/método tiene **una sola salida** (`return` único); prohibido el *early
+return*. Aplicada a esta feature sin cambiar comportamiento ni firmas:
+
+- `SingleOrArraySerializer.deserialize`: el `if (decoder !is JsonDecoder) return …`
+  pasa a una única `when (decoder)` como expresión (`is JsonDecoder -> …`,
+  `else -> decodeSerializableValue`).
+- `BoeSeccionDto.entradas` (`BoeSumarioClient.kt`): el `?: return emptyList()`
+  pasa a `seccionBoeDe(codigo)?.let { … }.orEmpty()` (cuerpo de expresión).
+- `AppConfig.parsePort` (preexistente de FT00004): el `if (raw == null) return` pasa
+  a `raw?.toIntOrNull()` + `require(raw == null || …)` + `return port ?: DEFAULT_PORT`.
+- `BoeSumarioLiveTest`: el `return@runTest` pasa a una guarda `if`/`else` que
+  envuelve las aserciones, sin salida etiquetada. Se mantiene el mensaje de aviso
+  cuando `BOE_LIVE_TEST != 1`.
 
 ## Goal
 

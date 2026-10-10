@@ -54,3 +54,36 @@
 ## No reproducido aquí
 
 - El escenario 6 en JVM requiere el truststore FNMT (limitación de `cacerts` del JBR); se verificó tanto con truststore temporal como con `curl` (llavero del sistema). No afecta al gate.
+
+## Revalidación de la reparación (retorno único) — 2026-10-10
+
+- Veredicto: **`accept`** (segunda pasada, `feature-validator` independiente).
+- Motivo: MUST durable nuevo «una sola salida por función; prohibido el *early
+  return* (incluidos `return@…`); aplica también a los tests» (`CONSTRAINTS.md`
+  §«Estilo de código»).
+- Comprobado por el validador:
+  - MUST presente y claro en `CONSTRAINTS.md`.
+  - Refactor **sin cambio de comportamiento** en
+    `SingleOrArraySerializer.deserialize`, `BoeSeccionDto.entradas`,
+    `AppConfig.parsePort` (preexistente de FT00004) y `BoeSumarioLiveTest` (guarda
+    `if`/`else`, sin `return@runTest`); mismos casos, mensajes y aserciones.
+  - Solo quedan **5 salidas únicas** y **0 `return@`** en
+    `backend/src`/`shared/src`/`composeApp/src`.
+  - `./gradlew :backend:test --rerun-tasks` → 18 tests, 0 fallos; gate
+    (`build --no-daemon` 197 tareas, `test` 3 módulos, `init.sh` exit 0).
+  - Alcance: solo 4 ficheros de producto + docs del harness; sin tocar
+    `Application.kt`/Flyway/`:shared`/`:composeApp`/raíz/CI.
+- Producto: commit `87af9dc refactor(FT00006): una sola salida por funcion`;
+  PR #6; CI en verde run `38040596946` (head `87af9dc`).
+
+## Aclaración de la convención de nombres — 2026-10-10
+
+Tras la duda «¿por qué `EntradaSumario` no tiene sufijo?» (decisión del owner):
+
+- `Dto` = **todo** tipo `@Serializable`/de transporte (contrato de `:shared` **y**
+  DTOs de `:backend`, p. ej. `HealthDto`, `BoeSumarioResponseDto`).
+- `Entity`/`Row`/`Ui` = roles de capas internas (persistencia, fila de BD, UI).
+- **Sin sufijo** = modelos de **dominio/valor internos** que no son ninguno de los
+  anteriores ni serializables → `EntradaSumario` es correcto tal cual.
+- Documentado en `CONSTRAINTS.md` §«Nombres y contratos» y `ARCHITECTURE.md`
+  §«Convenciones de nombres». Sin cambios de código.

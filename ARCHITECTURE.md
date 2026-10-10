@@ -48,13 +48,15 @@
 
 ## Convenciones de nombres
 
-- En **`:shared`**, **todos los tipos serializables del contrato** de transporte
-  llevan sufijo **`Dto`**: las `data class` (`PublicacionDto`, `ResumenDto`,
-  `PlazoDto`, `ResumenDiarioDto`) y también los **enums de wire**
-  (`CategoriaDto`, `SeccionBoeDto`). El sufijo `Dto` aplica a **cualquier** tipo
-  `@Serializable` del contrato, no solo a los contenedores.
+- **Todo tipo `@Serializable`/de transporte** lleva sufijo **`Dto`**: el contrato
+  de **`:shared`** (las `data class` `PublicacionDto`, `ResumenDto`, `PlazoDto`,
+  `ResumenDiarioDto` y los **enums de wire** `CategoriaDto`, `SeccionBoeDto`) y
+  también los DTOs de transporte de **`:backend`** (`HealthDto`,
+  `BoeSumarioResponseDto`, `BoeSeccionDto`…). Aplica a **cualquier** tipo
+  `@Serializable`, no solo a los contenedores.
 - La **configuración de serialización** (`DatoPublicoJson`) **no** es un tipo de
   contrato y va **sin** `Dto`.
-- En las capas internas: entidades `...Entity`, filas `...Row`, modelos de UI
-  `...Ui`.
+- En las capas internas: entidades de persistencia `...Entity`, filas `...Row`,
+  modelos de UI `...Ui`. Un **modelo de dominio/valor interno** que no sea
+  serializable ni `Entity`/`Row`/`Ui` va **sin sufijo** (p. ej. `EntradaSumario`).
 - **Sin prefijos** (nada de notación húngara).
