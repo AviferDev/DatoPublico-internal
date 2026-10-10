@@ -7,9 +7,10 @@
 - Camino de arranque estándar: `./init.sh` (desde `.harness/`)
 - Camino de verificación estándar: `./gradlew build` y `./gradlew test` desde la
   raíz del repo público (`..`) — **bootstrapped** (Gradle 8.10.2 + JDK 21).
-- Última feature cerrada: `bootstrap-ktor-healthcheck` (FT00004) → **`accepted`**
-  (Session 025; validación independiente `accept` y CI en verde). Siguiente
-  feature lista: `bootstrap-cmp-targets` (FT00005, depende de FT00001). FT00003
+- Última feature cerrada: `bootstrap-ktor-healthcheck` (FT00004) → **`accepted` y
+  fusionada** (Session 025; validación independiente `accept`, CI en verde y PR #4
+  fusionado, merge `1e32f4c`). Siguiente feature lista: `bootstrap-cmp-targets`
+  (FT00005, depende de FT00001). FT00003
   (`bootstrap-postgres-pgvector`) queda **`accepted`** (Session
   023) tras la reparación de seguridad, la derivación de la conexión y la limpieza
   de comentarios. FT00002 (`bootstrap-shared-dtos`) **`accepted`** y **fusionada**
@@ -1032,7 +1033,12 @@
     `Level.INFO` fijo (el nivel raíz sí lo aplica Logback).
   - L4 — `localhost:8080` en `docs/desarrollo-local.md` es artefacto del mux SSH
     de Colima en esta máquina.
-- Estado: **FT00004 `accepted`** (PR #4 pendiente de revisión/fusión). Siguiente
-  feature lista: `bootstrap-cmp-targets` (FT00005).
+- Estado: **FT00004 `accepted` y fusionada** (PR #4 fusionado, merge `1e32f4c`).
+  Siguiente feature lista: `bootstrap-cmp-targets` (FT00005).
 - Siguiente mejor paso: implementar `bootstrap-cmp-targets` (FT00005) con el
   flujo.
+- Duda abierta (DX, no bloqueante): el backend Ktor lee el entorno del proceso
+  (`System.getenv()`), no el fichero `.env` (que solo consumen docker-compose y
+  Flyway); las variables `SERVER_*`/`APP_ENV`/`LOG_LEVEL` están documentadas en
+  `docs/desarrollo-local.md` pero no en `.env.example`. Pendiente decidir si se
+  cablea el `.env` en `:backend:run` o se aclara la documentación.
