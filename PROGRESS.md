@@ -58,6 +58,17 @@
   commit `ee1ab2d` y **PR #11** (`feat/ft00010-ingesta-observabilidad`) **fusionado**
   en `main` por rebase → `4ec080e` (rama remota eliminada). Siguiente feature lista:
   `backfill-historico` (FT00011) o `categorizacion-publicaciones` (FT00012).
+- Última feature cerrada: **FT00011 `backfill-historico` → `accepted`**
+  (Session 040–041): herramienta CLI *one-shot* en `:backend` (`ingesta/backfill/`:
+  config + rango + checkpoint en fichero + runner + log + CLI) y tarea Gradle
+  `:backend:backfill` (fuera de `build`/`check`); **reutiliza** `DailyIngestionJob`
+  y el *upsert*, es **reanudable** por checkpoint local y **no** se cablea en el
+  arranque. Decisión durable en **ADR 0006**. Gate sin red ni BD verde (`:backend`
+  119 tests, 0 fallos; `build`/`test`/`detekt`+`:cpdCheck`/`init.sh` exit 0);
+  fail-fast del CLI sin BD verificado; validación independiente `accept`
+  (Session 041); opt-in `DB_LIVE_TEST=1` **no ejecutado** (Docker no disponible,
+  limitación aceptada). Siguiente feature lista: `categorizacion-publicaciones`
+  (FT00012, depende de FT00008) o `english-identifiers-rename` (FT00047).
 - Bloqueo actual: ninguno para el bootstrap. Pendiente de producto: **nombre y
   marca** (bloquea la fase de producción, no el bootstrap).
 - Convención de nombres (aclarada 2026-10-10): **todo tipo `@Serializable`/de
@@ -1949,3 +1960,105 @@
   `4ec080e`; rama remota eliminada y rama local `feat/ft00010-ingesta-observabilidad`
   borrada. Siguiente feature lista: `backfill-historico` (FT00011) o
   `categorizacion-publicaciones` (FT00012).
+
+### Session 040
+
+- Fecha: 2026-10-10
+- Objetivo: implementar `backfill-historico` (FT00011) en el repo público:
+  herramienta CLI *one-shot* que puebla por lotes el histórico del último año de
+  **todo el sumario del BOE**, reutilizando el job diario, idempotente por
+  *upsert* y reanudable por checkpoint local. Sin wiring en el arranque, sin
+  endpoints, sin clasificación ni migraciones.
+- Completado (rama `feat/ft00011-backfill-historico`, solo el commit de claim):
+  - Paquete nuevo `es.aviferdev.datopublico.backend.ingesta.backfill`:
+    `BackfillConfig` (env `BACKFILL_*`: `FROM`/`TO`, `BATCH_DAYS` > 0,
+    `DELAY_MS` ≥ 0, `STATE_FILE`; default último año y hoy en
+    `IngestionConfig.zone`; `FROM ≤ TO` fail-fast), `BackfillRange`
+    (`dates()`/`batches()`, puros, último lote más corto), `BackfillCheckpoint` +
+    interfaz `BackfillCheckpointStore`, `FileBackfillCheckpointStore` (fichero de
+    texto; escritura atómica temporal + `Files.move`; ausente → `null`; formato
+    inválido → `IllegalStateException`; fallo de escritura = aviso, no aborta),
+    `BackfillLog` (campos puros `startedFields`/`batchFields`/`completedFields`/
+    `dateFailedFields` + emisión con `StructuredArguments.entries`; eventos
+    `backfill.run.started`/`backfill.batch.completed`/`backfill.run.completed`/
+    `backfill.date.failed`), `BackfillRunner` + `BackfillResult` (`suspend`; lotes,
+    `IngestionJob.run` en `Dispatchers.IO`, pausa inyectable, reanudación si
+    `(from,to)` coincide, fecha completada solo con `error == null && failed == 0`,
+    fallo de fecha no aborta ni propaga, checkpoint tras cada lote) y `BackfillMain`
+    (CLI que compone y **cierra** pool/clientes en `finally`, fail-fast).
+  - `backend/build.gradle.kts`: tarea `JavaExec :backend:backfill`
+    (`BackfillMainKt`, `runtimeClasspath` de `main`), **no** enganchada a
+    `build`/`check`; hereda el entorno del proceso.
+  - `.gitignore`: ignora `.backfill-state.txt`.
+- Tests de gate (nuevos, sin red ni BD): `BackfillConfigTest` (7),
+  `BackfillRangeTest` (5, escenario 1), `FileBackfillCheckpointStoreTest` (6,
+  escenario 5), `BackfillRunnerTest` (9, escenarios 2/3/4/6/7) y
+  `BackfillLiveTest` (1, opt-in `DB_LIVE_TEST=1`, escenario 9).
+- Verificación ejecutada (desde `..`, JAVA_HOME del JBR 21):
+  - `./gradlew :backend:test --rerun-tasks -PskipClient` → BUILD SUCCESSFUL;
+    XML sin failures/errors: **119 tests**, 0 fallos (BackfillConfigTest 7/0/0,
+    BackfillRangeTest 5/0/0, FileBackfillCheckpointStoreTest 6/0/0,
+    BackfillRunnerTest 9/0/0, BackfillLiveTest 1/0/0 omitido).
+  - `./gradlew build --no-daemon -PskipClient` → BUILD SUCCESSFUL (23 tareas).
+  - `./gradlew test` → BUILD SUCCESSFUL (agrega `:shared:jvmTest`, `:backend:test`,
+    `:composeApp:jvmTest`).
+  - `./gradlew detekt` → BUILD SUCCESSFUL (Detekt + `:cpdCheck`; **sin**
+    duplicación de cableado con `Application.kt`, no hizo falta extraer helper).
+  - `env -u JAVA_HOME .harness/init.sh` → exit 0 («Gate OK»).
+  - **Fail-fast del CLI sin BD** (sin `.env`): `./gradlew :backend:backfill` →
+    exit 1 con línea JSON `ERROR` `"Backfill abortado: Contraseña de base de datos
+    no definida: define POSTGRES_PASSWORD en .env (o expórtala)"`.
+- Documentación durable: **ADR 0006**
+  (`docs/adr/0006-backfill-one-shot-lotes.md`) + índice, `ARCHITECTURE.md`
+  (`ingesta/backfill/` en `:backend` y frontera Backend→BOE),
+  `CONSTRAINTS.md` §«Operación» (MUST: backfill one-shot, idempotente y
+  reanudable, por lotes con pausa, tarea explícita, sin wiring ni cambios de gate),
+  `docs/desarrollo-local.md` (comando, `BACKFILL_*`, formato del checkpoint, baja
+  carga y opt-in) y `.gitignore`.
+- Riesgo o duda sin resolver: la verificación **opt-in real** (escenario 9,
+  `DB_LIVE_TEST=1` contra PostgreSQL) **no se ejecutó** porque Docker no está
+  disponible en esta sesión (sin `.env`); queda documentada y fuera del gate. El
+  checkpoint local no replica (asumido en ADR 0006). Commit/push/PR/CI los gestiona
+  el orquestador.
+- Estado: **FT00011 `passing`** (implementada y autoverificada), **pendiente de
+  validación independiente** (`feature-validator`); nunca `accepted` por el
+  implementer.
+- Siguiente mejor paso: validación independiente de FT00011; después,
+  `categorizacion-publicaciones` (FT00012).
+
+### Session 041
+
+- Fecha: 2026-10-10
+- Objetivo: cerrar `backfill-historico` (FT00011): validación independiente,
+  aceptación y commit/PR de producto.
+- Completado (orquestador):
+  - **Claim** de la feature antes de planificar: rama
+    `feat/ft00011-backfill-historico` desde `origin/main` con commit vacío
+    `chore(FT00011): claim` (`3c07504`) y push inmediato a `origin`.
+  - **Planner**: spec en `docs/specs/backfill-historico.md` (atómico, ~15 ficheros;
+    sin partes). Open questions resueltas por el orquestador: checkpoint en
+    **fichero local** (sin migración V3) y prefijo de entorno **`BACKFILL_*`**; ADR
+    0006 incluido.
+  - **Implementer**: paquete `ingesta/backfill/` + tarea `:backend:backfill`,
+    `docs/desarrollo-local.md`, `.gitignore`, ADR 0006 + índice, `ARCHITECTURE.md`,
+    `CONSTRAINTS.md`, `PROGRESS.md` (Session 040), `feature_list.json` (`passing`).
+  - **Validación independiente** (`feature-validator`): veredicto **`accept`**.
+    Reejecutó el gate (`:backend:test --rerun-tasks -PskipClient` → 119 tests, 0
+    fallos; `build -PskipClient` 23 tareas; `test` 3 módulos; `detekt`+`:cpdCheck`
+    sin hallazgos; `init.sh` exit 0), comprobó que `:backend:backfill` no está en
+    `build`/`check` y el fail-fast del CLI sin BD; verificó escenarios 1–8, alcance
+    acotado (sin `Application.kt`/`:shared`/`:composeApp`/raíz/CI/migraciones) y
+    MUST de estilo. Escenario 9 (`DB_LIVE_TEST=1`) no ejecutado (Docker no
+    disponible; no impide la validación). Sin hallazgos Critical/High/Medium; deuda
+    Low L1/L2.
+  - **Aceptación persistida**: `feature_list.json` (FT00011 → `accepted` +
+    evidencia del validator), `docs/feature-ids.md` (FT00011 → `accepted`) y este
+    `PROGRESS.md`.
+- Verificación: la del validator (gate verde sin red ni BD) más el fail-fast del
+  CLI; el escenario opt-in contra PostgreSQL queda como refuerzo pendiente.
+- Riesgo o duda sin resolver: escenario 9 opt-in sin ejecutar (Docker no
+  disponible en la sesión); checkpoint local no replicado (asumido en ADR 0006).
+- Estado: **FT00011 `accepted`**. Siguiente feature lista:
+  `categorizacion-publicaciones` (FT00012).
+- Siguiente mejor paso: commit del harness y commit/PR de producto (orquestador);
+  después, `categorizacion-publicaciones` (FT00012).

@@ -193,6 +193,12 @@
 
 - **MUST**: ingesta diaria a las **9:30** más una **segunda pasada**; alerta si no
   se ejecuta.
+- **MUST**: el backfill histórico es **one-shot**, **idempotente** por *upsert* de
+  `id` y **reanudable** (checkpoint **local en fichero**); se ejecuta por **lotes
+  con pausa configurable** en baja carga mediante una tarea explícita
+  (`./gradlew :backend:backfill`) y **no** se cablea al arranque del servidor ni
+  cambia las reglas del gate (sin red ni BD en `build`/`test`/`init.sh`). El
+  *runner* **reutiliza** el job diario y no filtra secciones (ADR 0006).
 - **MUST**: la observabilidad de la ingesta usa **eventos de log JSON con clave
   `event` estable** (ejecución: `ingestion.run.completed`/`ingestion.run.failed`;
   ventana perdida: `ingestion.missed`) y la alerta de ingesta ausente es un log

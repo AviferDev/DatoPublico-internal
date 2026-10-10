@@ -63,3 +63,4 @@ Aceptado (<AAAA-MM-DD>). [Quién decide y, si aplica, qué ADR supersede/ajusta.
 | [0003](0003-jdbc-hikari-sin-orm.md) | Capa de datos con JDBC + HikariCP (sin ORM) y esquema relacional inicial | Aceptado |
 | [0004](0004-ingesta-programada-interna.md) | Ingesta programada interna por corrutina (sin cron externo) | Aceptado |
 | [0005](0005-observabilidad-ingesta-logs-watchdog.md) | Observabilidad de la ingesta por logs estructurados + vigilante interno | Aceptado |
+| [0006](0006-backfill-one-shot-lotes.md) | Backfill histórico como herramienta CLI one-shot por lotes | Aceptado |

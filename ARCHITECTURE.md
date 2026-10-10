@@ -22,6 +22,12 @@
   `IngestionLog`, estado en memoria de ventanas intentadas `IngestionRunState`,
   detector puro de ventanas perdidas `MissedIngestionDetector`, sumidero de alerta
   `IngestionAlertSink`/`LoggingAlertSink` y vigilante `IngestionWatchdog`).
+  FT00011 añade **`ingesta/backfill/`**: la herramienta CLI *one-shot*
+  (`:backend:backfill`, `BackfillMain`) que recorre por lotes el rango histórico
+  (`BackfillConfig`/`BackfillRange`) reutilizando `DailyIngestionJob` y el *upsert*,
+  con **checkpoint local en fichero** (`FileBackfillCheckpointStore`) para
+  reanudar y ritmo pausado (`BackfillRunner`); **no** se cablea en el arranque del
+  servidor ni se engancha a `build`/`check`. Ver `docs/adr/0006`.
   Existe **`persistence/`** (FT00008): repositorios **JDBC**
   + entidades `...Entity` de `publicacion`, `fragmento`, `resumen` y
   `cola_revision`, más los helpers JDBC compartidos; la configuración de
@@ -71,7 +77,9 @@
   dependencia **externa en tiempo de ejecución**, no del gate: los tests del gate
   no hacen red y las pruebas contra el BOE son opt-in. La **fuente de verdad** del
   texto y los metadatos es el XML estructurado, no el HTML (`txt.php`) ni el PDF
-  (ver `docs/adr/0002`).
+  (ver `docs/adr/0002`). El **backfill** (`ingesta/backfill/`, FT00011) reutiliza
+  estas mismas piezas para poblar el histórico por lotes, fuera del arranque
+  (ver `docs/adr/0006`).
 - **Backend → PostgreSQL** (JDBC + **HikariCP**, **sin ORM**; migraciones
   **Flyway**; ver `docs/adr/0003`): los repositorios de `persistence/` escriben
   y leen `publicacion` (con `categoria` y `plazo` nullable), `fragmento`,

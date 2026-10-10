@@ -26,7 +26,7 @@
 | FT00008 | publicacion-persistencia | Persistencia de publicaciones, fragmentos y resúmenes | ingesta-boe | accepted |
 | FT00009 | ingesta-job-diario | Job diario de ingesta idempotente | ingesta-boe | accepted |
 | FT00010 | ingesta-observabilidad | Observabilidad de la ingesta diaria | ingesta-boe | accepted |
-| FT00011 | backfill-historico | Backfill del histórico reciente | ingesta-boe | not_started |
+| FT00011 | backfill-historico | Backfill del histórico reciente | ingesta-boe | accepted |
 | FT00012 | categorizacion-publicaciones | Clasificación por categoría y extracción de plazos | ingesta-boe | not_started |
 | FT00013 | destacados-diarios | Destacados del día por ranking objetivo | relevancia | not_started |
 | FT00014 | chunking-articulos | Fragmentación por artículo o sección | rag | not_started |
