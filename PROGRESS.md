@@ -1721,5 +1721,8 @@
   `persistence/`, métodos `save`/`findById`/`listByDate`), conservando los tipos
   de dominio existentes (`Publicacion`, `PlazoDto`, `SeccionBoeDto`,
   `CategoriaDto`); y se eliminaron las referencias al hardware («N100 / 8 GB»,
-  «carga baja») del código y docs de la feature.
+  «carga baja») del código y docs de la feature. Commit `d9f245c`; CI en verde
+  run `38049632428`. Gate reejecutado en verde (61 tests/0 fallos; `build`,
+  `detekt`+`:cpdCheck`, `init.sh` exit 0) y test opt-in `DB_LIVE_TEST=1` contra
+  PostgreSQL real.
 - Siguiente mejor paso: `ingesta-job-diario` (FT00009).
