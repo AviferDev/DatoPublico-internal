@@ -111,3 +111,19 @@
 Ninguno bloqueante. La aceptación final la persiste el orquestador en
 `feature_list.json` (estado `accepted` + evidencia). Deuda Low a arrastrar: índice
 `cola_revision(resumen_id)` (FT00023) y nota documental del `SKILL.md`.
+
+## Nota posterior (2026-10-10, limpieza solicitada por el dueño)
+
+Tras la aceptación, el orquestador aplicó una limpieza **sin cambio de
+comportamiento** sobre el código nuevo de FT00008: (1) los identificadores
+nuevos pasan a **inglés** (p. ej. `ConfiguracionBd`→`DatabaseConfig`,
+`BaseDatos`→`Database`, `PublicacionRepositorio`→`PublicationRepository`,
+`FragmentoRepositorio`→`FragmentRepository`, `ResumenRepositorio`→`SummaryRepository`,
+`ColaRevisionRepositorio`→`ReviewQueueRepository`, `PublicacionEntity`→`PublicationEntity`,
+etc.; entidades con propiedades en inglés; paquete `persistencia/`→`persistence/`;
+métodos `save`/`findById`/`listByDate`), conservando los tipos de dominio
+existentes (`Publicacion`, `PlazoDto`, `SeccionBoeDto`, `CategoriaDto`); y (2) se
+eliminaron las referencias al hardware («N100 / 8 GB», «carga baja») del código y
+docs de la feature. Los nombres citados en las tablas de arriba corresponden al
+estado **previo** a esa limpieza; el comportamiento, el SQL y los escenarios
+validados no cambian. Gate reejecutado en verde.

@@ -15,11 +15,11 @@
   `ingesta/sumario/` (cliente del sumario diario del BOE + modelo interno y
   filtrado de secciones) e `ingesta/publicacion/` (parser del **texto XML**
   oficial `xml.php`, cliente de texto, modelo `Publicacion` y combinador
-  sumario + texto). Existe **`persistencia/`** (FT00008): repositorios **JDBC**
+  sumario + texto). Existe **`persistence/`** (FT00008): repositorios **JDBC**
   + entidades `...Entity` de `publicacion`, `fragmento`, `resumen` y
   `cola_revision`, más los helpers JDBC compartidos; la configuración de
-  conexión (`infra/ConfiguracionBd`, derivada de `POSTGRES_*`) y el pool
-  (`infra/BaseDatos`, HikariCP ≤5) viven en `infra/`. El resto de paquetes
+  conexión (`infra/DatabaseConfig`, derivada de `POSTGRES_*`) y el pool
+  (`infra/Database`, HikariCP ≤5) viven en `infra/`. El resto de paquetes
   llega con sus features. La ingesta y la persistencia **no** se cablean en el
   arranque.
 - **`:composeApp`** — cliente Compose Multiplatform (Android, iOS, Web).
@@ -58,7 +58,7 @@
   los metadatos es el XML estructurado, no el HTML (`txt.php`) ni el PDF
   (ver `docs/adr/0002`).
 - **Backend → PostgreSQL** (JDBC + **HikariCP**, **sin ORM**; migraciones
-  **Flyway**; ver `docs/adr/0003`): los repositorios de `persistencia/` escriben
+  **Flyway**; ver `docs/adr/0003`): los repositorios de `persistence/` escriben
   y leen `publicacion` (con `categoria` y `plazo` nullable), `fragmento`,
   `resumen` y `cola_revision`. La conexión se **deriva** de `POSTGRES_*` (fuente
   única, la misma que Compose/Flyway) y falla en claro si falta la contraseña. El

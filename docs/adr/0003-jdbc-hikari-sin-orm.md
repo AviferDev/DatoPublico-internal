@@ -14,8 +14,8 @@ classpath de la tarea Flyway y no existía ningún pool ni repositorio.
 
 El modelo de datos es **específico del dominio** (una `publicacion` con una
 sección/epígrafe del BOE, un `fragmento` por chunk con embeddings futuros de
-pgvector, un `resumen` 1:1 y una `cola_revision`) y el volumen es el de un
-servidor pequeño (Intel N100 / 8 GB). Las features siguientes (job de ingesta
+pgvector, un `resumen` 1:1 y una `cola_revision`) y el volumen esperado es
+reducido. Las features siguientes (job de ingesta
 FT00009, clasificación FT00012, chunking/embeddings FT00014/FT00016, resúmenes
 FT00019, cola FT00023) van a escribir sobre estas tablas.
 
@@ -24,7 +24,7 @@ FT00019, cola FT00023) van a escribir sobre estas tablas.
 1. **Acceso a datos con JDBC + HikariCP, sin ORM.** No se usa Exposed,
    Hibernate ni ningún mapeador de objetos. Los repositorios escriben SQL
    parametrizado y traducen a modelos internos de dominio; el pool lo construye
-   una fábrica en `infra/` (`BaseDatos`, tamaño pequeño ≤5) y lo cierra quien lo
+   una fábrica en `infra/` (`Database`, tamaño pequeño ≤5) y lo cierra quien lo
    crea (job o test).
 2. **Esquema relacional explícito con migraciones Flyway versionadas.** La
    migración `V2__persistencia_publicaciones.sql` crea `publicacion`, `fragmento`,
@@ -34,7 +34,7 @@ FT00019, cola FT00023) van a escribir sobre estas tablas.
    `fragmento` y su índice **HNSW** llegan con FT00016; los **valores** de
    `categoria` y `plazo` los rellena FT00012 (las columnas existen y son
    `nullable`).
-4. **Idempotencia en la escritura de publicación:** `guardar` es un *upsert* por
+4. **Idempotencia en la escritura de publicación:** `save` es un *upsert* por
    `id` (`INSERT … ON CONFLICT (id) DO UPDATE`), base de la idempotencia del job
    diario (FT00009).
 5. **Configuración por entorno con fail-fast.** La conexión se **deriva** de

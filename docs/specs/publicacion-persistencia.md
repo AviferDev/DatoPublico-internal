@@ -7,7 +7,7 @@
 - `parts`: none (atómica; ~21 ficheros, por debajo del límite de 30)
 - `area`: ingesta-boe
 - `depends_on`: bootstrap-postgres-pgvector (FT00003, `accepted`), boe-parser-publicacion (FT00007, `accepted`)
-- `status`: passing (implementada y autoverificada 2026-10-10; rama `feat/ft00008-publicacion-persistencia`, pendiente de validación independiente)
+- `status`: accepted (implementada y validada de forma independiente 2026-10-10; rama `feat/ft00008-publicacion-persistencia`)
 - `source`: `feature_list.json`
 
 > **Nota de coherencia con FT00007/FT00012.** El parser (FT00007) deja a propósito
@@ -34,7 +34,7 @@
    de FT00007.
 3. **Capa de datos: JDBC + HikariCP, sin ORM.** El pool y la config de conexión
    viven en `infra/`; los **repositorios** en un paquete transversal
-   `persistencia/` (el esquema es compartido por ingesta/RAG/resumen). Interfaz de
+   `persistence/` (el esquema es compartido por ingesta/RAG/resumen). Interfaz de
    repositorio + implementación JDBC en el mismo fichero (precedente
    `BoePublicacionParser.kt`) y **entidad de persistencia `...Entity`** como
    representación de fila; el repositorio habla modelos internos (`Publicacion`).
@@ -44,7 +44,7 @@
    `CONSTRAINTS.md`). Estrategia: (a) prueba **opt-in** `DB_LIVE_TEST=1` contra el
    Postgres de `docker-compose` (patrón `BOE_LIVE_TEST`), que guarda/recupera y
    comprueba las cuatro tablas en `information_schema`; (b) en el gate, tests
-   **sin BD** (config de conexión, mapeo `Publicacion`↔`PublicacionEntity` y
+   **sin BD** (config de conexión, mapeo `Publicacion`↔`PublicationEntity` y
    contrato SQL de la migración). Límite documentado en *Risks*.
 
 ## Goal
@@ -126,8 +126,8 @@ Then la recuperada conserva los nulos sin excepción (columnas nullable).
 ### Scenario 5: fragmento, resumen y cola de revisión (guardar/recuperar mínimo)
 
 Given una publicación persistida,
-When se guarda un `FragmentoEntity`, un `ResumenEntity` y una entrada de
-`ColaRevisionEntity` ligados a ella y se leen por su publicación/resumen,
+When se guarda un `FragmentEntity`, un `SummaryEntity` y una entrada de
+`ReviewQueueEntity` ligados a ella y se leen por su publicación/resumen,
 Then los datos se recuperan íntegros y las FK (`ON DELETE CASCADE`) están activas.
 
 ### Scenario 6: el gate sigue sin depender de la base de datos
@@ -179,7 +179,7 @@ reales de BD son opt-in).
 
 ### Current Gaps
 
-- No existe `persistencia/` ni pool JDBC/Hikari; el driver PostgreSQL solo está en
+- No existe `persistence/` ni pool JDBC/Hikari; el driver PostgreSQL solo está en
   la configuración `flyway` (fuera del classpath de producción).
 - No existen tablas de dominio (`publicacion`, `fragmento`, `resumen`,
   `cola_revision`).
@@ -211,24 +211,24 @@ reales de BD son opt-in).
      NULL DEFAULT 'pendiente'`, `creado_en timestamptz`, `revisado_en timestamptz`;
      índice por `estado`.
    - **Embedding/HNSW y valores de categoría/plazo quedan fuera** (FT00016/FT00012).
-2. **`infra/ConfiguracionBd.kt`**: `data class ConfiguracionBd(url, usuario,
+2. **`infra/DatabaseConfig.kt`**: `data class DatabaseConfig(url, usuario,
    password)` + `fromEnv(env)` que **deriva** la URL de `POSTGRES_*`
    (`jdbc:postgresql://host:port/db`, defaults no sensibles) y **fail-fast** si
    falta `POSTGRES_PASSWORD` (mismo mensaje/patrón que Flyway). Puro y testeable
    en el gate.
-3. **`infra/BaseDatos.kt`**: factory que construye un `HikariDataSource` a partir de
-   `ConfiguracionBd` (pool pequeño para el N100: `maximumPoolSize` ~5). No se
+3. **`infra/Database.kt`**: factory que construye un `HikariDataSource` a partir de
+   `DatabaseConfig` (pool pequeño: `maximumPoolSize` ~5). No se
    invoca en el arranque; el consumidor (test/job) lo crea y lo cierra.
-4. **Paquete `persistencia/`** con un fichero por agregado (interfaz + entidad +
+4. **Paquete `persistence/`** con un fichero por agregado (interfaz + entidad +
    impl JDBC):
-   - `PublicacionRepositorio.kt`: interfaz `PublicacionRepositorio { guardar(p):
-     Publicacion; buscarPorId(id): Publicacion?; listarPorFecha(fecha): List<Publicacion> }`
-     + `PublicacionEntity` (fila) + `PublicacionRepositorioJdbc(dataSource)` con
+   - `PublicationRepository.kt`: interfaz `PublicationRepository { save(p):
+     Publicacion; findById(id): Publicacion?; listByDate(fecha): List<Publicacion> }`
+     + `PublicationEntity` (fila) + `PublicationRepositoryJdbc(dataSource)` con
      SQL parametrizado y *upsert* `INSERT … ON CONFLICT (id) DO UPDATE`.
-     Mapeo `Publicacion` ↔ `PublicacionEntity` (fechas ISO `String` ↔ `date`;
+     Mapeo `Publicacion` ↔ `PublicationEntity` (fechas ISO `String` ↔ `date`;
      `seccion`/`categoria` como `text` con el nombre del enum; `plazo` ↔ dos
      columnas).
-   - `FragmentoRepositorio.kt`, `ResumenRepositorio.kt`, `ColaRevisionRepositorio.kt`:
+   - `FragmentRepository.kt`, `SummaryRepository.kt`, `ReviewQueueRepository.kt`:
      **mínimos** (guardar + leer por publicación/resumen), operando sobre su
      `...Entity` provisional. KDoc avisa de que su modelo de dominio y su
      comportamiento llegan con FT00014/FT00019/FT00023.
@@ -256,20 +256,20 @@ Rutas en el repo de producto (`..`):
 - `backend/build.gradle.kts` — modify; `implementation(libs.postgresql)` +
   `implementation(libs.hikari)` (la config `flyway` no cambia).
 - `backend/src/main/resources/db/migration/V2__persistencia_publicaciones.sql` — create.
-- `backend/src/main/kotlin/…/backend/infra/ConfiguracionBd.kt` — create.
-- `backend/src/main/kotlin/…/backend/infra/BaseDatos.kt` — create.
-- `backend/src/main/kotlin/…/backend/persistencia/PublicacionRepositorio.kt` — create.
-- `backend/src/main/kotlin/…/backend/persistencia/FragmentoRepositorio.kt` — create.
-- `backend/src/main/kotlin/…/backend/persistencia/ResumenRepositorio.kt` — create.
-- `backend/src/main/kotlin/…/backend/persistencia/ColaRevisionRepositorio.kt` — create.
+- `backend/src/main/kotlin/…/backend/infra/DatabaseConfig.kt` — create.
+- `backend/src/main/kotlin/…/backend/infra/Database.kt` — create.
+- `backend/src/main/kotlin/…/backend/persistence/PublicationRepository.kt` — create.
+- `backend/src/main/kotlin/…/backend/persistence/FragmentRepository.kt` — create.
+- `backend/src/main/kotlin/…/backend/persistence/SummaryRepository.kt` — create.
+- `backend/src/main/kotlin/…/backend/persistence/ReviewQueueRepository.kt` — create.
 - `backend/src/main/kotlin/…/backend/ingesta/publicacion/Publicacion.kt` — modify;
   campo `plazo: PlazoDto? = null`.
-- `backend/src/test/kotlin/…/backend/infra/ConfiguracionBdTest.kt` — create (gate, sin BD).
-- `backend/src/test/kotlin/…/backend/persistencia/PublicacionPersistenciaTest.kt` —
+- `backend/src/test/kotlin/…/backend/infra/DatabaseConfigTest.kt` — create (gate, sin BD).
+- `backend/src/test/kotlin/…/backend/persistence/PublicationPersistenceTest.kt` —
   create (gate: mapeo entidad↔dominio, sin BD).
-- `backend/src/test/kotlin/…/backend/persistencia/MigracionSqlTest.kt` — create
+- `backend/src/test/kotlin/…/backend/persistence/MigrationSqlTest.kt` — create
   (gate: contrato SQL de V2, sin BD).
-- `backend/src/test/kotlin/…/backend/persistencia/PublicacionPersistenciaLiveTest.kt`
+- `backend/src/test/kotlin/…/backend/persistence/PublicationPersistenceLiveTest.kt`
   — create (opt-in `DB_LIVE_TEST=1`).
 - `docs/desarrollo-local.md` — modify; sección de persistencia (esquema, pool,
   prueba opt-in de BD).
@@ -286,7 +286,7 @@ Harness: `ARCHITECTURE.md`, `CONSTRAINTS.md`, `docs/adr/0003-…` + índice,
 
 ## Durable Documentation Impact
 
-- `ARCHITECTURE.md` (harness): update — `:backend` añade `persistencia/`
+- `ARCHITECTURE.md` (harness): update — `:backend` añade `persistence/`
   (repositorios JDBC + entidades) e `infra/` (config y pool Hikari); frontera
   **Backend → PostgreSQL** (JDBC/HikariCP, migraciones Flyway); esquema de las
   cuatro tablas y lo diferido (embedding/HNSW → FT00016).
@@ -309,9 +309,9 @@ Harness: `ARCHITECTURE.md`, `CONSTRAINTS.md`, `docs/adr/0003-…` + índice,
    driver PostgreSQL).
 2. Escribir `V2__persistencia_publicaciones.sql` con las cuatro tablas, FKs e
    índices; verificar con `:backend:flywayMigrate`/`:backend:flywayInfo`.
-3. Implementar `infra/ConfiguracionBd.kt` y `infra/BaseDatos.kt` (config pura +
+3. Implementar `infra/DatabaseConfig.kt` y `infra/Database.kt` (config pura +
    pool Hikari).
-4. Implementar el paquete `persistencia/` (entidades + interfaces + impl JDBC),
+4. Implementar el paquete `persistence/` (entidades + interfaces + impl JDBC),
    con `Publicacion` ganando el campo `plazo`.
 5. Tests del gate sin BD (config, mapeo, contrato SQL) y test opt-in `DB_LIVE_TEST`
    (guardar/recuperar + tablas en `information_schema`); ejecutar y capturar.
@@ -324,10 +324,10 @@ Harness: `ARCHITECTURE.md`, `CONSTRAINTS.md`, `docs/adr/0003-…` + índice,
       en el classpath de producción.
 - [ ] `V2__persistencia_publicaciones.sql`: `publicacion`, `fragmento`, `resumen`,
       `cola_revision` con PK/FK/índices; sin embedding ni HNSW.
-- [ ] `ConfiguracionBd` (derivación de `POSTGRES_*` + fail-fast) y `BaseDatos`
+- [ ] `DatabaseConfig` (derivación de `POSTGRES_*` + fail-fast) y `Database`
       (Hikari `DataSource`).
-- [ ] `PublicacionRepositorio` (+`PublicacionEntity` + impl *upsert*).
-- [ ] `FragmentoRepositorio`, `ResumenRepositorio`, `ColaRevisionRepositorio` mínimos.
+- [ ] `PublicationRepository` (+`PublicationEntity` + impl *upsert*).
+- [ ] `FragmentRepository`, `SummaryRepository`, `ReviewQueueRepository` mínimos.
 - [ ] `Publicacion` con `plazo: PlazoDto? = null`.
 - [ ] Tests de gate sin BD: config, mapeo, contrato SQL de la migración.
 - [ ] Test opt-in `DB_LIVE_TEST=1`: guardar/recuperar publicación con
@@ -340,8 +340,8 @@ Harness: `ARCHITECTURE.md`, `CONSTRAINTS.md`, `docs/adr/0003-…` + índice,
 Desde la raíz del producto (`..`, JDK 21 vía JBR/`JAVA_HOME`):
 
 - **Gate sin BD (Docker parado):** `./gradlew :backend:test --rerun-tasks` →
-  BUILD SUCCESSFUL con `ConfiguracionBdTest`, `PublicacionPersistenciaTest` y
-  `MigracionSqlTest` en verde (el test opt-in se omite sin `DB_LIVE_TEST`).
+  BUILD SUCCESSFUL con `DatabaseConfigTest`, `PublicationPersistenceTest` y
+  `MigrationSqlTest` en verde (el test opt-in se omite sin `DB_LIVE_TEST`).
   `./gradlew build --no-daemon -PskipClient`, `./gradlew test`, `./gradlew detekt`
   (Detekt + `:cpdCheck`) y `.harness/init.sh` → exit 0.
 - **Migración (BD arriba):** `cp .env.example .env && docker compose up -d`;
@@ -349,7 +349,7 @@ Desde la raíz del producto (`..`, JDK 21 vía JBR/`JAVA_HOME`):
   `V1` + `V2` en `Success`; en psql, `\dt` / `information_schema.tables` muestra
   las cuatro tablas.
 - **Guardar/recuperar (opt-in):**
-  `DB_LIVE_TEST=1 ./gradlew :backend:test --tests '*PublicacionPersistenciaLiveTest'`
+  `DB_LIVE_TEST=1 ./gradlew :backend:test --tests '*PublicationPersistenceLiveTest'`
   → verde: publicación con `categoria`, `seccion`, `epigrafe` y `plazo` recuperada
   idéntica; *upsert* no duplica; nulos conservados; FK `ON DELETE CASCADE` activas.
 - **CI:** se mantiene sin BD (no cambia el workflow).
@@ -358,8 +358,8 @@ Desde la raíz del producto (`..`, JDK 21 vía JBR/`JAVA_HOME`):
 
 ## Evidence To Capture
 
-- Salida de `./gradlew :backend:test` con `ConfiguracionBdTest`/`PublicacionPersistenciaTest`/
-  `MigracionSqlTest` y el test opt-in (recuento, 0 fallos).
+- Salida de `./gradlew :backend:test` con `DatabaseConfigTest`/`PublicationPersistenceTest`/
+  `MigrationSqlTest` y el test opt-in (recuento, 0 fallos).
 - `flywayInfo` con `V1`+`V2` en `Success` y salida de `information_schema.tables`
   (o `\dt`) con las cuatro tablas; prueba del *upsert* (una sola fila).
 - Gate sin BD (Docker parado): `build -PskipClient`, `test`, `detekt`, `init.sh`.
@@ -368,7 +368,7 @@ Desde la raíz del producto (`..`, JDK 21 vía JBR/`JAVA_HOME`):
 
 ## Validator Checklist
 
-- [ ] Alcance acotado: solo migración V2 + `infra/` (config/pool) + `persistencia/`
+- [ ] Alcance acotado: solo migración V2 + `infra/` (config/pool) + `persistence/`
       + el campo `plazo` de `Publicacion` + tests; sin clasificación (FT00012), sin
       embedding/HNSW (FT00016), sin chunking/generación, sin wiring en
       `Application.kt`, sin endpoints.
@@ -404,13 +404,13 @@ Desde la raíz del producto (`..`, JDK 21 vía JBR/`JAVA_HOME`):
   (default `null`); el parser y sus tests de FT00007 no cambian de comportamiento.
 - **`text[]` vs `jsonb` para `cifras_clave`.** Se elige `text[]` (nativo y simple);
   si el contrato cambia, ajustar antes de producción.
-- **Recursos N100:** pool Hikari pequeño (≤5) y métodos bloqueantes; el job
+- **Recursos:** pool Hikari pequeño (≤5) y métodos bloqueantes; el job
   (FT00009) los invocará en `Dispatchers.IO`.
 
 ## Implementation Notes (2026-10-10)
 
 - **Helper JDBC compartido nuevo:** además de los ficheros previstos, se añadió
-  `persistencia/Jdbc.kt` (`ejecutarActualizacion`, `consultarFilas`, `mapearTodas`)
+  `persistence/Jdbc.kt` (`executeUpdate`, `queryRows`, `mapAll`)
   para centralizar el manejo de conexiones/sentencias y evitar duplicación entre
   los cuatro repositorios (regla de reutilización y CPD). Sigue dentro del
   alcance de la capa de datos.
@@ -418,11 +418,21 @@ Desde la raíz del producto (`..`, JDK 21 vía JBR/`JAVA_HOME`):
   **nombre** del enum (`II_A`, `BECAS_SUBVENCIONES_Y_AYUDAS`) y se reconstruyen con
   `valueOf` (fail-fast ante dato corrupto). `plazo` se reparte en
   `plazo_fecha_limite` + `plazo_descripcion`.
-- **Entidad sin timestamps:** `PublicacionEntity` modela solo las columnas que
+- **Entidad sin timestamps:** `PublicationEntity` modela solo las columnas que
   gestiona el repositorio; `creado_en`/`actualizado_en` los administra la base de
   datos (el test comprueba el avance de `actualizado_en` consultando la tabla).
-- **Test opt-in autocontenido:** `PublicacionPersistenciaLiveTest` lee `POSTGRES_*`
+- **Test opt-in autocontenido:** `PublicationPersistenceLiveTest` lee `POSTGRES_*`
   del entorno y, si faltan, de la `.env` de la raíz, de modo que
-  `DB_LIVE_TEST=1 ./gradlew :backend:test --tests '*PublicacionPersistenciaLiveTest'`
+  `DB_LIVE_TEST=1 ./gradlew :backend:test --tests '*PublicationPersistenceLiveTest'`
   funciona tras `cp .env.example .env && docker compose up -d`.
 - **Recuento del gate:** `:backend:test` pasa a 61 tests (18 nuevos: 8 + 4 + 5 + 1).
+- **Renombrado a inglés (2026-10-10, petición del dueño):** los identificadores
+  nuevos (clases, variables, funciones, params y ficheros) usan nombres en
+  inglés, conservando los tipos de dominio existentes (`Publicacion`, `PlazoDto`,
+  `SeccionBoeDto`, `CategoriaDto`). Equivalencias: `ConfiguracionBd`→`DatabaseConfig`,
+  `BaseDatos`→`Database`, `PublicacionRepositorio`→`PublicationRepository`,
+  `FragmentoRepositorio`→`FragmentRepository`, `ResumenRepositorio`→`SummaryRepository`,
+  `ColaRevisionRepositorio`→`ReviewQueueRepository`, entidades
+  `*Entity` con propiedades en inglés (`title`, `publicationDate`…), paquete
+  `persistencia/`→`persistence/` y métodos `save`/`findById`/`listByDate`. Se
+  eliminaron además las referencias al hardware («N100 / 8 GB», «carga baja»).

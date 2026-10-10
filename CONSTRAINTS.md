@@ -42,7 +42,7 @@
 ## Persistencia y base de datos
 
 - **MUST**: el acceso a datos usa **JDBC + HikariCP**, **sin ORM** (nada de
-  Exposed/Hibernate). Los repositorios viven en `persistencia/` (interfaz +
+  Exposed/Hibernate). Los repositorios viven en `persistence/` (interfaz +
   entidad `...Entity` + implementación JDBC) y el pool/configuración en `infra/`;
   la conexión se **deriva** de `POSTGRES_*` (fuente única). Decisión durable en
   `docs/adr/0003`.

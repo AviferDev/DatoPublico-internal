@@ -14,9 +14,9 @@ Consulta, Destacado).
 **Estado actual:** ya existe el **esqueleto del backend** (FT00004): composition
 root en `Application.kt`, paquetes `plugins/` e `infra/`, endpoint `GET /health`,
 configuración por entorno y logging JSON (Logback). Existe **`ingesta/`**
-(`sumario/` y `publicacion/`, FT00006/FT00007, sin wiring) y **`persistencia/`**
-(repositorios JDBC + entidades, FT00008) con `infra/ConfiguracionBd` (derivada de
-`POSTGRES_*`) e `infra/BaseDatos` (pool HikariCP), también sin wiring. Los
+(`sumario/` y `publicacion/`, FT00006/FT00007, sin wiring) y **`persistence/`**
+(repositorios JDBC + entidades, FT00008) con `infra/DatabaseConfig` (derivada de
+`POSTGRES_*`) e `infra/Database` (pool HikariCP), también sin wiring. Los
 paquetes de dominio `clasificacion/`, `rag/`, `resumen/`, `destacados/`,
 `consulta/` y `api/` aún no existen. El resto del documento sigue siendo el
 **patrón objetivo acordado**, derivado de `docs/technical-discovery.md` y
