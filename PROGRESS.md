@@ -161,6 +161,26 @@
   `main` contiene ahora FT00001–FT00021. Siguiente feature lista:
   `guardrails-anti-alucinacion` (FT00022, depende de FT00020) o
   `english-identifiers-rename` (FT00047).
+- **FT00023 `cola-revision-confianza` → `accepted`** (Session 062; validada de
+  forma independiente, veredicto `accept`): **disposición del
+  resumen tras los guardrails** en `:backend` como **librería sin wiring**, paquete
+  nuevo `rag/review/` (`SummaryState` con los **siete** estados del dominio y su
+  token persistido + `fromPersisted`; `SummaryReviewOutcome`
+  `Published`/`Queued`/`Discarded`; `ReviewReasonFormatter` puro; y
+  `SummaryDispositionService.dispose` que **consume** `GuardrailDecision` de
+  FT00022 —sin umbral nuevo— y publica / encola / descarta). Persistencia:
+  migración **`V5`** (índice único **parcial** `ON cola_revision (resumen_id) WHERE
+  estado='pendiente'`) y `ReviewQueueRepository` (FT00008) **extendido** con
+  *upsert* idempotente + `listPending()`; `SummaryRepository` intacto. La confianza
+  persistida es el `groundingScore` y el publicado exige `avisoIA=true`. Gate sin
+  red ni BD verde (`:backend` **328 tests**, 0 fallos; +14 nuevos; los 314 de
+  FT00022 intactos; `build -PskipClient`/`test`/`detekt`+`:cpdCheck`/`init.sh` exit
+  0) y prueba real **opt-in ejecutada y reejecutada** con PostgreSQL/Docker
+  (`DB_LIVE_TEST=1`: publicado, encolado y reencolado idempotente OK; índice
+  verificado). Decisión durable en **ADR 0018**; validación independiente `accept`.
+  Sin wiring: feed/endpoints/UI/revisión manual son
+  FT00026+/FT00033. Siguiente feature lista: `evaluacion-golden-set` (FT00024) o
+  `english-identifiers-rename` (FT00047).
 - Última verificación: 2026-10-10 (Sessions 032–038). **Cambio de alcance 1.0.0 =
   TODO el BOE** (secciones I, II.A, II.B, III, IV, V.A, V.B y V.C; ningún campo ni
   sección se excluye) y nueva norma MUST de **`@SerialName` explícito** en cada
@@ -3252,3 +3272,75 @@
 - Siguiente mejor paso: merge del **PR #23**; después, implementar FT00023
   (rol `implementer`) y/o FT00047-PT1; FT00024 en paralelo cuando haya base con
   FT00022.
+
+### Session 062
+
+- Fecha: 2026-10-11
+- Objetivo: **implementar** `cola-revision-confianza` (FT00023) con el rol
+  `implementer`, sobre la rama `feat/ft00023-cola-revision-confianza` (base
+  `origin/main` con FT00022 ya presente en el árbol, `d8ed35f`).
+- Completado (FT00023 → **`passing`**, pendiente de validación independiente):
+  - Producto: paquete nuevo `rag/review/` con `SummaryState` (7 estados +
+    `persistedValue` + `fromPersisted`), `SummaryReviewOutcome`
+    (`Published`/`Queued`/`Discarded`), `ReviewReasonFormatter` (motivo puro) y
+    `SummaryDispositionService.dispose` (consume `GuardrailDecision`; publica /
+    encola / descarta; `confianza = groundingScore`; `avisoIA` fail-fast). Migración
+    **`V5__cola_revision_pendiente_unique.sql`** (índice único parcial). `save` de
+    `ReviewQueueRepository` pasa a *upsert* idempotente y gana `listPending()`;
+    `SummaryRepository` intacto.
+  - Tests de gate: `SummaryStateTest` (3), `ReviewReasonFormatterTest` (3),
+    `SummaryDispositionServiceTest` (5, dobles), `ReviewQueueMigrationSqlTest` (2) y
+    `ReviewQueuePersistenceLiveTest` (1, **opt-in**).
+  - Gate sin red ni BD: `:backend:test --rerun-tasks` → **328 tests, 0 fallos**
+    (+14 nuevos; los 314 previos de FT00022 intactos); `build --no-daemon
+    -PskipClient` (23 tareas), `test` (3 módulos), `detekt`+`:cpdCheck` e
+    `env -u JAVA_HOME .harness/init.sh` (exit **0**) en verde.
+  - Prueba real opt-in **ejecutada** con PostgreSQL/Docker (`POSTGRES_PORT=55432`):
+    `:backend:flywayMigrate`/`flywayInfo` → `V5 … Success`; `DB_LIVE_TEST=1
+    ./gradlew :backend:test --tests '*ReviewQueuePersistenceLiveTest'` → 1 test, 0
+    fallos (`publicado OK (summaryId=1)`, `encolado OK (summaryId=2)`, `reencolado
+    idempotente OK (filas=1)`); índice parcial verificado en la BD. Entorno
+    limpiado (`docker compose down -v`; `.env` borrado, no versionado).
+  - Docs durables: `ARCHITECTURE.md`, `CONSTRAINTS.md` §«Cola de revisión y
+    disposición del resumen», **ADR 0018** + índice, skill `rag-datapublico` §6 y
+    `docs/desarrollo-local.md` (producto).
+- Ficheros actualizados (harness): `.harness/feature_list.json`,
+  `.harness/docs/feature-ids.md`, `.harness/ARCHITECTURE.md`,
+  `.harness/CONSTRAINTS.md`,
+  `.harness/docs/adr/0018-cola-revision-disposicion-resumen.md` (nuevo),
+  `.harness/docs/adr/README.md`, `.harness/.agents/skills/rag-datapublico/SKILL.md`,
+  `.harness/PROGRESS.md`.
+- Riesgo o duda sin resolver: los del ADR 0018 (índice parcial sobre datos previos
+  vacíos; `descartado` persistido; motivo como diagnóstico); la disposición es
+  **inerte** hasta que FT00026+ construya el servicio; el estado `POSTGRES_PORT`
+  de la prueba opt-in se usó 55432 para no chocar con otros stacks. Los riesgos de
+  FT00022 se mantienen.
+- Siguiente mejor paso: **validación independiente** de FT00023
+  (`feature-validator`); después, commit/PR por el orquestador. Siguiente feature
+  lista: `evaluacion-golden-set` (FT00024) o `english-identifiers-rename` (FT00047).
+
+### Session 063
+
+- Fecha: 2026-10-11
+- Objetivo: **cerrar** `cola-revision-confianza` (FT00023): validación
+  independiente y commit/PR por el orquestador, desde la rama
+  `feat/ft00023-cola-revision-confianza` (claim `62bfcd6` sobre `origin/main`
+  `d8ed35f`, que ya incluye FT00022).
+- Completado:
+  - **Validación independiente** (`feature-validator`): veredicto **`accept`**.
+    Reejecutó todo el gate sin red ni BD en verde (`:backend:test --rerun-tasks`
+    **328 tests** 0 fallos; `build --no-daemon -PskipClient` 23 tareas; `test` 3
+    módulos; `detekt`+`:cpdCheck`; `init.sh` exit 0) y **ejecutó de verdad** el
+    escenario 7 opt-in con PostgreSQL/Docker (`V5 … Success`; `publicado OK`,
+    `encolado OK`, `reencolado idempotente OK (filas=1)`), dejando el entorno
+    limpio. Confirmó alcance acotado, el **consumo** de `GuardrailDecision` de
+    FT00022 **sin umbral nuevo**, idempotencia, `aviso_ia` y tokens de estado; sin
+    hallazgos de seguridad; evidencias del implementer veraces. Deuda Low (no
+    bloqueante): skill de backend sitúa la cola en `resumen/` (código real
+    `rag/review/`), nombre del test de migración sobrepromete, transición
+    cola-revisada fuera de alcance.
+  - Persistida la aceptación: `feature_list.json` FT00023 → **`accepted`** +
+    evidencia; `docs/feature-ids.md` → `accepted`; este `PROGRESS.md`.
+- Estado: **FT00023 `accepted`**. Rama de producto con el commit de la feature,
+  pusheada y PR hacia `main`. Siguiente feature lista: `evaluacion-golden-set`
+  (FT00024) o `english-identifiers-rename` (FT00047).

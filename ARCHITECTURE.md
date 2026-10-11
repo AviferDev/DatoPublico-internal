@@ -152,6 +152,19 @@
   `REVIEW_THRESHOLD` = 0.8). Es **offline, determinista y sin persistencia** (no
   escribe en `resumen` ni `cola_revision`; FT00023/FT00026) y **sin wiring**; la
   alcanzabilidad real es **opt-in** (`BOE_LIVE_TEST=1`). Ver `docs/adr/0017`.
+  FT00023 añade **`rag/review/`**: la **disposición del resumen tras los
+  guardrails** que **consume** la decisión tipada de FT00022 (sin umbral nuevo) y
+  la **persiste**: `SummaryState` (los siete estados de `docs/domain-model.md`),
+  `SummaryReviewOutcome` (`Published`/`Queued`/`Discarded`) y
+  `SummaryDispositionService.dispose`, que escribe `estado` + `confianza`
+  (`groundingScore`) en `resumen` y **encola** los `NEEDS_REVIEW` en `cola_revision`
+  **sin publicarlos** (el publicado lleva `aviso_ia = true`; el aviso visible es
+  FT00033). El encolado es **idempotente** por resumen pendiente: la migración `V5`
+  crea un **índice único parcial** y `ReviewQueueRepository` pasa a *upsert*
+  (`ON CONFLICT … DO UPDATE SET motivo`) y gana `listPending()`; `listBySummary` se
+  mantiene. `SummaryRepository` **no** se modifica. Sigue siendo una **librería sin
+  wiring** (el feed/endpoints/UI y la revisión manual son FT00026+/FT00033) y la
+  prueba real es **opt-in** (`DB_LIVE_TEST=1`). Ver `docs/adr/0018`.
   Existe **`persistence/`** (FT00008): repositorios **JDBC**
   + entidades `...Entity` de `publicacion`, `fragmento`, `resumen` y
   `cola_revision`, más los helpers JDBC compartidos; la configuración de
@@ -242,7 +255,8 @@
   grounding **después** de generar y **antes** de publicar, también como librería sin
   wiring y sin persistencia.
 - **Datos:** PostgreSQL + pgvector; migraciones Flyway (`V1` esquema base, `V2`
-  persistencia, `V3` embedding + HNSW, `V4` caché de resúmenes + uso de tokens).
+  persistencia, `V3` embedding + HNSW, `V4` caché de resúmenes + uso de tokens,
+  `V5` índice único parcial de la cola de revisión pendiente).
   Sin cuentas ni datos personales.
 
 ## Reglas transversales

@@ -162,6 +162,37 @@
   sin abrir sockets**. El gate cubre normalizador, validador de fuente, grounding,
   evaluador con dobles y `HttpSourceReachability` con `MockEngine`, **sin red ni BD**.
 
+## Cola de revisión y disposición del resumen
+
+- **MUST**: la disposición **consume** la decisión tipada de FT00022
+  (`GuardrailDecision`): **no** se define un umbral de revisión nuevo ni se duplica
+  el grounding; `NEEDS_REVIEW` (y su rango `[DISCARD_THRESHOLD, REVIEW_THRESHOLD)`
+  más violaciones) ya lo decide el guardrail. La `confianza` persistida es el
+  `groundingScore`. Decisión durable en `docs/adr/0018`.
+- **MUST**: `NEEDS_REVIEW` **no** publica: el resumen queda `en_cola_revision` y se
+  encola una entrada `pendiente` en `cola_revision`; `PUBLISHABLE` publica
+  (`estado = publicado`); `DISCARDED` queda `descartado` (ni publica ni encola). El
+  feed futuro filtra `estado = 'publicado'`. El resumen publicado lleva
+  `aviso_ia = true` (el aviso **visible** es FT00033).
+- **MUST**: el encolado es **idempotente por resumen pendiente**: índice único
+  parcial `ON cola_revision (resumen_id) WHERE estado = 'pendiente'` (migración
+  `V5`, versionada, `V1`…`V4` no se editan) + *upsert* (`ON CONFLICT … DO UPDATE SET
+  motivo`). Reencolar **actualiza** el motivo y **no** duplica la fila; se conserva
+  el historial de revisiones cerradas. `ReviewQueueRepository` gana `listPending()`;
+  `listBySummary` se mantiene y `SummaryRepository` **no** se modifica.
+- **MUST**: la disposición es una **librería sin wiring** (`rag/review/`): **no** se
+  construye en `Application.kt`/job/backfill, no añade endpoints/UI y **no** anticipa
+  lo diferido (feed/endpoints/UI y revisión manual `revisado → publicado|descartado`
+  son FT00026+/FT00033, aviso de IA visible FT00033, chat FT00025). No modifica
+  `SummaryGuardrail`/`ResumenDto`/`CitizenSummaryValidator`/`HybridSearch`/`:shared`/
+  `:composeApp`/CI/`init.sh`. `motivo` es diagnóstico interno (nombres de violación),
+  **no** texto de UI.
+- **MUST**: la prueba real de disposición (publicar + encolar + reencolado
+  idempotente) es **opt-in** (`DB_LIVE_TEST=1`, solo PostgreSQL, sin OpenCode ni
+  modelo E5), fuera de `build`/`test`/`init.sh` y de la CI; el gate cubre los
+  estados, el motivo, el servicio con **dobles deterministas** y el contrato SQL de
+  `V5`, sin red ni BD.
+
 ## Categorización y plazos
 
 - **MUST**: la categoría de una publicación es una **regla curada determinista**

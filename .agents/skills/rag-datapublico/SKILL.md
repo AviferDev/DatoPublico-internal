@@ -276,6 +276,31 @@ ingesta BOE → chunking → embeddings (ONNX) → pgvector → recuperación h�
   evaluador con dobles y `HttpSourceReachability` con `MockEngine`, **sin red ni BD**; la
   alcanzabilidad real es **opt-in** (`BOE_LIVE_TEST=1`).
 
+### Estado actual del producto (FT00023)
+
+- La **disposición del resumen tras los guardrails** ya está implementada en
+  `:backend` como **librería sin wiring**, paquete nuevo
+  `es.aviferdev.datopublico.backend.rag.review`: `SummaryDispositionService.dispose(publication,
+  summary, guardrail)` **consume** la `GuardrailDecision` de FT00022 (sin umbral
+  nuevo), persiste el **estado** y la **confianza** (`groundingScore`) en `resumen` y
+  **encola** los `NEEDS_REVIEW` en `cola_revision` **sin publicarlos** (el publicado
+  lleva `aviso_ia = true`; el aviso **visible** es FT00033). Decisión durable en
+  `docs/adr/0018`.
+- **Estados y resultado**: `SummaryState` (los siete tokens de `docs/domain-model.md`;
+  `PUBLISHED` = `publicado`, `IN_REVIEW` = `en_cola_revision`, `DISCARDED` =
+  `descartado`) y `SummaryReviewOutcome` (`Published`/`Queued`/`Discarded`).
+  `ReviewReasonFormatter.of` construye el `motivo` interno de la cola.
+- **Encolado idempotente**: la migración `V5` (`cola_revision_pendiente_unique`)
+  crea un **índice único parcial** `ON cola_revision (resumen_id) WHERE estado =
+  'pendiente'`; `ReviewQueueRepository` pasa a *upsert* (`ON CONFLICT … DO UPDATE
+  SET motivo`) y gana `listPending()` (consumidor FT00026+). `SummaryRepository` y
+  `SummaryGuardrail` **no** se tocan.
+- **Sin wiring**: `Application.kt`/job/backfill, endpoints/UI y la revisión manual
+  (`revisado → publicado|descartado`) son de FT00026+/FT00033; `:shared`/`:composeApp`
+  intactos. **Verificación**: el gate cubre estados, motivo, servicio con dobles y el
+  contrato SQL de `V5`, sin red ni BD; la disposición real es **opt-in**
+  (`DB_LIVE_TEST=1`, solo PostgreSQL).
+
 ## 7. Evaluación
 
 - **Recuperación:** precision/recall (y recall@k / MRR) sobre un set de prueba.
