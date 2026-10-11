@@ -357,6 +357,34 @@
   `Application.kt`/job/backfill y **no** se anticipa lo diferido (resúmenes/chat,
   endpoints/UI, reranking/fusión léxica, indexado del corpus completo).
 
+## Evaluación de resúmenes
+
+- **MUST**: el **golden set** de evaluación de resúmenes es **versionado** en los
+  recursos de `:backend` (`rag/eval/summary-golden-set.json`) y su estructura y
+  validaciones son las del spec FT00024: versión y entradas no vacías,
+  identificadores únicos (con prefijo `EVAL-S`), categoría, título y texto
+  presentes, y **resumen de referencia con «¿Qué cambia?» y «¿A quién afecta?» no
+  vacíos**. Un dataset inválido falla con `IllegalArgumentException` **sin** abrir
+  conexión ni invocar al generador. Decisión durable en `docs/adr/0019`.
+- **MUST**: las métricas del resumen (`SummaryQualityMetrics`: F1 léxico por campo
+  y *recall* de cifras) son **puras** (sin red, BD, modelo, reloj ni estado),
+  **reutilizan** `SummaryTextNormalizer` de FT00022 y son testables en el gate con
+  un generador **doble**; el evaluador agrega medias sin `NaN` (media de una lista
+  vacía = `0.0`), deriva el acierto por umbral, cuenta los resúmenes **inválidos
+  como fallo** (sin lanzar) y **no** conoce OpenCode ni Ktor.
+- **MUST**: la evaluación **no cambia la generación ni los guardrails**: reutiliza
+  `CitizenSummaryGenerator`/`CitizenSummaryResult`/`SummaryGenerationDto` (FT00020)
+  y `SummaryTextNormalizer` (FT00022) tal cual. La ejecución real es **opt-in**
+  (`OPENCODE_LIVE_TEST=1` + `DB_LIVE_TEST=1` + `EMBEDDING_LIVE_TEST=1`) con la tarea
+  `:backend:evaluateSummary` **fuera** de `build`/`check`/`init.sh` y de la CI; el
+  test live afirma un **umbral conservador y documentado** (no perfección): el F1
+  léxico penaliza paráfrasis válidas y el objetivo es detectar **regresiones**.
+- **MUST NOT**: la evaluación **no persiste el histórico** (log JSON estructurado
+  `event=summary.evaluation.*` + stdout) ni añade migración; **no** se cablea en
+  `Application.kt`/job/backfill y **no** se anticipa lo diferido (endpoints/UI de
+  evaluación, juez LLM, ajuste automático del prompt o `PROMPT_VERSION`, métricas de
+  sistema como latencia/coste, evaluación de chat).
+
 ## Persistencia y base de datos
 
 - **MUST**: el acceso a datos usa **JDBC + HikariCP**, **sin ORM** (nada de

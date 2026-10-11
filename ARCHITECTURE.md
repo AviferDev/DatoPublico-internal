@@ -165,6 +165,24 @@
   mantiene. `SummaryRepository` **no** se modifica. Sigue siendo una **librería sin
   wiring** (el feed/endpoints/UI y la revisión manual son FT00026+/FT00033) y la
   prueba real es **opt-in** (`DB_LIVE_TEST=1`). Ver `docs/adr/0018`.
+  FT00024 añade al paquete **`rag/evaluation/`** la **evaluación de la calidad del
+  resumen ciudadano**: un **golden set versionado** (recurso
+  `rag/eval/summary-golden-set.json` con publicaciones y su **resumen de
+  referencia**, ids con prefijo `EVAL-S`), métricas **puras**
+  (`SummaryQualityMetrics`: F1 léxico por campo con `SummaryTextNormalizer` de
+  FT00022 + *recall* de cifras), el loader con fail-fast
+  (`SummaryGoldenSetLoader`), el evaluador con un `fun interface SummaryGenerator`
+  inyectable (`SummaryQualityEvaluator`: genera una vez por entrada, medias sin
+  `NaN`, `hitRate` e `invalidCount`; un resumen inválido cuenta como fallo) y la CLI
+  one-shot `SummaryEvaluationMain` (tarea `:backend:evaluateSummary`, **fuera** de
+  `build`/`check`). **No** cambia la generación ni los guardrails: reutiliza
+  `CitizenSummaryGenerator`/`SummaryGenerationDto` (FT00020) y
+  `SummaryTextNormalizer` (FT00022) **sin modificarlos**; indexa el corpus con el
+  modelo E5 real (`FragmentIndexer`) y evalúa cada resumen contra su referencia.
+  Sigue siendo **sin wiring**; la prueba real es **opt-in**
+  (`OPENCODE_LIVE_TEST=1` + `DB_LIVE_TEST=1` + `EMBEDDING_LIVE_TEST=1`) y **no** se
+  persiste el histórico (log JSON `event=summary.evaluation.started`/`completed` +
+  stdout, sin migración). Ver `docs/adr/0019`.
   Existe **`persistence/`** (FT00008): repositorios **JDBC**
   + entidades `...Entity` de `publicacion`, `fragmento`, `resumen` y
   `cola_revision`, más los helpers JDBC compartidos; la configuración de

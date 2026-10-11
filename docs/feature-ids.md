@@ -39,7 +39,7 @@
 | FT00021 | cacheo-resumenes | Cacheo de resúmenes y control de coste | simplificacion-ia | accepted |
 | FT00022 | guardrails-anti-alucinacion | Guardrails anti-alucinación y trazabilidad | simplificacion-ia | accepted |
 | FT00023 | cola-revision-confianza | Cola de revisión por baja confianza | simplificacion-ia | accepted |
-| FT00024 | evaluacion-golden-set | Evaluación de calidad con golden set | simplificacion-ia | in_progress |
+| FT00024 | evaluacion-golden-set | Evaluación de calidad con golden set | simplificacion-ia | accepted |
 | FT00025 | chat-generacion | Generación del chat RAG con OpenCode | simplificacion-ia | not_started |
 | FT00026 | api-feed-diario | Endpoint del feed diario | api-publica | not_started |
 | FT00027 | api-detalle-norma | Endpoint de detalle de publicación | api-publica | not_started |

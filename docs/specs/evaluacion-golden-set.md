@@ -375,7 +375,7 @@ como `…/backend`:
 - `docs/desarrollo-local.md` — modify; sección de evaluación de resúmenes
   (comandos opt-in).
 
-Harness (privado): `ARCHITECTURE.md`, `CONSTRAINTS.md`, ADR `0018` + índice,
+Harness (privado): `ARCHITECTURE.md`, `CONSTRAINTS.md`, ADR `0019` + índice,
 `.agents/skills/rag-datapublico/SKILL.md`, `feature_list.json`, `PROGRESS.md`
 (ver *Durable Documentation Impact*).
 
@@ -403,11 +403,12 @@ Harness (privado): `ARCHITECTURE.md`, `CONSTRAINTS.md`, ADR `0018` + índice,
   `:backend:evaluateSummary` **fuera** de `build`/`check`; **no** se persiste el
   histórico ni se añade migración; la evaluación **no** cambia la generación.
 - `AGENTS.md`: not needed — no cambia el flujo ni el camino de arranque.
-- **ADR `docs/adr/0018-evaluacion-resumenes-golden-set.md`** (recomendado;
-  siguiente número libre tras 0017): decisión durable «evaluación de la calidad
-  del resumen ciudadano con golden set versionado de publicaciones + resumen de
-  referencia, métricas léxicas puras (F1 por campo + *recall* de cifras) y CLI
-  one-shot opt-in; sin juez LLM, sin cambiar la generación ni persistir el
+- **ADR `docs/adr/0019-evaluacion-resumenes-golden-set.md`** (recomendado;
+  `0018` quedó ocupado por FT00023 `cola-revision-confianza` al implementar esta
+  feature, así que el siguiente número libre es `0019`): decisión durable «evaluación
+  de la calidad del resumen ciudadano con golden set versionado de publicaciones +
+  resumen de referencia, métricas léxicas puras (F1 por campo + *recall* de cifras)
+  y CLI one-shot opt-in; sin juez LLM, sin cambiar la generación ni persistir el
   histórico». El planner **no** lo crea; lo escribe el implementador/orquestador y
   lo inscribe en `docs/adr/README.md`.
 - `.agents/skills/rag-datapublico/SKILL.md`: update — §7 «Estado actual del
@@ -431,7 +432,7 @@ Harness (privado): `ARCHITECTURE.md`, `CONSTRAINTS.md`, ADR `0018` + índice,
 5. Añadir `SummaryEvaluationLiveTest` (`OPENCODE_LIVE_TEST=1` +
    `DB_LIVE_TEST=1` + `EMBEDDING_LIVE_TEST=1`).
 6. Ejecutar el gate sin red ni BD y la evaluación real opt-in; actualizar
-   `ARCHITECTURE.md`, `CONSTRAINTS.md`, ADR 0018 + índice, skill RAG y
+   `ARCHITECTURE.md`, `CONSTRAINTS.md`, ADR 0019 + índice, skill RAG y
    `docs/desarrollo-local.md`. `PROGRESS.md`/`feature_list.json` los cierra el
    orquestador.
 
@@ -453,7 +454,7 @@ Harness (privado): `ARCHITECTURE.md`, `CONSTRAINTS.md`, ADR `0018` + índice,
       `SummaryQualityEvaluatorTest` (gate, sin red/BD/modelo/OpenCode).
 - [ ] `SummaryEvaluationLiveTest` (`OPENCODE_LIVE_TEST=1` + `DB_LIVE_TEST=1` +
       `EMBEDDING_LIVE_TEST=1`).
-- [ ] Docs durables: ARCHITECTURE, CONSTRAINTS, ADR 0018 + índice, skill RAG,
+- [ ] Docs durables: ARCHITECTURE, CONSTRAINTS, ADR 0019 + índice, skill RAG,
       `docs/desarrollo-local.md`.
 
 ## Verification Plan
@@ -523,7 +524,7 @@ Desde la raíz del producto (`..`, JDK 21 vía JBR/`JAVA_HOME`):
   `build`/`check`.
 - [ ] `return` único, sin `else if`, funciones ≤40 líneas, KDoc en castellano con
   identificadores en inglés; `@SerialName` explícito en todo `@Serializable`.
-- [ ] `ARCHITECTURE.md`, `CONSTRAINTS.md`, ADR 0018 + índice, skill RAG,
+- [ ] `ARCHITECTURE.md`, `CONSTRAINTS.md`, ADR 0019 + índice, skill RAG,
   `docs/desarrollo-local.md`, `PROGRESS.md` y `feature_list.json` actualizados.
 - [ ] No unrelated product behavior or extra feature work was added.
 

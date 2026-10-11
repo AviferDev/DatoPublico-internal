@@ -3344,3 +3344,110 @@
 - Estado: **FT00023 `accepted`**. Rama de producto con el commit de la feature,
   pusheada y PR hacia `main`. Siguiente feature lista: `evaluacion-golden-set`
   (FT00024) o `english-identifiers-rename` (FT00047).
+
+### Session 064
+
+- Fecha: 2026-10-11
+- Objetivo: **implementar** `evaluacion-golden-set` (FT00024, spec
+  `docs/specs/evaluacion-golden-set.md`) desde la rama
+  `feat/ft00024-evaluacion-golden-set`, como librería/CLI **sin wiring**.
+- Completado (implementer, autoverificación; **no** es aceptación):
+  - Producto (`:backend`, paquete `rag/evaluation/`, todo `Summary*`):
+    `SummaryQualityMetrics` (puro: `tokenF1` por campo sobre el multiconjunto de
+    `contentTokens` y `figuresRecall` de cifras; reutiliza `SummaryTextNormalizer`
+    de FT00022), `SummaryGoldenSet` (DTOs `@Serializable` con `@SerialName`
+    explícito —la referencia **reutiliza** `SummaryGenerationDto`—, modelo interno
+    sin sufijo y `SummaryGoldenSetLoader` fail-fast), `SummaryQualityEvaluator`
+    (`fun interface SummaryGenerator`, medias sin `NaN` con el `mean()` de FT00018,
+    `hitRate`, `invalidCount`; un `CitizenSummaryResult.Invalid` cuenta como fallo),
+    `SummaryEvaluationLog` (`event=summary.evaluation.started`/`completed`) y
+    `SummaryEvaluationMain` (CLI one-shot). Dataset versionado
+    `rag/eval/summary-golden-set.json` (5 entradas, ids `EVAL-S`, secciones I/II.A/
+    II.B/III/V.B y categorías distintas, con `Artículo N` y una de becas con plazo).
+    Tarea Gradle `:backend:evaluateSummary` (`JavaExec`, grupo `application`,
+    **fuera** de `build`/`check`). **Sin** tocar `rag/summary|generation|guardrails|
+    retrieval|indexing|chunking|embeddings`, `persistence/`, `infra/`, migraciones,
+    `Application.kt`, `ingesta/`, `:shared`, `:composeApp`, CI ni `init.sh`; **sin**
+    dependencias Gradle nuevas y **sin** migración.
+  - Tests: `SummaryQualityMetricsTest` (10), `SummaryGoldenSetTest` (10),
+    `SummaryQualityEvaluatorTest` (7) y `SummaryEvaluationLiveTest` (1, **opt-in**
+    `OPENCODE_LIVE_TEST=1` + `DB_LIVE_TEST=1` + `EMBEDDING_LIVE_TEST=1`).
+  - Gate sin red, BD, modelo ni OpenCode: `:backend:test --rerun-tasks` → **356
+    tests, 0 fallos** (+28 nuevos; los 328 previos intactos); `build --no-daemon
+    -PskipClient` (23 tareas), `test`, `detekt` (detekt + `:cpdCheck`) y
+    `env -u JAVA_HOME .harness/init.sh` (exit **0**) en verde. El live se **omite**
+    sin sus variables.
+  - Escenario 7 (opt-in real con OpenCode) **no ejecutable** aquí: hay Docker +
+    PostgreSQL y el modelo E5 descargado, pero **falta `OPENCODE_API_KEY`** (no se
+    inventó). Verificación real acotada: PostgreSQL/pgvector propio (`docker compose
+    -p datopublico-ft00024`, puerto 55434; V1–V5 `Success`) + modelo E5 real y
+    `:backend:evaluateSummary` con un **stub local OpenAI-compatible** en lugar de
+    OpenCode → 5 publicaciones indexadas (10 fragmentos, 10 con embedding) y log
+    `event=summary.evaluation.completed` (`entries=5`, `what_changes_f1=0.2359`,
+    `who_is_affected_f1=0.0848`, `figures_recall=0.3333`, `hit_rate=0.0`,
+    `invalid=0`) + resumen por entrada; fail-fast verificado sin clave y sin
+    `POSTGRES_PASSWORD`. Entorno limpiado (`docker compose down -v`, `.env` borrado,
+    stub detenido).
+  - Docs durables: `ARCHITECTURE.md`, `CONSTRAINTS.md` §«Evaluación de resúmenes»,
+    **ADR 0019** (el `0018` propuesto en el spec quedó ocupado por FT00023; spec
+    corregida) + índice, skill `rag-datapublico` §7 y `docs/desarrollo-local.md`
+    (producto). `feature_list.json` FT00024 → **`passing`** y `docs/feature-ids.md`.
+- Ficheros de producto: 5 nuevos en `backend/src/main/kotlin/.../rag/evaluation/`
+  (`SummaryQualityMetrics.kt`, `SummaryGoldenSet.kt`, `SummaryQualityEvaluator.kt`,
+  `SummaryEvaluationLog.kt`, `SummaryEvaluationMain.kt`), 1 recurso
+  (`rag/eval/summary-golden-set.json`), 4 tests nuevos, `backend/build.gradle.kts`
+  (tarea `evaluateSummary`) y `docs/desarrollo-local.md`.
+- Riesgo o duda sin resolver: los del ADR 0019 (F1 **léxico** penaliza paráfrasis
+  válidas; `DEFAULT_HIT_THRESHOLD = 0.5` es un punto de partida a calibrar con datos
+  reales; opt-in con tres recursos; el escenario 7 real sigue **sin ejecutar** por
+  falta de `OPENCODE_API_KEY` y el `SummaryEvaluationLiveTest` no se pudo correr).
+- Siguiente mejor paso: **validación independiente** de FT00024
+  (`feature-validator`); después, commit/PR por el orquestador. Siguiente feature
+  lista: `english-identifiers-rename` (FT00047) o la evaluación de chat (FT00025).
+
+### Session 064
+
+- Fecha: 2026-10-11
+- Objetivo: **implementar** `evaluacion-golden-set` (FT00024) con el rol
+  `implementer`, sobre la rama `feat/ft00024-evaluacion-golden-set` (claim
+  `81f6978` desde `origin/main` `be881a0`, que ya incluye FT00022/FT00023).
+- Completado (FT00024 → `passing`): paquete `rag/evaluation/` ampliado con
+  `SummaryQualityMetrics` (puro), `SummaryGoldenSet` (DTOs `@Serializable` +
+  loader fail-fast), `SummaryQualityEvaluator` (`fun interface SummaryGenerator`),
+  `SummaryEvaluationLog` y `SummaryEvaluationMain` (CLI one-shot); dataset
+  `rag/eval/summary-golden-set.json` (5 entradas `EVAL-S`); tarea Gradle
+  `:backend:evaluateSummary` fuera de `build`/`check`. Gate verde: `356 tests`
+  (+28), `build -PskipClient`, `test`, `detekt`, `init.sh` exit 0. Escenario 7
+  real con OpenCode **no ejecutable** (falta `OPENCODE_API_KEY`); verificación
+  acotada con PostgreSQL + E5 reales + stub local. ADR **0019** (el 0018 estaba
+  ocupado por FT00023). Detalle completo en `feature_list.json` (FT00024).
+- Ficheros de producto: 5 `rag/evaluation/Summary*.kt`, 1 recurso
+  `rag/eval/summary-golden-set.json`, 4 tests y `backend/build.gradle.kts` /
+  `docs/desarrollo-local.md`.
+- Riesgo o duda sin resolver: los del ADR 0019 (F1 léxico; umbral a calibrar;
+  escenario 7 real sin ejecutar).
+- Siguiente mejor paso: validación independiente (rol `validator`); después,
+  commit/PR por el orquestador.
+
+### Session 065
+
+- Fecha: 2026-10-11
+- Objetivo: **cerrar** `evaluacion-golden-set` (FT00024): validación independiente
+  y commit/PR por el orquestador, desde la rama
+  `feat/ft00024-evaluacion-golden-set`.
+- Completado:
+  - **Validación independiente** (`feature-validator`): veredicto **`accept`**.
+    Reejecutó el gate sin red ni BD en verde (`:backend:test --rerun-tasks`
+    **356 tests, 0 fallos**; `build --no-daemon -PskipClient` 23 tareas; `test`
+    63 tareas; `detekt` + `:cpdCheck` forzados; `env -u JAVA_HOME .harness/init.sh`
+    exit **0**); confirmó la evidencia del implementer; comprobó a mano la
+    corrección de `tokenF1`/`figuresRecall`, la agregación sin `NaN`, `Invalid` como
+    fallo, el fail-fast y el cierre de recursos, la tarea `evaluateSummary` fuera de
+    `build`/`check` y el alcance acotado. Sin hallazgos High/Medium; deuda **Low**
+    no bloqueante (umbrales del live sin calibrar con OpenCode real, soft-skip del
+    live, `urlOficial` sintética). Sin hallazgos de seguridad.
+  - Persistida la aceptación: `feature_list.json` FT00024 → **`accepted`** +
+    evidencia; `docs/feature-ids.md` → `accepted`; este `PROGRESS.md`.
+- Estado: **FT00024 `accepted`**. Rama de producto pendiente de commit/push/PR por
+  el orquestador. Siguiente feature lista: `english-identifiers-rename` (FT00047,
+  por partes `FT00047-PT1..PT6`) o la evaluación de chat (FT00025).

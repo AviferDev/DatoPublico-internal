@@ -76,3 +76,4 @@ Aceptado (<AAAA-MM-DD>). [Quién decide y, si aplica, qué ADR supersede/ajusta.
 | [0016](0016-cacheo-resumenes-uso-tokens.md) | Cacheo del resumen ciudadano en tabla propia (clave publicación+modelo+prompt) y registro de uso de tokens | Aceptado |
 | [0017](0017-guardrails-anti-alucinacion-trazabilidad.md) | Guardrails anti-alucinación offline y deterministas (fuente estructural + grounding léxico) antes de publicar | Aceptado |
 | [0018](0018-cola-revision-disposicion-resumen.md) | Disposición del resumen guardado: estado + confianza persistidos y cola de revisión idempotente | Aceptado |
+| [0019](0019-evaluacion-resumenes-golden-set.md) | Evaluación de la calidad del resumen ciudadano con golden set versionado, métricas léxicas puras y CLI one-shot opt-in | Aceptado |

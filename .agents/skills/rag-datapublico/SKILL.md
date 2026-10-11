@@ -329,8 +329,35 @@ ingesta BOE → chunking → embeddings (ONNX) → pgvector → recuperación h�
   `RetrievalEvaluatorTest` **sin red, BD ni modelo**; la ejecución real es
   **opt-in** (`DB_LIVE_TEST=1` + `EMBEDDING_LIVE_TEST=1`) con umbral conservador
   (`recall@k >= 0.6`, `MRR >= 0.5`), contra el PostgreSQL de `docker-compose` y el
-  modelo E5 real. La evaluación de resúmenes (golden set de publicaciones) y de chat
-  llega con FT00024.
+  modelo E5 real.
+
+### Estado actual del producto (FT00024)
+
+- La **evaluación de la calidad del resumen ciudadano** ya está implementada en
+  `:backend`, paquete `es.aviferdev.datopublico.backend.rag.evaluation`:
+  `SummaryQualityMetrics` (puro: `tokenF1` por campo con el multiconjunto de
+  `contentTokens` de `SummaryTextNormalizer` y `figuresRecall` de cifras), el
+  **golden set versionado** (`rag/eval/summary-golden-set.json`, ids `EVAL-S`, DTOs
+  `@Serializable` con sufijo `Dto` —la referencia **reutiliza** `SummaryGenerationDto`—
+  y `SummaryGoldenSetLoader` con fail-fast), `SummaryQualityEvaluator`
+  (`fun interface SummaryGenerator` + medias sin `NaN`, `hitRate` e `invalidCount`;
+  un `CitizenSummaryResult.Invalid` cuenta como fallo) y la CLI one-shot
+  `SummaryEvaluationMain` (tarea `:backend:evaluateSummary`, **fuera** de
+  `build`/`check`). Decisión durable en `docs/adr/0019`.
+- **Reutiliza FT00020/FT00022 sin modificarlas**: indexa el corpus del dataset con
+  `FragmentIndexer`, genera cada resumen con `CitizenSummaryGenerator` (OpenCode) y
+  lo compara con su referencia. **Sin wiring** (`Application.kt`/job/backfill
+  intactos) y **sin** persistir el histórico: el resultado es log JSON
+  (`event=summary.evaluation.started`/`completed` con `what_changes_f1`/
+  `who_is_affected_f1`/`figures_recall`/`hit_rate`/`invalid`) + resumen por entrada
+  en stdout; sin migración.
+- **Verificación**: el gate cubre `SummaryQualityMetricsTest`, `SummaryGoldenSetTest`
+  y `SummaryQualityEvaluatorTest` **sin red, BD, modelo ni OpenCode**; la ejecución
+  real es **opt-in** (`OPENCODE_LIVE_TEST=1` + `DB_LIVE_TEST=1` +
+  `EMBEDDING_LIVE_TEST=1`) con umbral conservador (`meanWhatChangesF1 >= 0.3`,
+  `hitRate >= 0.3`). El F1 es **léxico** (penaliza paráfrasis): el objetivo es
+  detectar **regresiones**, no certificar calidad absoluta. La evaluación de chat
+  llega con FT00025.
 
 ## Riesgos conocidos
 
