@@ -121,6 +121,22 @@
   `CitizenSummaryResult.Valid` o `Invalid` (un resumen inválido **no** se publica;
   no es una excepción). Sigue siendo una **librería sin wiring** y la prueba real es
   **opt-in** (`OPENCODE_LIVE_TEST=1`). Ver `docs/adr/0015`.
+  FT00021 añade el **cacheo del resumen ciudadano** y el **control de coste**:
+  `rag/summary/SummaryCacheKey` (clave **pura y determinista** = publicación +
+  **modelo** + **versión de prompt**, fail-fast) y
+  `rag/summary/CachedCitizenSummaryGenerator` (envuelve a `CitizenSummaryGenerator`
+  sin reescribir su pipeline: consulta la caché **antes** del proveedor; en acierto
+  devuelve el resumen cacheado sin llamar a OpenCode y registra uso con
+  `cache_hit = true` y 0 tokens; en fallo genera, registra el uso real y **cachea
+  solo si es `Valid`**). `GenerationResponse` gana `usage: TokenUsage?` (opcional) y
+  el proveedor OpenCode parsea el bloque `usage`; `CitizenSummaryResult` propaga el
+  uso de forma **compatible**. La persistencia son dos repositorios JDBC en
+  `persistence/` (`SummaryCacheRepository` con codec JSON puro del `ResumenDto` y
+  `GenerationUsageRepository` con `totalTokens()`) y la migración `V4`
+  (`resumen_cache` + `generacion_uso`, tabla propia y separada de `resumen`). Sigue
+  siendo una **librería sin wiring** (modelo inyectado por constructor, en
+  producción de `OpenCodeConfig`); la prueba real es **opt-in** (`DB_LIVE_TEST=1`).
+  Ver `docs/adr/0016`.
   Existe **`persistence/`** (FT00008): repositorios **JDBC**
   + entidades `...Entity` de `publicacion`, `fragmento`, `resumen` y
   `cola_revision`, más los helpers JDBC compartidos; la configuración de
@@ -177,7 +193,9 @@
   **Flyway**; ver `docs/adr/0003`): los repositorios de `persistence/` escriben
   y leen `publicacion` (con `categoria` y `plazo` nullable), `fragmento` (con
   `embedding vector(384)` nullable e índice **HNSW** coseno desde FT00016),
-  `resumen` y `cola_revision`. La conexión se **deriva** de `POSTGRES_*` (fuente
+  `resumen` y `cola_revision`; desde FT00021, `resumen_cache` (caché del resumen
+  por clave determinista, con FK en cascada a `publicacion`) y `generacion_uso`
+  (log de tokens, **sin** FK). La conexión se **deriva** de `POSTGRES_*` (fuente
   única, la misma que Compose/Flyway) y falla en claro si falta la contraseña. El
   *upsert* de publicación por `id` es idempotente y es la base del job diario: la
   segunda pasada reejecuta la misma fecha sin duplicar. `Application.kt` crea el
@@ -203,9 +221,11 @@
   en CPU, tras `EmbeddingProvider`; **no** cableados aún y sin anticipar
   pgvector/HNSW (FT00016). La **generación** está implementada como librería en
   `rag/generation/` + `rag/summary/` (FT00020, ADR 0015), tras
-  `TextGenerationProvider`, **sin** wiring ni endpoints.
+  `TextGenerationProvider`, **sin** wiring ni endpoints; el **cacheo** del resumen y
+  el **control de coste** (FT00021, ADR 0016) la envuelven también **sin** wiring.
 - **Datos:** PostgreSQL + pgvector; migraciones Flyway (`V1` esquema base, `V2`
-  persistencia, `V3` embedding + HNSW). Sin cuentas ni datos personales.
+  persistencia, `V3` embedding + HNSW, `V4` caché de resúmenes + uso de tokens).
+  Sin cuentas ni datos personales.
 
 ## Reglas transversales
 

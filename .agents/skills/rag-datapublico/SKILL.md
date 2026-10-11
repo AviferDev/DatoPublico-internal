@@ -211,6 +211,33 @@ ingesta BOE → chunking → embeddings (ONNX) → pgvector → recuperación h�
   real es **opt-in** (`OPENCODE_LIVE_TEST=1`, sin PostgreSQL ni ONNX; fail-fast sin
   clave).
 
+### Estado actual del producto (FT00021)
+
+- El **cacheo del resumen ciudadano** y el **control de coste** ya están
+  implementados en `:backend` como **librería sin wiring**: `rag/summary/`
+  (`SummaryCacheKey` puro = **publicación + modelo + versión de prompt**, fail-fast;
+  `CachedCitizenSummaryGenerator` + `CachedSummaryResult` que **envuelven** a
+  `CitizenSummaryGenerator` — consulta la caché **antes** del proveedor, en acierto
+  devuelve lo cacheado **sin llamar** a OpenCode y registra uso con
+  `cache_hit = true` y 0 tokens; en fallo genera, registra el uso real y **cachea
+  solo si es `Valid`**; `CitizenSummaryPromptBuilder.PROMPT_VERSION = "v1"`
+  **pública** y manual). `GenerationResponse` gana `usage: TokenUsage?` (opcional) y
+  el proveedor OpenCode parsea el bloque `usage`; `CitizenSummaryResult` propaga el
+  uso de forma **compatible**. Persistencia en `persistence/`
+  (`SummaryCacheRepository` con codec JSON puro del `ResumenDto` y
+  `GenerationUsageRepository` con `totalTokens()`) + migración `V4`
+  (`resumen_cache` — tabla **propia y separada** de `resumen` — y `generacion_uso`,
+  **sin** FK). Decisión durable en `docs/adr/0016`.
+- **Reglas**: solo se cachean resúmenes `Valid`; cada generación (acierto o fallo)
+  registra tokens y `cache_hit`; cambiar el **modelo** o la **versión del prompt**
+  invalida la caché; el **modelo** se **inyecta** por constructor (en producción, de
+  `OpenCodeConfig`). **Sin wiring** (`Application.kt`/job/backfill, endpoints/UI,
+  `:shared` y `:composeApp` intactos) y **sin** anticipar guardrails (FT00022), cola
+  de revisión (FT00023) ni chat (FT00025). **Verificación**: el gate cubre clave,
+  servicio con caché, uso del proveedor y contrato SQL de `V4` con **dobles
+  deterministas**, sin red ni BD; la prueba real es **opt-in** (`DB_LIVE_TEST=1`,
+  solo PostgreSQL).
+
 ## 6. Guardrails (anti-alucinación y trazabilidad)
 
 - Ningún resumen se publica sin **enlace válido** a la fuente oficial.

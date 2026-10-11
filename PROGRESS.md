@@ -139,6 +139,26 @@
   `OPENCODE_API_KEY`; el fail-fast sin clave lo cubre `OpenCodeConfigTest`. Decisión
   durable en **ADR 0015**; validación independiente `accept`. Siguiente feature
   lista: `cacheo-resumenes` (FT00021) o `english-identifiers-rename` (FT00047).
+- **FT00021 `cacheo-resumenes` → `accepted`** (Sessions 053–055): **caché del
+  resumen ciudadano y control de coste** en `:backend` como **librería sin wiring**.
+  `rag/generation/`: `GenerationResponse.usage: TokenUsage?` (opcional) y parseo del
+  bloque `usage` de OpenCode (`ChatUsageDto`, `@SerialName`). `rag/summary/`:
+  `SummaryCacheKey.of(publicationId, model, promptVersion)` (puro, determinista,
+  fail-fast), `CitizenSummaryPromptBuilder.PROMPT_VERSION = "v1"` pública,
+  `CitizenSummaryResult.Valid`/`Invalid` con `usage` y `CachedCitizenSummaryGenerator`
+  + `CachedSummaryResult` (envuelve a `CitizenSummaryGenerator`: acierto → resumen
+  cacheado sin llamar al proveedor + uso `cache_hit=true`/0 tokens; fallo → genera,
+  registra uso real y cachea **solo si `Valid`**). Persistencia: migración `V4`
+  (`resumen_cache` con FK en cascada + `generacion_uso`), `SummaryCacheRepository`
+  (codec JSON puro del `ResumenDto`) y `GenerationUsageRepository`. Gate sin red ni
+  BD verde (`:backend` **278 tests**, 0 fallos; +25 nuevos; los 253 de FT00020
+  intactos; `build -PskipClient` 23 tareas, `test` 63 tareas, `detekt`+`:cpdCheck`,
+  `init.sh` exit 0) y prueba real **opt-in ejecutada y verde** por el validator
+  (`DB_LIVE_TEST=1`: `cache round-trip OK`, `upsert idempotente OK`, `uso OK`).
+  Decisión durable en **ADR 0016**; validación independiente `accept`
+  (`docs/validations/cacheo-resumenes.md`). Siguiente feature lista:
+  `guardrails-anti-alucinacion` (FT00022, depende de FT00020) o
+  `english-identifiers-rename` (FT00047).
 - Última verificación: 2026-10-10 (Sessions 032–038). **Cambio de alcance 1.0.0 =
   TODO el BOE** (secciones I, II.A, II.B, III, IV, V.A, V.B y V.C; ningún campo ni
   sección se excluye) y nueva norma MUST de **`@SerialName` explícito** en cada
@@ -2863,3 +2883,125 @@
   validación independiente (`feature-validator`). **No** se marca `accepted`.
 - Siguiente mejor paso: validar `generacion-resumen-go` (FT00020). Siguiente rol:
   `validator`.
+
+### Session 053
+
+- Fecha: 2026-10-11
+- Objetivo: planificar `cacheo-resumenes` (FT00021) — rol `planner`
+  (`feature-spec`). Feature `ft_id` **FT00021**, área `simplificacion-ia`,
+  `depends_on` `generacion-resumen-go` (FT00020, `accepted`, ya en `main`).
+- Completado: spec `docs/specs/cacheo-resumenes.md` creada (implementable y
+  verificable con el gate estándar SDK-free). Decisiones clave: (1) caché en
+  **tabla propia** `resumen_cache` con clave determinista
+  `publicationId|model|promptVersion` (un cambio de modelo o de versión de prompt
+  invalida); (2) **migración `V4`** + dos repositorios JDBC (`SummaryCacheRepository`
+  y `GenerationUsageRepository`); (3) **uso de tokens** por generación
+  (`generacion_uso` con `cache_hit`), ampliando `GenerationResponse` con `usage`
+  opcional (verificado en código: hoy **no** lo lleva) y `CitizenSummaryResult`
+  de forma **compatible**; (4) servicio `CachedCitizenSummaryGenerator` que
+  **envuelve** `CitizenSummaryGenerator` sin reescribir el pipeline; (5) **solo**
+  se cachean resúmenes `Valid`; (6) librería **sin wiring** (API/UI en FT00026+);
+  (7) prueba real **opt-in** `DB_LIVE_TEST=1` (solo PostgreSQL, proveedor doble).
+  ADR **0016** propuesto. ≈**18 ficheros de producto**: **no** requiere división
+  en partes.
+- Verificación ejecutada: revisión de código real (FT00020 y `persistence/`),
+  `git ls-remote`/`gh pr list` (rama `feat/ft00021-cacheo-resumenes` reclamada,
+  sin PR abierto). No se ejecutó build (rol planner; no implementa).
+- Ficheros actualizados: `.harness/docs/specs/cacheo-resumenes.md` (nuevo),
+  `.harness/feature_list.json` (FT00021 → `in_progress`), `.harness/PROGRESS.md`.
+- Riesgo o duda sin resolver: la clave de caché no incluye la versión del
+  validador del contrato (FT00019) ni tarifas en euros (fuera de alcance); el
+  modelo se inyecta por constructor (coherencia en el wiring futuro).
+- Siguiente mejor paso: implementar `cacheo-resumenes` (FT00021). Siguiente rol:
+  `implementer`.
+
+### Session 054
+
+- Fecha: 2026-10-11
+- Objetivo: implementar `cacheo-resumenes` (FT00021) — rol `implementer`
+  (`feature-implementer`), rama `feat/ft00021-cacheo-resumenes` (reclamada).
+- Completado: caché del resumen ciudadano y control de coste como **librería sin
+  wiring** en `:backend`.
+  - `rag/generation/`: `GenerationResponse` gana `usage: TokenUsage?` (opcional) y
+    `OpenCodeTextGenerationProvider` parsea el bloque `usage` (`ChatUsageDto`,
+    `@SerialName`); sin `usage` ⇒ `null` (no error).
+  - `rag/summary/`: `SummaryCacheKey.of(publicationId, model, promptVersion)` (puro,
+    determinista, fail-fast), `CitizenSummaryPromptBuilder.PROMPT_VERSION = "v1"`
+    pública (constantes internas pasadas a `private`),
+    `CitizenSummaryResult.Valid`/`Invalid` con `usage` (compatible),
+    `CitizenSummaryGenerator.DEFAULT_LIMIT` pública (reutilizada) y
+    `CachedCitizenSummaryGenerator` + `CachedSummaryResult` que **envuelven** al
+    generador: acierto → resumen cacheado sin llamar al proveedor + uso
+    `cache_hit=true` con 0 tokens; fallo → genera, registra uso real y **cachea solo
+    si `Valid`**.
+  - `persistence/`: `SummaryCacheRepository` (entidad + codec JSON puro del
+    `ResumenDto` + impl JDBC con *upsert*) y `GenerationUsageRepository`
+    (`record`/`listByPublication`/`totalTokens()`); migración
+    `V4__resumen_cache_uso.sql` (`resumen_cache` con FK en cascada + `generacion_uso`
+    sin FK). El modelo se **inyecta** por constructor (en producción, de
+    `OpenCodeConfig`).
+- Verificación ejecutada (desde `..`, JDK 21 JBR; salidas reales):
+  - `./gradlew :backend:test --rerun-tasks` → BUILD SUCCESSFUL, **278 tests, 0
+    fallos** (+25 nuevos: `SummaryCacheKeyTest` 7, `CachedCitizenSummaryGeneratorTest`
+    5, `ResumenCacheMigrationSqlTest` 5, `SummaryCachePersistenceTest` 3,
+    `SummaryCachePersistenceLiveTest` 1, `CitizenSummaryGeneratorTest` 7,
+    `OpenCodeTextGenerationProviderTest` 7; los 253 de FT00020 intactos).
+  - `./gradlew build --no-daemon -PskipClient` → BUILD SUCCESSFUL (23 tareas).
+  - `./gradlew test` → BUILD SUCCESSFUL (63 tareas); `./gradlew detekt`
+    (+`:cpdCheck`) → BUILD SUCCESSFUL.
+  - `env -u JAVA_HOME .harness/init.sh` → exit 0 (`Gate OK`).
+  - Offline: las pruebas reales se **omiten** sin `DB_LIVE_TEST`/`OPENCODE_LIVE_TEST`
+    (sin sockets ni conexiones). Prueba real `DB_LIVE_TEST=1` **no ejecutada**
+    (Docker no usado).
+- Ficheros: 17 de producto (`rag/generation/` 2 mod; `rag/summary/` 3 mod + 2
+  nuevos; `persistence/` 2 nuevos; migración `V4`; 5 tests nuevos + 2 mod;
+  `docs/desarrollo-local.md`) + harness (`ARCHITECTURE.md`, `CONSTRAINTS.md` §«Cacheo
+  y control de coste», ADR **0016** + índice, skill `rag-datapublico` §5,
+  `feature_list.json` FT00021 → `passing`, `docs/feature-ids.md`, `PROGRESS.md`).
+- Riesgo o duda sin resolver: el **modelo inyectado** debe coincidir con el real
+  (coherencia en el wiring de FT00026+); `PROMPT_VERSION` es **manual**; un cambio de
+  `CitizenSummaryValidator` no invalida la caché; `usage` ausente registra 0 tokens;
+  la caché es **inerte** hasta que FT00026+ construya el servicio.
+- Siguiente mejor paso: validación independiente de `cacheo-resumenes` (FT00021).
+  Siguiente rol: `validator`.
+
+### Session 055
+
+- Fecha: 2026-10-11
+- Objetivo: validar de forma independiente `cacheo-resumenes` (FT00021) — rol
+  `validator` (`feature-validator`), rama `feat/ft00021-cacheo-resumenes`.
+- Completado: veredicto **`accept`**. El validator reejecutó el gate con salidas
+  reales y confirmó los criterios de aceptación y el alcance. Registro en
+  `.harness/docs/validations/cacheo-resumenes.md`.
+  - `./gradlew :backend:test --rerun-tasks` → BUILD SUCCESSFUL, **278 tests, 0
+    fallos/errores** (59 suites; +25 nuevos confirmados por XML).
+  - `./gradlew build --no-daemon -PskipClient` (23 tareas), `./gradlew test` (63
+    tareas, 3 módulos), `./gradlew detekt -PskipClient` (+`:cpdCheck`) y
+    `env -u JAVA_HOME .harness/init.sh` → exit 0.
+  - Criterios: acierto de caché **no llama** al proveedor (`provider.calls == 0`,
+    `cacheHit = true`, uso `cache_hit=true`/0 tokens); resumen **inválido no se
+    cachea**; cambiar modelo o versión de prompt **invalida** la caché; `usage`
+    ausente ⇒ `null`.
+  - Alcance: 18 ficheros esperados; `Application.kt`/`ingesta/`/`:shared`/
+    `:composeApp`/CI/`init.sh`/`build.gradle.kts`/`config/detekt` **intactos**;
+    migración `V4` fuera de `build`/`check`. Sin hallazgos de seguridad.
+  - **Prueba real opt-in ejecutada y verde por el validator** (`docker compose up
+    -d` + `:backend:flywayMigrate` + `DB_LIVE_TEST=1 :backend:test --tests
+    '*SummaryCachePersistenceLiveTest'` → BUILD SUCCESSFUL: `cache round-trip OK`,
+    `upsert idempotente OK (filas=1)`, `uso OK (registros=2, delta=33)`), cerrando
+    el riesgo que el implementer dejó sin verificar. Entorno limpiado (contenedor
+    `datopublico-postgres` y `.env` eliminados).
+- Hallazgo *Low* (evidencia, no código): el recuento «6 tests nuevos» era en
+  realidad **5**; corregido al persistir en `feature_list.json` y en la evidencia
+  de la Session 054 (corregido también en esa nota para dejar la bitácora
+  coherente).
+- Persistencia de la aceptación: `feature_list.json` FT00021 → **`accepted`** +
+  evidencia del validador; `docs/feature-ids.md` FT00021 → `accepted`.
+- Ficheros actualizados: `.harness/feature_list.json`, `.harness/docs/feature-ids.md`,
+  `.harness/docs/validations/cacheo-resumenes.md`, `.harness/PROGRESS.md`.
+- Riesgo o duda sin resolver: los mismos del implementer (modelo inyectado,
+  `PROMPT_VERSION` manual, cambio de validador no invalida caché, `usage` ausente
+  registra 0, caché inerte hasta FT00026+). Sin bloqueos.
+- Siguiente mejor paso: commit del producto en `feat/ft00021-cacheo-resumenes`,
+  push y PR; después, siguiente feature lista `guardrails-anti-alucinacion`
+  (FT00022, depende de FT00020) o `english-identifiers-rename` (FT00047).

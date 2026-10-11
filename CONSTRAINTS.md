@@ -96,6 +96,38 @@
   de la CI; el gate cubre config, proveedor (`MockEngine`), parser, prompt y servicio
   con **dobles deterministas**, sin red ni BD.
 
+## Cacheo y control de coste
+
+- **MUST**: la **clave de caché** del resumen ciudadano es **determinista** y
+  combina **publicación + modelo + versión de prompt**; un cambio de cualquiera de
+  los tres produce una clave distinta y, por tanto, un **fallo de caché** (nunca
+  se sirve un resumen obsoleto). Es un valor **puro** y **fail-fast**
+  (`IllegalArgumentException`) si algún componente está en blanco. La
+  `PROMPT_VERSION` es una constante **manual**: hay que **subirla** al cambiar el
+  prompt de forma incompatible. Decisión durable en `docs/adr/0016`.
+- **MUST**: **solo** se cachean resúmenes **`Valid`** (los que cumplen el contrato);
+  un resumen `Invalid` **no** se cachea. El resumen cacheado se guarda como el
+  `ResumenDto` **serializado** en una tabla **propia** (`resumen_cache`, separada de
+  la tabla `resumen` que guarda el resumen publicado).
+- **MUST**: **cada** generación (acierto de caché o llamada al proveedor)
+  **registra** tokens (prompt/completion/total) y `cache_hit` en `generacion_uso`
+  (`cache_hit = true` con 0 tokens en un acierto); en un **acierto** el proveedor
+  **no** se invoca. Si la respuesta no trae `usage`, se registran **0** tokens (no
+  es fail-fast: no se inventa consumo). Se registran **tokens**, no tarifas.
+- **MUST**: la migración `V4` (`resumen_cache` + `generacion_uso`) es **versionada**
+  (`V1`/`V2`/`V3` no se editan) y queda **fuera** de `build`/`check` (tarea
+  explícita `:backend:flywayMigrate`). El *upsert* de la caché es **idempotente**
+  por `cache_key`.
+- **MUST NOT**: la caché es una **librería sin wiring**: **no** se construye en
+  `Application.kt`/job/backfill, no añade endpoints/UI y **no** anticipa lo
+  diferido (guardrails FT00022, cola de revisión FT00023, chat FT00025, rate
+  limiting). El **modelo** se **inyecta** por constructor (en producción, de
+  `OpenCodeConfig`): la caché no lo lee de la config.
+- **MUST**: la prueba real de la caché y del uso contra PostgreSQL es **opt-in**
+  (`DB_LIVE_TEST=1`), fuera de `build`/`test`/`init.sh` y de la CI; el gate cubre
+  la clave, el servicio con caché, el uso del proveedor y el contrato SQL de `V4`
+  con **dobles deterministas**, sin red ni BD.
+
 ## Categorización y plazos
 
 - **MUST**: la categoría de una publicación es una **regla curada determinista**
