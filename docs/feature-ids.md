@@ -37,9 +37,9 @@
 | FT00019 | contrato-resumen-ciudadano | Contrato del resumen ciudadano | simplificacion-ia | accepted |
 | FT00020 | generacion-resumen-go | Generación de resumen con OpenCode | simplificacion-ia | accepted |
 | FT00021 | cacheo-resumenes | Cacheo de resúmenes y control de coste | simplificacion-ia | accepted |
-| FT00022 | guardrails-anti-alucinacion | Guardrails anti-alucinación y trazabilidad | simplificacion-ia | not_started |
+| FT00022 | guardrails-anti-alucinacion | Guardrails anti-alucinación y trazabilidad | simplificacion-ia | accepted |
 | FT00023 | cola-revision-confianza | Cola de revisión por baja confianza | simplificacion-ia | not_started |
-| FT00024 | evaluacion-golden-set | Evaluación de calidad con golden set | simplificacion-ia | not_started |
+| FT00024 | evaluacion-golden-set | Evaluación de calidad con golden set | simplificacion-ia | in_progress |
 | FT00025 | chat-generacion | Generación del chat RAG con OpenCode | simplificacion-ia | not_started |
 | FT00026 | api-feed-diario | Endpoint del feed diario | api-publica | not_started |
 | FT00027 | api-detalle-norma | Endpoint de detalle de publicación | api-publica | not_started |
@@ -62,7 +62,7 @@
 | FT00044 | legal-avisos | Avisos legales y disclaimer | operacion | not_started |
 | FT00045 | beta-cerrada | Beta cerrada y corrección de bugs | operacion | not_started |
 | FT00046 | publicacion-1.0.0 | Publicación pública 1.0.0 | operacion | not_started |
-| FT00047 | english-identifiers-rename | Renombrado de identificadores a inglés | calidad | not_started |
+| FT00047 | english-identifiers-rename | Renombrado de identificadores a inglés | calidad | in_progress |
 
 ## Siguiente FT libre
 

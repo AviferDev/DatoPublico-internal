@@ -634,13 +634,19 @@
     "depends_on": [
       "generacion-resumen-go"
     ],
-    "status": "not_started",
+    "status": "accepted",
     "verification": [
       "Un resumen con enlace inexistente o afirmación fuera del contexto recuperado no se publica.",
       "Un resumen válido pasa los guardrails y queda publicable."
     ],
-    "evidence": [],
-    "notes": "Fuente: docs/roadmap.md 0.4-T03. Requisito de trazabilidad, no opcional."
+    "evidence": [
+      "Gate sin red ni BD verde (`./gradlew :backend:test --rerun-tasks` → **314 tests, 0 fallos**: +36 nuevos en `rag/guardrails/` — `SummaryTextNormalizerTest` 6, `OfficialSourceValidatorTest` 7, `SummaryGroundingCheckerTest` 5, `SummaryGuardrailTest` 12, `HttpSourceReachabilityTest` 5 y `SummaryGuardrailLiveTest` 1; los **278 de FT00021 intactos**). `./gradlew build --no-daemon -PskipClient` 23 tareas, `./gradlew test` 3 módulos, `./gradlew detekt` (+`:cpdCheck`) y `env -u JAVA_HOME .harness/init.sh` → exit 0.",
+      "Offline confirmado: `SummaryGuardrailLiveTest` se **omite** sin `BOE_LIVE_TEST=1` (sin abrir sockets); el resto de pruebas reales también se omiten. Escenarios 1–8 del spec cubiertos por los tests de gate con dobles/`MockEngine`; escenario 10 (alcanzabilidad real) es opt-in y **no ejecutado** (se omite sin la variable).",
+      "Alcance acotado: solo el paquete nuevo `rag/guardrails/` (9 fuentes + 6 tests) y `docs/desarrollo-local.md`; `Application.kt`/job/backfill/`ingesta/`/`persistence/`/`ResumenDto`/`CitizenSummaryValidator`/`HybridSearch`/`CitizenSummaryGenerator`/`CachedCitizenSummaryGenerator`/migraciones/`:shared`/`:composeApp`/CI/`init.sh` **intactos**. Docs durables: `ARCHITECTURE.md`, `CONSTRAINTS.md` §«Guardrails anti-alucinación y trazabilidad», ADR **0017** + índice y skill `rag-datapublico` §6.",
+      "Reparación tras validación independiente (`revise`, 2026-10-11). Hallazgo **HIGH** de correctitud: `SummaryGuardrail.decide` decidía solo por `grounding.score`, así que un resumen con 4 de 5 afirmaciones sustentadas (score = 0.8 = `REVIEW_THRESHOLD`) y una violación (`UNSUPPORTED_CLAIM`/`UNSUPPORTED_FIGURE`) devolvía `PUBLISHABLE`, contradiciendo los escenarios 2/3, el MUST de `CONSTRAINTS.md` y el checklist del spec. Reparado: `decide` recibe el `GroundingAssessment` completo y publicar exige `score >= REVIEW_THRESHOLD` **y** `grounding.violations.isEmpty()`; con violaciones de grounding → `NEEDS_REVIEW` (la regla `score < DISCARD_THRESHOLD` sigue descartando antes). Invariante documentado en el spec (§6) y en ADR 0017. Regresión añadida: `SummaryGuardrailTest` +2 casos de frontera (4/5 = 0.8 con `UNSUPPORTED_CLAIM` y con `UNSUPPORTED_FIGURE`) que deben **no** ser publicables; escenario 1 sigue `PUBLISHABLE` y escenario 7 sigue `NEEDS_REVIEW` (sin cambios de comportamiento legítimo). LOW: deduplicadas las palabras vacías repetidas (`sus`, `sea`, `ser`) en `SummaryTextNormalizer.STOP_WORDS`. Gate reejecutado en verde (`:backend` **314 tests, 0 fallos**; `build -PskipClient` 23 tareas; `test` 3 módulos; `detekt`+`:cpdCheck`; `init.sh` exit 0).",
+      "Revalidación independiente (`feature-validator`, 2026-10-11) tras la reparación: veredicto **`accept`**. Confirmó que el hallazgo HIGH está resuelto (`decide` recibe el `GroundingAssessment`; publicar exige `score ≥ REVIEW_THRESHOLD` **y** sin violaciones; el límite 4/5 = 0.8 con `UNSUPPORTED_CLAIM`/`UNSUPPORTED_FIGURE` → `NEEDS_REVIEW`, `isPublishable = false`), que el Escenario 1 sigue `PUBLISHABLE` y el 7 `NEEDS_REVIEW`, que el invariante es coherente en código/spec/ADR 0017/CONSTRAINTS, que el Low de `STOP_WORDS` está limpio y que alcance/estilo/seguridad siguen correctos. Gate reejecutado: `:backend:test` **314 tests, 0 fallos** (65 clases; guardrails 36), `build -PskipClient` (23 tareas), `test` (63 tareas, 3 módulos), `detekt`+`:cpdCheck` y `env -u JAVA_HOME .harness/init.sh` exit 0. Registro en `docs/validations/guardrails-anti-alucinacion.md`."
+    ],
+    "notes": "Fuente: docs/roadmap.md 0.4-T03. Requisito de trazabilidad, no opcional. **`accepted`** (2026-10-11): guardrails anti-alucinación como librería sin wiring (`rag/guardrails/`): fuente estructural (`OfficialSourceValidator` + puerto `SourceReachability`) y grounding léxico (`SummaryTextNormalizer` + `SummaryGroundingChecker`), decisión tipada (`PUBLISHABLE`/`NEEDS_REVIEW`/`DISCARDED`) y puntuación de grounding. Gate sin red ni BD verde (`:backend` 314 tests, 0 fallos). Decisión durable en **ADR 0017**."
   },
   {
     "id": "cola-revision-confianza",
@@ -666,13 +672,16 @@
     "title": "Evaluación de calidad con golden set",
     "user_visible_behavior": "Existe un golden set de publicaciones con resumen de referencia y una medición de acierto en «¿Qué cambia?» y «¿A quién afecta?».",
     "depends_on": [
-      "generacion-resumen-go"
+      "generacion-resumen-go",
+      "guardrails-anti-alucinacion"
     ],
-    "status": "not_started",
+    "status": "in_progress",
     "verification": [
       "La evaluación se ejecuta con un comando y reporta el error/acierto sobre el golden set."
     ],
-    "evidence": [],
+    "evidence": [
+      "Planificado (`feature-spec`, 2026-10-11, en paralelo con la implementación de FT00022): spec `docs/specs/evaluacion-golden-set.md` creada. Espejo del patrón de FT00018: paquete `rag/evaluation/` con métricas puras (`SummaryQualityMetrics`: F1 léxico por campo + recall de cifras, umbral de acierto), golden set versionado `rag/eval/summary-golden-set.json` + `SummaryGoldenSetLoader` fail-fast, `SummaryQualityEvaluator` con *seam* `fun interface` (dobles en el gate), log estructurado y CLI one-shot con tarea Gradle `:backend:evaluateSummary` **fuera** de `build`/`check`. Reutiliza `SummaryTextNormalizer` de FT00022 (de ahí la dependencia añadida). ~12 ficheros de producto; sin división en partes. ADR propuesto **0018**. Librería/CLI sin wiring."
+    ],
     "notes": "Fuente: docs/roadmap.md 0.4-T05, docs/build-brief.md (Validation Plan)."
   },
   {
@@ -1074,12 +1083,46 @@
     "depends_on": [
       "ingesta-job-diario"
     ],
-    "status": "not_started",
+    "status": "in_progress",
     "verification": [
       "No quedan identificadores en castellano en el código de producto (paquetes, tipos, funciones, propiedades, constantes y tests); el KDoc y los comentarios siguen en castellano.",
       "El JSON de wire y el comportamiento no cambian; el gate (`build`/`test`/`detekt`/`init.sh`) sigue verde."
     ],
-    "evidence": [],
-    "notes": "Deuda registrada al fijar la regla MUST «todo el código en inglés» (`CONSTRAINTS.md` §«Nombres y contratos»; KDoc/comentarios en castellano). Código heredado en castellano a renombrar: `:shared` (`PublicacionDto`→`PublicationDto`, `ResumenDto`→`SummaryDto`, `ResumenDiarioDto`→`DailySummaryDto`, `PlazoDto`→`DeadlineDto`, `CategoriaDto`→`CategoryDto`, `SeccionBoeDto`→`BoeSectionDto`) y `:backend` (`EntradaSumario`→`SummaryEntry`, `Publicacion`→`Publication`, `DocumentoBoe`→`BoeDocument`, `MetadatosBoe`→`BoeMetadata`, `BoeSumarioClient`→`BoeSummaryClient`, `BoePublicacionParser`→`BoePublicationParser`, `BoeTextoClient`→`BoeTextClient`, `SumarioWireDto`→`SummaryWireDto`… y métodos como `obtenerSumario`/`parsear`/`obtenerDocumento`). Renombrado **sin** cambio de JSON (`@SerialName` intacto) ni de comportamiento; los tokens/datos de la fuente no se traducen. Dividir en partes (`FT00047-PTn`) por el límite de 30 ficheros."
+    "evidence": [
+      "Planificado (`feature-spec`, 2026-10-11): spec `docs/specs/english-identifiers-rename.md`. Enumeración real por grep: ~103 ficheros `.kt` afectados (`:shared` 12, `:backend` 91; `:composeApp` fuera). El renombrado es **atómico por símbolo** (varios símbolos superan 30 ficheros por sí solos) → **6 partes** `FT00047-PT1..PT6` (ver `parts`). Sin cambio de JSON (`@SerialName`, claves, columnas, migraciones `V1`–`V4` y tokens de wire intactos) ni de comportamiento; KDoc/comentarios siguen en castellano. Sin ADR. Decisión pendiente del dueño sobre el límite de 30 ficheros/PR (renombrado mecánico vs alias por etapas)."
+    ],
+    "notes": "Deuda registrada al fijar la regla MUST «todo el código en inglés» (`CONSTRAINTS.md` §«Nombres y contratos»; KDoc/comentarios en castellano). Código heredado en castellano a renombrar: `:shared` (`PublicacionDto`→`PublicationDto`, `ResumenDto`→`SummaryDto`, `ResumenDiarioDto`→`DailySummaryDto`, `PlazoDto`→`DeadlineDto`, `CategoriaDto`→`CategoryDto`, `SeccionBoeDto`→`BoeSectionDto`) y `:backend` (`EntradaSumario`→`SummaryEntry`, `Publicacion`→`Publication`, `DocumentoBoe`→`BoeDocument`, `MetadatosBoe`→`BoeMetadata`, `BoeSumarioClient`→`BoeSummaryClient`, `BoePublicacionParser`→`BoePublicationParser`, `BoeTextoClient`→`BoeTextClient`, `SumarioWireDto`→`SummaryWireDto`… y métodos como `obtenerSumario`/`parsear`/`obtenerDocumento`). Renombrado **sin** cambio de JSON (`@SerialName` intacto) ni de comportamiento; los tokens/datos de la fuente no se traducen. Dividir en partes (`FT00047-PTn`) por el límite de 30 ficheros. **`in_progress`** (2026-10-11): spec creada y dividida en 6 partes `FT00047-PT1..PT6`; pendiente de decisión sobre el límite de 30 ficheros/PR.",
+    "parts": [
+      {
+        "id": "FT00047-PT1",
+        "scope": ":shared data classes (PublicationDto/SummaryDto/DailySummaryDto/DeadlineDto) + propiedades + referencias (~29 ficheros)",
+        "status": "not_started"
+      },
+      {
+        "id": "FT00047-PT2",
+        "scope": ":shared enums de wire (CategoryDto + 11 constantes, BoeSectionDto) + referencias (~49)",
+        "status": "not_started"
+      },
+      {
+        "id": "FT00047-PT3",
+        "scope": ":backend ingesta/sumario → ingestion/summary (SummaryEntry/BoeSummary*/DTOs wire/serializers) + referencias (~30)",
+        "status": "not_started"
+      },
+      {
+        "id": "FT00047-PT4",
+        "scope": ":backend ingesta/publicacion → ingestion/publication (Publication/BoeDocument/BoeMetadata/BoePublication*/BoeText*/PublicationParser/BoeXmlParser) + referencias (~50)",
+        "status": "not_started"
+      },
+      {
+        "id": "FT00047-PT5",
+        "scope": ":backend raíz ingesta → ingestion (job/backfill) + categorizacion → categorization + referencias (~30)",
+        "status": "not_started"
+      },
+      {
+        "id": "FT00047-PT6",
+        "scope": ":backend persistence/relevance/rag internos + Application.kt + nombres de test castellanos + barrido de cierre (~50)",
+        "status": "not_started"
+      }
+    ]
   }
 ]

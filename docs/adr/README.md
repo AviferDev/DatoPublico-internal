@@ -74,3 +74,4 @@ Aceptado (<AAAA-MM-DD>). [Quién decide y, si aplica, qué ADR supersede/ajusta.
 | [0014](0014-validacion-contrato-resumen-shared.md) | Validación del contrato del resumen ciudadano en `:shared` | Aceptado |
 | [0015](0015-generacion-resumen-proveedor-intercambiable.md) | Generación del resumen ciudadano tras un proveedor de texto intercambiable, con la fuente inyectada | Aceptado |
 | [0016](0016-cacheo-resumenes-uso-tokens.md) | Cacheo del resumen ciudadano en tabla propia (clave publicación+modelo+prompt) y registro de uso de tokens | Aceptado |
+| [0017](0017-guardrails-anti-alucinacion-trazabilidad.md) | Guardrails anti-alucinación offline y deterministas (fuente estructural + grounding léxico) antes de publicar | Aceptado |

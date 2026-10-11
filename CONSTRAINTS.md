@@ -128,6 +128,40 @@
   la clave, el servicio con caché, el uso del proveedor y el contrato SQL de `V4`
   con **dobles deterministas**, sin red ni BD.
 
+## Guardrails anti-alucinación y trazabilidad
+
+- **MUST**: ningún resumen se **publica** sin **fuente oficial válida**: enlace
+  `https://`, host del BOE (`www.boe.es`, `boe.es`) e **idéntico** al
+  `urlOficial` de la publicación de origen (trazabilidad), ni con **afirmaciones no
+  sustentadas** por el contexto recuperado. La decisión es **tipada**
+  (`GuardrailDecision.PUBLISHABLE`/`NEEDS_REVIEW`/`DISCARDED`) y expone una
+  **puntuación de grounding** `[0,1]`; la baja confianza va a `NEEDS_REVIEW` (no se
+  publica y FT00023 la encolará). Decisión durable en `docs/adr/0017`.
+- **MUST**: el guardrail de **contenido** es **offline, puro y determinista** (sin
+  red, BD, reloj ni LLM) y **reutiliza** `CitizenSummaryValidator` (FT00019) para el
+  **contrato**, sin duplicar reglas ni cambiar el contrato de wire de `ResumenDto`.
+  El **grounding** es **léxico** (cifras estrictas + fracción de términos de
+  contenido ≥ `MIN_CLAIM_SUPPORT` = 0.6) y **conservador**: un falso negativo lleva a
+  revisión/descarte, nunca a publicar. Los umbrales (`DISCARD_THRESHOLD` = 0.5,
+  `REVIEW_THRESHOLD` = 0.8) son constantes documentadas y ajustables sin cambiar
+  firmas.
+- **MUST**: la **alcanzabilidad** de la fuente es un **puerto** `suspend`
+  (`SourceReachability`); su implementación HTTP (`HttpSourceReachability`) usa un
+  `HttpClient` **inyectado** con `HttpTimeout` y `followRedirects = false` (2xx/3xx ⇒
+  alcanzable; fallo de red ⇒ `false`). El guardrail recibe el puerto **opcional**: sin
+  él solo valida la **estructura**; **no** conoce Ktor.
+- **MUST NOT**: el guardrail es una **librería sin wiring**: **no** se construye en
+  `Application.kt`/job/backfill, **no** añade endpoints/UI ni migración y **no**
+  anticipa lo diferido — **sin** cola de revisión, estados del resumen, `confianza`
+  persistida ni aviso de IA (FT00023), **sin** publicación en `resumen`
+  (FT00023/FT00026) y **sin** chat (FT00025). **No** escribe en `resumen` ni en
+  `cola_revision` y **no** modifica `ResumenDto`/`CitizenSummaryValidator`/
+  `HybridSearch`/`CitizenSummaryGenerator`/`CachedCitizenSummaryGenerator`.
+- **MUST**: la prueba real de **alcanzabilidad** es **opt-in** (`BOE_LIVE_TEST=1`),
+  fuera de `build`/`test`/`init.sh` y de la CI; sin la variable, el test se **omite
+  sin abrir sockets**. El gate cubre normalizador, validador de fuente, grounding,
+  evaluador con dobles y `HttpSourceReachability` con `MockEngine`, **sin red ni BD**.
+
 ## Categorización y plazos
 
 - **MUST**: la categoría de una publicación es una **regla curada determinista**

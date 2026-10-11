@@ -3012,3 +3012,206 @@
   cacheo-resumenes` en `main` (privado).
 - Siguiente mejor paso: siguiente feature lista `guardrails-anti-alucinacion`
   (FT00022, depende de FT00020) o `english-identifiers-rename` (FT00047).
+
+### Session 056
+
+- Fecha: 2026-10-11
+- Objetivo: **planificar** `guardrails-anti-alucinacion` (FT00022) con el rol
+  `planner` (`feature-spec`): spec de implementación de la capa de guardrails
+  anti-alucinación y trazabilidad (tarea `0.4-T03`).
+- Completado:
+  - Spec nuevo `docs/specs/guardrails-anti-alucinacion.md` (`ft_id` FT00022,
+    `parts: none`): guardrails **después de generar** y **antes de publicar** —
+    (a) **fuente oficial válida** (absoluta, host del BOE e **idéntica** a
+    `Publicacion.urlOficial`, con puerto opcional `SourceReachability`) y (b)
+    **grounding** de las afirmaciones contra el contexto recuperado (léxico por
+    afirmación + regla estricta de cifras, con umbrales), reutilizando
+    `CitizenSummaryValidator` (FT00019).
+  - Decisión **tipada** `GuardrailDecision` (`PUBLISHABLE`/`NEEDS_REVIEW`/
+    `DISCARDED`) + `groundingScore` (señal de confianza para FT00023); **sin**
+    cola de revisión ni persistencia (no se anticipa FT00023).
+  - Nuevo paquete `rag/guardrails/` en `:backend`, **librería sin wiring**;
+    ≈16 ficheros de producto (< límite de 30, **sin** división en partes).
+  - ADR durable propuesto: `docs/adr/0017` (guardrail de contenido offline y
+    determinista, grounding léxico con umbrales, decisión tipada sin persistencia).
+- Ficheros actualizados: `.harness/docs/specs/guardrails-anti-alucinacion.md`
+  (nuevo), `.harness/feature_list.json` (FT00022 → `in_progress`),
+  `.harness/PROGRESS.md`.
+- Riesgo o duda sin resolver: el grounding es **léxico** (conservador; falso
+  negativo → revisión/descarte, no publicación); el contexto verificado debe ser
+  el mismo que alimentó la generación (lo aportará el wiring FT00026+);
+  alcanzabilidad real **opt-in** (`BOE_LIVE_TEST=1`); umbrales heurísticos
+  (calibrar con el golden set FT00024).
+- Siguiente mejor paso: **implementar** FT00022 en la rama
+  `feat/ft00022-guardrails-anti-alucinacion` (rol `implementer`) siguiendo el
+  spec.
+
+### Session 057
+
+- Fecha: 2026-10-11
+- Objetivo: **implementar** `guardrails-anti-alucinacion` (FT00022) con el rol
+  `implementer` (`feature-implementer`) en la rama
+  `feat/ft00022-guardrails-anti-alucinacion`.
+- Completado:
+  - Paquete nuevo `es.aviferdev.datopublico.backend.rag.guardrails` en `:backend`
+    (9 fuentes): `SummaryTextNormalizer` (tokens sin acentos/palabras vacías,
+    cifras y oraciones), `OfficialSourceValidator` (`https://` + host del BOE +
+    igualdad con `Publicacion.urlOficial`), `SummaryGroundingChecker` (grounding
+    léxico por afirmación: cifras estrictas + ≥ `MIN_CLAIM_SUPPORT` = 0.6),
+    `GuardrailDecision`, `SummaryGuardrailViolation`, `SummaryGuardrailResult`
+    (`isPublishable`), el puerto `SourceReachability`, `HttpSourceReachability`
+    (+ factory, `followRedirects = false`) y `SummaryGuardrail`
+    (`evaluate(publication, summary, context)`; umbrales `DISCARD_THRESHOLD` = 0.5
+    y `REVIEW_THRESHOLD` = 0.8; reutiliza `CitizenSummaryValidator`; `categoria`
+    nula fail-fast).
+  - **Librería sin wiring y sin persistencia**: no se toca `Application.kt`/job/
+    backfill/`ingesta/`/`persistence/`/`HybridSearch`/`ResumenDto`/
+    `CitizenSummaryValidator`/`CitizenSummaryGenerator`/`CachedCitizenSummaryGenerator`,
+    ni migraciones, `:shared`, `:composeApp`, CI o `init.sh`.
+  - 6 tests nuevos (34 casos) con dobles/`MockEngine` (escenarios 1–8) y
+    `SummaryGuardrailLiveTest` opt-in (`BOE_LIVE_TEST=1`).
+- Verificación ejecutada (desde `..`, JDK 21 del JBR):
+  - `./gradlew :backend:test --rerun-tasks` → **312 tests, 0 fallos** (+34 nuevos;
+    los **278 de FT00021 intactos**).
+  - `./gradlew build --no-daemon -PskipClient` (23 tareas), `./gradlew test`
+    (3 módulos), `./gradlew detekt` (+`:cpdCheck`) y
+    `env -u JAVA_HOME .harness/init.sh` → **exit 0**.
+  - Offline: `SummaryGuardrailLiveTest` se **omite** sin `BOE_LIVE_TEST=1` (sin
+    abrir sockets). El test live **no se ejecutó**.
+- Ficheros: `backend/src/main/kotlin/.../rag/guardrails/` (9 nuevos),
+  `backend/src/test/kotlin/.../rag/guardrails/` (6 nuevos),
+  `docs/desarrollo-local.md` (sección nueva), `.harness/ARCHITECTURE.md`,
+  `.harness/CONSTRAINTS.md` (§«Guardrails anti-alucinación y trazabilidad»),
+  `.harness/docs/adr/0017-...md` + índice, `.agents/skills/rag-datapublico/SKILL.md`
+  (§6), `.harness/feature_list.json` (FT00022 → `passing`), `.harness/PROGRESS.md`.
+- Riesgo o duda sin resolver: el grounding es **léxico** (conservador); el
+  **contexto** verificado debe ser el mismo que alimentó la generación (lo
+  aportará el wiring FT00026+); `HybridSearch` no filtra por `publicationId`;
+  alcanzabilidad real **opt-in**; cifras con formato distinto pueden fallar la
+  regla estricta; umbrales heurísticos (calibrar con FT00024). El guardrail es
+  **inerte** hasta que FT00026+ lo construya.
+- Siguiente mejor paso: **validación independiente** de FT00022
+  (`feature-validator`) antes de fusionar; no se marca `accepted`.
+
+### Session 058
+
+- Fecha: 2026-10-11
+- Objetivo: **planificar** `evaluacion-golden-set` (FT00024) con el rol `planner`
+  (`feature-spec`), **en paralelo** con la implementación de FT00022 (tarea no
+  solapada: el planner solo escribe su spec; el *bookkeeping* del harness lo
+  aplica el orquestador). Rama reclamada `feat/ft00024-evaluacion-golden-set`
+  (creada desde `origin/main` y pusheada, sin PR).
+- Completado: spec `docs/specs/evaluacion-golden-set.md` (implementable y
+  verificable con el gate SDK-free). Espejo del patrón de FT00018: paquete
+  `rag/evaluation/` con `SummaryQualityMetrics` (F1 léxico por campo «¿Qué
+  cambia?»/«¿A quién afecta?» + recall de cifras, umbral de acierto),
+  golden set versionado `rag/eval/summary-golden-set.json` + `SummaryGoldenSetLoader`
+  fail-fast, `SummaryQualityEvaluator` con *seam* `fun interface`
+  (`SummaryGenerator`; dobles en el gate, OpenCode real opt-in), log estructurado
+  (`summary.evaluation.*`) y CLI one-shot con tarea Gradle `:backend:evaluateSummary`
+  **fuera** de `build`/`check`. Reutiliza `SummaryTextNormalizer` de FT00022
+  (dependencia añadida a `depends_on`). ~12 ficheros de producto; **sin** división
+  en partes. ADR propuesto **0018**. Librería/CLI **sin wiring**.
+- Bookkeeping aplicado por el orquestador: `feature_list.json` FT00024 →
+  `in_progress` + `depends_on` += `guardrails-anti-alucinacion`; nota en
+  `PROGRESS.md`. El planner (restringido para no solapar con FT00022) **no** tocó
+  `ARCHITECTURE.md`/`CONSTRAINTS.md`/ADR/skill/`docs/feature-ids.md`; esos cambios
+  los hará el implementer de FT00024.
+- Verificación ejecutada: ninguna (rol planner; no implementa). Rama de claim
+  verificada en `origin`.
+- Riesgo o duda sin resolver: dependencia suave con FT00022 (reutiliza
+  `SummaryTextNormalizer`); el F1 léxico penaliza paráfrasis válidas; calibración
+  del umbral con el propio golden set; la ejecución real es opt-in (BD + E5 +
+  `OPENCODE_API_KEY`).
+- Siguiente mejor paso: tras aceptar y fusionar FT00022, implementar FT00024
+  (rol `implementer`). Siguiente rol para FT00022: `validator`.
+
+### Session 059
+
+- Fecha: 2026-10-11
+- Objetivo: **reparar** FT00022 (`guardrails-anti-alucinacion`, rol `implementer`)
+  tras una validación independiente que devolvió **`revise`** (gate verde y
+  alcance/estilo correctos, pero con un hallazgo HIGH de correctitud y uno LOW).
+  Rama `feat/ft00022-guardrails-anti-alucinacion` (cambios **sin commitear**).
+- Hallazgo HIGH reparado: `SummaryGuardrail.decide` decidía solo por
+  `grounding.score`. Con 4 de 5 afirmaciones sustentadas (score = 0.8 =
+  `REVIEW_THRESHOLD`) y una violación presente, devolvía `PUBLISHABLE`
+  (`isPublishable = true` con `UNSUPPORTED_CLAIM`/`UNSUPPORTED_FIGURE`),
+  contradiciendo los escenarios 2/3, el MUST de `CONSTRAINTS.md` y el checklist
+  del spec. `decide` pasa a recibir el `GroundingAssessment` completo: publicar
+  exige `score >= REVIEW_THRESHOLD` **y** `grounding.violations.isEmpty()`;
+  con violaciones de grounding → `NEEDS_REVIEW` (se mantiene el `DISCARDED` por
+  `score < DISCARD_THRESHOLD` y por contrato/fuente). Invariante «una afirmación
+  o cifra no sustentada nunca publica» documentado en el spec §6 y en ADR 0017.
+- Regresión añadida (`SummaryGuardrailTest`, +2 casos de frontera):
+  - 4/5 sustentadas (score exacto 0.8) con `UNSUPPORTED_CLAIM` → `NEEDS_REVIEW`,
+    `isPublishable = false`.
+  - 4/5 sustentadas (score exacto 0.8) con `UNSUPPORTED_FIGURE` → `NEEDS_REVIEW`,
+    `isPublishable = false`.
+  - Confirmado que el escenario 1 sigue `PUBLISHABLE` y el escenario 7 sigue
+    `NEEDS_REVIEW` (la regla nueva no cambia esos desenlaces legítimos).
+- Hallazgo LOW reparado: `SummaryTextNormalizer.STOP_WORDS` tenía duplicados
+  (`sus`, `sea`, `ser`); deduplicados sin cambiar el conjunto.
+- Verificación ejecutada (desde `..`, JDK 21 del JBR):
+  - `./gradlew :backend:test --rerun-tasks` → **314 tests, 0 fallos** (+2
+    regresiones; `SummaryGuardrailTest` 12/0/0; los **278 de FT00021 intactos**).
+  - `./gradlew build --no-daemon -PskipClient` → BUILD SUCCESSFUL (23 tareas);
+    `./gradlew test` → BUILD SUCCESSFUL (3 módulos); `./gradlew detekt`
+    (+`:cpdCheck`) → BUILD SUCCESSFUL; `env -u JAVA_HOME .harness/init.sh` →
+    **exit 0** («Gate OK»).
+- Ficheros: `backend/.../rag/guardrails/SummaryGuardrail.kt` (decide + KDoc),
+  `backend/.../rag/guardrails/SummaryTextNormalizer.kt` (STOP_WORDS),
+  `backend/src/test/.../rag/guardrails/SummaryGuardrailTest.kt` (+2 tests + KDoc),
+  `.harness/docs/specs/guardrails-anti-alucinacion.md` (§6),
+  `.harness/docs/adr/0017-guardrails-anti-alucinacion-trazabilidad.md`,
+  `.harness/feature_list.json` (evidencia FT00022), `.harness/PROGRESS.md`.
+- Riesgo o duda sin resolver: el mismo que en Session 057 (grounding léxico
+  conservador; contexto de verificación vs. generación; `HybridSearch` sin filtro
+  por `publicationId`; alcanzabilidad real opt-in; cifras con formato distinto;
+  umbrales heurísticos). Sin cambios.
+- Siguiente mejor paso: **revalidación independiente** de FT00022
+  (`feature-validator`) sobre la reparación; no se marca `accepted`.
+
+### Session 060
+
+- Fecha: 2026-10-11
+- Objetivo: **revalidar y cerrar** `guardrails-anti-alucinacion` (FT00022) — rol
+  `validator` (reejecutado) — y, en paralelo (no solapado), **planificar**
+  `english-identifiers-rename` (FT00047) con el rol `planner`. Orquestación.
+- Completado (FT00022 → **`accepted`**):
+  - Revalidación independiente (`feature-validator`) de la reparación: veredicto
+    **`accept`**. Confirmó el hallazgo HIGH resuelto (`decide` recibe el
+    `GroundingAssessment`; publicar exige `score ≥ REVIEW_THRESHOLD` **y** sin
+    violaciones; 4/5 = 0.8 con `UNSUPPORTED_CLAIM`/`UNSUPPORTED_FIGURE` →
+    `NEEDS_REVIEW`, `isPublishable = false`), Escenario 1 `PUBLISHABLE` y 7
+    `NEEDS_REVIEW`, invariante coherente (código/spec/ADR 0017/CONSTRAINTS), Low
+    de `STOP_WORDS` limpio, alcance/estilo/seguridad correctos.
+  - Gate reejecutado: `:backend:test` **314 tests, 0 fallos** (65 clases;
+    guardrails 36), `build -PskipClient` (23 tareas), `test` (63 tareas, 3
+    módulos), `detekt`+`:cpdCheck` y `init.sh` exit 0. Registro en
+    `docs/validations/guardrails-anti-alucinacion.md`.
+  - Persistencia: `feature_list.json` FT00022 → **`accepted`** (evidencia del
+    validador; nota corregida 312 → 314 tests); `docs/feature-ids.md` FT00022 →
+    `accepted`.
+- Completado (FT00047, planificación en paralelo): spec
+  `docs/specs/english-identifiers-rename.md` creada. Enumeración real (~103
+  ficheros `.kt`; `:shared` 12, `:backend` 91; `:composeApp` fuera). Renombrado
+  **atómico por símbolo** → **6 partes** `FT00047-PT1..PT6` (ver `parts` en
+  `feature_list.json`). Sin cambio de JSON ni de comportamiento. **Decisión
+  pendiente del dueño** sobre el límite de 30 ficheros/PR (renombrado mecánico
+  vs. alias por etapas). Bookkeeping aplicado por el orquestador: FT00047 →
+  `in_progress` + `parts`; `docs/feature-ids.md` FT00047 → `in_progress`.
+- Completado (FT00024): bookkeeping del planner aplicado en la Session 058
+  (`in_progress`, `depends_on` += FT00022); `docs/feature-ids.md` FT00024 →
+  `in_progress`.
+- Ficheros actualizados: `.harness/feature_list.json`,
+  `.harness/docs/feature-ids.md`, `.harness/docs/validations/guardrails-anti-alucinacion.md`,
+  `.harness/docs/specs/english-identifiers-rename.md` (nuevo), `.harness/PROGRESS.md`.
+- Riesgo o duda sin resolver: FT00047 excede el límite de 30 ficheros/PR
+  (bloquea su implementación hasta decidir el enfoque); los riesgos de FT00022 se
+  mantienen (grounding léxico; contexto verificación/generación; `HybridSearch` sin
+  filtro por `publicationId`; alcanzabilidad opt-in; umbrales heurísticos).
+- Siguiente mejor paso: commit del producto en
+  `feat/ft00022-guardrails-anti-alucinacion`, push y PR; después, siguiente feature
+  lista `cola-revision-confianza` (FT00023, depende de FT00022 `accepted`) o
+  `evaluacion-golden-set` (FT00024, depende de FT00020 + FT00022).

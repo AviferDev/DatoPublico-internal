@@ -246,6 +246,36 @@ ingesta BOE → chunking → embeddings (ONNX) → pgvector → recuperación h�
 - Resúmenes de **baja confianza** van a `cola_revision`, sin bloquear el feed.
 - Cachea resúmenes por publicación para no regenerar ni gastar tokens de más.
 
+### Estado actual del producto (FT00022)
+
+- La **capa de guardrails anti-alucinación y trazabilidad** ya está implementada en
+  `:backend` como **librería sin wiring**, paquete nuevo
+  `es.aviferdev.datopublico.backend.rag.guardrails`: `SummaryGuardrail.evaluate(publication,
+  summary, context)` se ejecuta **después** de generar (FT00020) y **antes** de
+  publicar, y compone la validación de **contrato** (`CitizenSummaryValidator`,
+  FT00019), la de **fuente** (`OfficialSourceValidator` + el puerto opcional
+  `SourceReachability`) y el **grounding** léxico (`SummaryGroundingChecker`). Devuelve
+  un `SummaryGuardrailResult` con `GuardrailDecision` (`PUBLISHABLE`/`NEEDS_REVIEW`/
+  `DISCARDED`), `isPublishable`, las violaciones de contrato y de contenido y una
+  **puntuación de grounding** `[0,1]`. Decisión durable en `docs/adr/0017`.
+- **Fuente oficial**: `OfficialSourceValidator.isOfficial` exige `https://`, host del
+  BOE (`www.boe.es`/`boe.es`) e **igualdad** con `Publicacion.urlOficial` (trazabilidad;
+  en FT00020 la fuente se inyecta desde la publicación). La **alcanzabilidad** real es
+  un puerto `suspend` (`HttpSourceReachability`, `HttpClient` inyectado, 2xx/3xx ⇒
+  `true`; fallo de red ⇒ `false`) que el guardrail recibe **opcional**: sin puerto solo
+  se valida la estructura.
+- **Grounding léxico**: `SummaryTextNormalizer` (tokens sin acentos/palabras vacías,
+  cifras, oraciones) y `SummaryGroundingChecker` (una afirmación está sustentada si
+  **todas** sus cifras están en el contexto y ≥`MIN_CLAIM_SUPPORT` = 0.6 de sus
+  términos de contenido; `score` = sustentadas/total). Umbrales `DISCARD_THRESHOLD` =
+  0.5 y `REVIEW_THRESHOLD` = 0.8. Es **conservador** (falso negativo ⇒ revisión o
+  descarte, nunca publicar).
+- **Sin wiring y sin persistir**: `Application.kt`/job/backfill, migraciones, `:shared`
+  y `:composeApp` intactos; **no** escribe en `resumen` ni en `cola_revision` (FT00023/
+  FT00026). **Verificación**: el gate cubre normalizador, validador de fuente, grounding,
+  evaluador con dobles y `HttpSourceReachability` con `MockEngine`, **sin red ni BD**; la
+  alcanzabilidad real es **opt-in** (`BOE_LIVE_TEST=1`).
+
 ## 7. Evaluación
 
 - **Recuperación:** precision/recall (y recall@k / MRR) sobre un set de prueba.

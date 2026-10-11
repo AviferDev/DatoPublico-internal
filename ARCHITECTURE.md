@@ -137,6 +137,21 @@
   siendo una **librería sin wiring** (modelo inyectado por constructor, en
   producción de `OpenCodeConfig`); la prueba real es **opt-in** (`DB_LIVE_TEST=1`).
   Ver `docs/adr/0016`.
+  FT00022 añade **`rag/guardrails/`**: la **capa de guardrails anti-alucinación y
+  trazabilidad** que se ejecuta **después** de generar y **antes** de publicar
+  (`SummaryGuardrail.evaluate(publication, summary, context)`). Combina la validación
+  de **contrato** (`CitizenSummaryValidator`, FT00019, sin duplicar reglas) con la de
+  **fuente** (`OfficialSourceValidator`: `https://`, host del BOE e **igualdad** con
+  `Publicacion.urlOficial`; y el puerto `suspend` opcional `SourceReachability` /
+  `HttpSourceReachability` con `HttpClient` inyectado y factory) y el **grounding**
+  léxico (`SummaryTextNormalizer` + `SummaryGroundingChecker`: cifras estrictas y
+  ≥`MIN_CLAIM_SUPPORT` = 0.6 de términos de contenido). Devuelve
+  `SummaryGuardrailResult` con `GuardrailDecision` (`PUBLISHABLE`/`NEEDS_REVIEW`/
+  `DISCARDED`), `isPublishable`, las violaciones de contrato y contenido y una
+  **puntuación de grounding** `[0,1]` (umbrales `DISCARD_THRESHOLD` = 0.5 y
+  `REVIEW_THRESHOLD` = 0.8). Es **offline, determinista y sin persistencia** (no
+  escribe en `resumen` ni `cola_revision`; FT00023/FT00026) y **sin wiring**; la
+  alcanzabilidad real es **opt-in** (`BOE_LIVE_TEST=1`). Ver `docs/adr/0017`.
   Existe **`persistence/`** (FT00008): repositorios **JDBC**
   + entidades `...Entity` de `publicacion`, `fragmento`, `resumen` y
   `cola_revision`, más los helpers JDBC compartidos; la configuración de
@@ -223,6 +238,9 @@
   `rag/generation/` + `rag/summary/` (FT00020, ADR 0015), tras
   `TextGenerationProvider`, **sin** wiring ni endpoints; el **cacheo** del resumen y
   el **control de coste** (FT00021, ADR 0016) la envuelven también **sin** wiring.
+  Los **guardrails anti-alucinación** (FT00022, ADR 0017) verifican fuente y
+  grounding **después** de generar y **antes** de publicar, también como librería sin
+  wiring y sin persistencia.
 - **Datos:** PostgreSQL + pgvector; migraciones Flyway (`V1` esquema base, `V2`
   persistencia, `V3` embedding + HNSW, `V4` caché de resúmenes + uso de tokens).
   Sin cuentas ni datos personales.
