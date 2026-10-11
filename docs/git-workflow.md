@@ -69,6 +69,24 @@ Para que la revisión sea viable, ningún PR puede superar los **30 ficheros mod
 - El límite cuenta ficheros modificados en el PR (añadidos, editados o borrados), no líneas.
 - Si al terminar se excede, partir el PR en trozos coherentes que se revisen por separado.
 
+### Excepción: renombrados mecánicos atómicos
+
+Los **renombrados de identificadores** (p. ej. `FT00047 english-identifiers-rename`)
+son **atómicos por símbolo**: renombrar un tipo obliga a actualizar todas sus
+referencias en el **mismo** PR, y varios símbolos superan por sí solos los 30
+ficheros. Para estos casos se admite una **excepción documentada** al límite de 30
+ficheros:
+
+- El PR debe ser **puramente mecánico**: solo renombrados de identificadores, sin
+  cambios de comportamiento ni de contrato (JSON/`@SerialName`, columnas SQL,
+  migraciones y tokens de wire **invariantes**).
+- Se divide en **partes** `FTxxxxx-PTn` (una por grupo atómico de símbolos), cada
+  una su rama/PR, encadenadas desde el estado mergeado de la anterior.
+- La excepción se anota en el spec de la feature y en el PR (motivo + recuento de
+  ficheros), y el gate (`build`/`test`/`detekt`/`init.sh`) debe quedar verde en
+  cada parte.
+- El resto de features siguen sujetas al límite de 30 ficheros.
+
 ## Mantener el PR actualizado
 
 **Siempre que se haga `git push`** a una rama que ya tiene PR (commit nuevo, rebase,
