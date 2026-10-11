@@ -3215,3 +3215,40 @@
   `feat/ft00022-guardrails-anti-alucinacion`, push y PR; después, siguiente feature
   lista `cola-revision-confianza` (FT00023, depende de FT00022 `accepted`) o
   `evaluacion-golden-set` (FT00024, depende de FT00020 + FT00022).
+
+### Session 061
+
+- Fecha: 2026-10-11
+- Objetivo: cerrar FT00022 (commit + PR) y, en paralelo (no solapado),
+  **planificar** `cola-revision-confianza` (FT00023) con el rol `planner`, y
+  registrar la decisión del dueño sobre el límite de 30 ficheros de FT00047.
+- Completado (FT00022 → cierre): commit de producto
+  `6529b39 feat(FT00022): complete guardrails-anti-alucinacion`; **PR #23**
+  (https://github.com/AviferDev/DatoPublico/pull/23) abierto hacia `main`
+  (pendiente de revisión/merge). Harness: `35926f6 docs(FT00022): complete
+  guardrails-anti-alucinacion`.
+- Completado (decisión FT00047): el dueño **aprueba las partes `FT00047-PT1..PT6`
+  como PRs de renombrado mecánico**, con **excepción documentada** al límite de 30
+  ficheros (`docs/git-workflow.md` §«Excepción: renombrados mecánicos atómicos»).
+  Harness: `f315d2b`.
+- Completado (FT00023, planificación en paralelo): spec
+  `docs/specs/cola-revision-confianza.md` (≈12 ficheros, sin partes). Consume la
+  decisión tipada de FT00022 (sin umbral nuevo); nuevo `rag/review/`
+  (`SummaryState` con los 7 estados + tokens persistidos, `SummaryReviewOutcome`,
+  `ReviewReasonFormatter`, `SummaryDispositionService`); persistencia reutiliza
+  `resumen`/`cola_revision` (V2) con migración **`V5`** (índice único parcial para
+  encolado idempotente) y `ReviewQueueRepository` con *upsert*; invariante
+  `avisoIA=true` al publicar. ADR propuesto **0018**. Sin wiring. Bookkeeping
+  aplicado por el orquestador: FT00023 → `in_progress`; `docs/feature-ids.md`.
+- Ficheros actualizados: `.harness/feature_list.json`, `.harness/docs/feature-ids.md`,
+  `.harness/docs/git-workflow.md`, `.harness/docs/specs/cola-revision-confianza.md`
+  (nuevo), `.harness/PROGRESS.md`.
+- Riesgo o duda sin resolver (coordinación): **FT00022 aún no está en `main`**
+  (PR #23 pendiente). FT00023/FT00024 reutilizan `rag/guardrails/`, así que su
+  implementación debe partir de una base que **incluya FT00022** (merge o rebase);
+  FT00047-PT1 renombra `:shared` y también debe esperar al merge de FT00022 para no
+  romper sus referencias. La tubería de implementación queda **bloqueada hasta el
+  merge del PR #23**.
+- Siguiente mejor paso: merge del **PR #23**; después, implementar FT00023
+  (rol `implementer`) y/o FT00047-PT1; FT00024 en paralelo cuando haya base con
+  FT00022.

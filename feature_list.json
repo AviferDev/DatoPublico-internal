@@ -657,13 +657,15 @@
     "depends_on": [
       "guardrails-anti-alucinacion"
     ],
-    "status": "not_started",
+    "status": "in_progress",
     "verification": [
       "Un resumen por debajo del umbral aparece en la cola y no en el feed.",
       "Un resumen de alta confianza se publica directamente."
     ],
-    "evidence": [],
-    "notes": "Fuente: docs/roadmap.md 0.4-T06, docs/domain-model.md (estados del resumen)."
+    "evidence": [
+      "Planificado (`feature-spec`, 2026-10-11): spec `docs/specs/cola-revision-confianza.md`. Consume la decisión tipada de FT00022 (ADR 0017: `PUBLISHABLE`/`NEEDS_REVIEW`/`DISCARDED`, umbrales 0.5/0.8; la confianza persistida es `groundingScore`) **sin** umbral nuevo. Nuevo paquete `rag/review/` (`SummaryState` con los 7 estados del dominio y su token persistido, `SummaryReviewOutcome`, `ReviewReasonFormatter`, `SummaryDispositionService` que publica/encola/descarta según `GuardrailDecision`). Persistencia: reutiliza `resumen`/`cola_revision` (V2); migración **`V5`** = índice único **parcial** `(resumen_id) WHERE estado='pendiente'` para encolado idempotente; `ReviewQueueRepository` gana *upsert* idempotente + `listPending()`. Invariante: el resumen publicado exige `avisoIA=true` (fail-fast). ~12 ficheros de producto; **sin** división en partes. ADR propuesto **0018**. Librería **sin wiring**. **Riesgo de coordinación**: la rama debe incluir el commit de FT00022 (aún no en `main`) o rebasarse tras su merge."
+    ],
+    "notes": "Fuente: docs/roadmap.md 0.4-T06, docs/domain-model.md (estados del resumen). **`in_progress`** (2026-10-11): spec creada; implementación pendiente de que FT00022 esté en `main`."
   },
   {
     "id": "evaluacion-golden-set",
