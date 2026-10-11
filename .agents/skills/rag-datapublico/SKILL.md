@@ -238,6 +238,37 @@ ingesta BOE → chunking → embeddings (ONNX) → pgvector → recuperación h�
   deterministas**, sin red ni BD; la prueba real es **opt-in** (`DB_LIVE_TEST=1`,
   solo PostgreSQL).
 
+### Estado actual del producto (FT00025)
+
+- La **generación del chat RAG** ya está implementada en `:backend` como **librería
+  sin wiring**, paquete nuevo `es.aviferdev.datopublico.backend.rag.chat`:
+  `RagChatService.answer(query, filter, limit)` compone `HybridSearch` (FT00017) →
+  `ChatPromptBuilder` (puro: consulta + contexto **numerado** `[0]`, `[1]`…
+  delimitado como **datos, no instrucciones**) → `TextGenerationProvider`
+  (FT00020) → `ChatOutputParser` (puro: *fences* + JSON + token de estado con
+  fail-fast) → `ChatGroundingChecker` → `CitationResolver` y devuelve un resultado
+  tipado con los tres estados del dominio: `ChatResult.Answered`/`Refuted`/
+  `Unfounded` (`ChatStatus.ANSWERED`/`REFUTED`/`UNFOUNDED`). Decisión durable en
+  `docs/adr/0020`.
+- **La fuente oficial se inyecta, no la produce el modelo**: el modelo solo aporta
+  **índices** de fragmento (`citas`) y el `CitationResolver` (`fun interface`)
+  resuelve la publicación a `ChatCitation(publicationId, title, officialUrl)` (en
+  producción, `PublicationRepository.findById`). Una respuesta
+  `respondida`/`refutada` **exige** ≥1 cita resoluble; sin ninguna, o si el
+  grounding la considera no sustentada, **degrada a `sin_fundamento`** con el
+  mensaje de dominio `UNFOUNDED_MESSAGE`. El **contexto vacío** declara
+  `sin_fundamento` **sin invocar** al proveedor; una salida no parseable, un estado
+  desconocido o un índice fuera de rango ⇒ `ChatGenerationException` tipada.
+- **Grounding léxico reutilizado**: `ChatGroundingChecker` usa
+  `SummaryTextNormalizer` y `SummaryGroundingChecker.MIN_CLAIM_SUPPORT` (= 0.6) de
+  FT00022; es **conservador** (un falso negativo degrada, nunca publica una posible
+  alucinación). **Sin wiring** (`Application.kt`/job/backfill, endpoints/UI,
+  `:shared`/`:composeApp`, migraciones intactos) y **sin** rate limiting/cuota
+  (FT00030/FT00031) ni persistencia de historial. **Verificación**: el gate cubre
+  prompt, parser, grounding y servicio con **dobles deterministas**, sin red ni BD;
+  la prueba real es **opt-in** (`OPENCODE_LIVE_TEST=1`, sin PostgreSQL ni ONNX;
+  fail-fast sin clave).
+
 ## 6. Guardrails (anti-alucinación y trazabilidad)
 
 - Ningún resumen se publica sin **enlace válido** a la fuente oficial.
@@ -356,8 +387,10 @@ ingesta BOE → chunking → embeddings (ONNX) → pgvector → recuperación h�
   real es **opt-in** (`OPENCODE_LIVE_TEST=1` + `DB_LIVE_TEST=1` +
   `EMBEDDING_LIVE_TEST=1`) con umbral conservador (`meanWhatChangesF1 >= 0.3`,
   `hitRate >= 0.3`). El F1 es **léxico** (penaliza paráfrasis): el objetivo es
-  detectar **regresiones**, no certificar calidad absoluta. La evaluación de chat
-  llega con FT00025.
+  detectar **regresiones**, no certificar calidad absoluta. La **generación** del
+  chat ya existe (`rag/chat/`, FT00025), pero su **evaluación** (respuestas con
+  citas, refutaciones y `sin_fundamento`) sigue pendiente: llegará después, con su
+  propio golden set.
 
 ## Riesgos conocidos
 

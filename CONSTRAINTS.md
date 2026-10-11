@@ -193,6 +193,39 @@
   estados, el motivo, el servicio con **dobles deterministas** y el contrato SQL de
   `V5`, sin red ni BD.
 
+## Chat RAG
+
+- **MUST**: el chat responde **solo** con el contexto recuperado del BOE y **cita la
+  fuente oficial**: una respuesta `respondida`/`refutada` **exige** al menos una
+  cita resoluble a la URL oficial de la publicación del fragmento citado; sin
+  ninguna, la respuesta **no se publica** y se devuelve `sin_fundamento`. Decisión
+  durable en `docs/adr/0020`.
+- **MUST**: la **fuente oficial no la produce el modelo**: el modelo solo aporta
+  **índices** de fragmento y el `CitationResolver` **inyecta** la cita
+  (`ChatCitation(publicationId, title, officialUrl)`) desde la publicación (en
+  producción, `PublicationRepository.findById`). Una publicación no resoluble
+  descarta esa cita (no se inventa una fuente).
+- **MUST**: un guardrail de **grounding léxico** (reutiliza `SummaryTextNormalizer`
+  y `SummaryGroundingChecker.MIN_CLAIM_SUPPORT` = 0.6, sin umbral nuevo) **degrada a
+  `sin_fundamento`** cualquier respuesta `respondida`/`refutada` cuyas afirmaciones
+  no estén sustentadas por el contexto. Es **conservador** (un falso negativo
+  degrada, nunca publica una posible alucinación).
+- **MUST**: el **contexto vacío** declara `sin_fundamento` **sin invocar** al
+  proveedor; una salida **no parseable**, un **estado desconocido** o un **índice de
+  fragmento fuera de rango** ⇒ `ChatGenerationException` tipada (no se devuelve una
+  respuesta a medias).
+- **MUST NOT**: el chat es una **librería sin wiring** (`rag/chat/`): **no** se
+  construye en `Application.kt`/job/backfill, no añade endpoints/UI ni migración y
+  **no** anticipa lo diferido — **sin** rate limiting ni control de cuota
+  (FT00030/FT00031), **sin** endpoint/API (FT00031), **sin** DTO de wire en
+  `:shared`, **sin** UI (FT00037) y **sin** persistir el historial del chat. No se
+  modifican `TextGenerationProvider`/`OpenCodeTextGenerationProvider`/`OpenCodeConfig`
+  (FT00020), `SummaryTextNormalizer`/`SummaryGroundingChecker` (FT00022) ni
+  `HybridSearch`/`SearchFilter` (FT00017): se **reutilizan**.
+- **MUST**: la prueba real contra OpenCode es **opt-in** (`OPENCODE_LIVE_TEST=1`,
+  fail-fast sin clave), fuera de `build`/`test`/`init.sh` y de la CI; el gate cubre
+  prompt, parser, grounding y servicio con **dobles deterministas**, sin red ni BD.
+
 ## Categorización y plazos
 
 - **MUST**: la categoría de una publicación es una **regla curada determinista**

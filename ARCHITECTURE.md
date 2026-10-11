@@ -183,6 +183,21 @@
   (`OPENCODE_LIVE_TEST=1` + `DB_LIVE_TEST=1` + `EMBEDDING_LIVE_TEST=1`) y **no** se
   persiste el histórico (log JSON `event=summary.evaluation.started`/`completed` +
   stdout, sin migración). Ver `docs/adr/0019`.
+  FT00025 añade **`rag/chat/`**: la **generación del chat RAG** como librería sin
+  wiring. `ChatPromptBuilder` (puro) construye el prompt con la consulta y el
+  contexto **numerado** delimitado como **datos, no instrucciones**;
+  `ChatOutputDto`/`ChatOutputParser` (puros) parsean la salida estructurada
+  (**estado + respuesta + citas**) y traducen el token de estado con fail-fast;
+  `ChatGroundingChecker` (puro) reutiliza `SummaryTextNormalizer` y
+  `SummaryGroundingChecker.MIN_CLAIM_SUPPORT` (= 0.6) para degradar a
+  `sin_fundamento` una respuesta no sustentada; `CitationResolver` es el
+  `fun interface` que **inyecta** la fuente oficial desde la publicación (el modelo
+  solo aporta índices); y `RagChatService.answer` compone recuperación → prompt →
+  proveedor → parser → grounding → citas → `ChatResult.Answered`/`Refuted`/
+  `Unfounded`. El **contexto vacío** declara `sin_fundamento` **sin invocar** al
+  proveedor y una respuesta citada exige ≥1 cita resoluble. Sigue siendo **sin
+  wiring** (el endpoint/rate limiting son FT00031 y la UI FT00037) y la prueba real
+  es **opt-in** (`OPENCODE_LIVE_TEST=1`). Ver `docs/adr/0020`.
   Existe **`persistence/`** (FT00008): repositorios **JDBC**
   + entidades `...Entity` de `publicacion`, `fragmento`, `resumen` y
   `cola_revision`, más los helpers JDBC compartidos; la configuración de
@@ -258,7 +273,9 @@
   `HttpTimeout` explícito. Es una dependencia **externa en tiempo de ejecución**, no
   del gate: los tests del gate usan un doble/`MockEngine` sin red y la prueba real
   es **opt-in** (`OPENCODE_LIVE_TEST=1`). La **fuente oficial** no la produce el
-  modelo: se inyecta desde `Publicacion.urlOficial` (ver `docs/adr/0015`).
+  modelo: en el resumen se inyecta desde `Publicacion.urlOficial` (ver `docs/adr/0015`)
+  y en el chat (`rag/chat/`, FT00025, ADR 0020) el modelo solo aporta **índices** de
+  fragmento y el `CitationResolver` inyecta la URL de la publicación.
 - **Backend:** `plugins/` (HTTP) → servicios → dominio puro → repositorios y
   clientes → `infra/`.
 - **IA:** embeddings **locales** (ONNX) y generación/chat **remoto** (OpenCode),
@@ -271,7 +288,9 @@
   el **control de coste** (FT00021, ADR 0016) la envuelven también **sin** wiring.
   Los **guardrails anti-alucinación** (FT00022, ADR 0017) verifican fuente y
   grounding **después** de generar y **antes** de publicar, también como librería sin
-  wiring y sin persistencia.
+  wiring y sin persistencia. El **chat RAG** (`rag/chat/`, FT00025, ADR 0020) usa el
+  mismo proveedor de texto intercambiable, con grounding léxico (reutiliza FT00022)
+  y **citas inyectadas** desde la publicación.
 - **Datos:** PostgreSQL + pgvector; migraciones Flyway (`V1` esquema base, `V2`
   persistencia, `V3` embedding + HNSW, `V4` caché de resúmenes + uso de tokens,
   `V5` índice único parcial de la cola de revisión pendiente).

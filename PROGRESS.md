@@ -181,6 +181,24 @@
   Sin wiring: feed/endpoints/UI/revisión manual son
   FT00026+/FT00033. Siguiente feature lista: `evaluacion-golden-set` (FT00024) o
   `english-identifiers-rename` (FT00047).
+- **FT00025 `chat-generacion` → `passing`** (Session 066; implementada y
+  autoverificada, **pendiente de validación independiente**): **generación del chat
+  RAG** en `:backend` como **librería sin wiring**, paquete nuevo `rag/chat/` —
+  `ChatResult` (`ChatStatus` `ANSWERED`/`REFUTED`/`UNFOUNDED`, `ChatCitation`,
+  sealed `Answered`/`Refuted`/`Unfounded`, `ChatGenerationException`),
+  `ChatPromptBuilder` (puro: consulta + contexto **numerado** `[0]`, `[1]`… como
+  datos no instrucciones), `ChatOutputDto`/`ChatOutputParser` (puros: *fences* +
+  JSON + estado con fail-fast), `ChatGroundingChecker` (puro; reutiliza
+  `SummaryTextNormalizer` y `SummaryGroundingChecker.MIN_CLAIM_SUPPORT` = 0.6),
+  `CitationResolver` (`fun interface`) y `RagChatService.answer` (recuperación →
+  prompt → proveedor → parser → grounding → citas **inyectadas** → `Answered`/
+  `Refuted`/`Unfounded`; contexto vacío sin invocar al proveedor; respuesta citada
+  exige ≥1 cita resoluble). Gate sin red ni BD verde (`:backend` **385 tests**, 0
+  fallos, +29; `build -PskipClient` 23 tareas, `test` 63 tareas, `detekt`+
+  `:cpdCheck`, `init.sh` exit 0); `RagChatServiceLiveTest` **omitido** sin
+  `OPENCODE_LIVE_TEST` (fail-fast sin clave verificado; escenario 9 real **no
+  ejecutado**, sin `OPENCODE_API_KEY`). Decisión durable en **ADR 0020**. Sin
+  wiring: endpoint/rate limiting (FT00030/FT00031) y UI (FT00037).
 - Última verificación: 2026-10-10 (Sessions 032–038). **Cambio de alcance 1.0.0 =
   TODO el BOE** (secciones I, II.A, II.B, III, IV, V.A, V.B y V.C; ningún campo ni
   sección se excluye) y nueva norma MUST de **`@SerialName` explícito** en cada
@@ -3451,3 +3469,78 @@
 - Estado: **FT00024 `accepted`**. Rama de producto pendiente de commit/push/PR por
   el orquestador. Siguiente feature lista: `english-identifiers-rename` (FT00047,
   por partes `FT00047-PT1..PT6`) o la evaluación de chat (FT00025).
+
+### Session 066
+
+- Fecha: 2026-10-11
+- Objetivo: **implementar** `chat-generacion` (FT00025) como **implementer**, en la
+  rama reclamada `feat/ft00025-chat-generacion`, sin commits (los hace el
+  orquestador).
+- Completado (FT00025 → `passing`): paquete nuevo
+  `backend/src/main/kotlin/es/aviferdev/datopublico/backend/rag/chat/` como
+  **librería sin wiring**: `ChatResult` (`ChatStatus`, `ChatCitation`, sealed
+  `ChatResult.Answered`/`Refuted`/`Unfounded`, `ChatGenerationException`),
+  `ChatPromptBuilder` (puro), `ChatOutputDto` (`@Serializable`, `@SerialName`
+  explícito) + `ChatOutputParser` (puro), `ChatGroundingChecker` (puro; reutiliza
+  `SummaryTextNormalizer` y `SummaryGroundingChecker.MIN_CLAIM_SUPPORT`),
+  `CitationResolver` (`fun interface`) y `RagChatService.answer(query, filter,
+  limit)`. 7 fuentes + 5 tests (`ChatPromptBuilderTest` 4, `ChatOutputParserTest` 8,
+  `ChatGroundingCheckerTest` 5, `RagChatServiceTest` 11, `RagChatServiceLiveTest`
+  opt-in).
+- Verificación ejecutada (JDK 21 vía JBR de Android Studio; `JAVA_HOME` sin
+  definir, se exportó el del JBR):
+  - `./gradlew :backend:test --rerun-tasks` → BUILD SUCCESSFUL; **385 tests, 0
+    fallos** (+29 nuevos; los 356 de FT00024 intactos).
+  - `./gradlew build --no-daemon -PskipClient` → BUILD SUCCESSFUL (23 tareas);
+    `./gradlew test` → BUILD SUCCESSFUL (63 tareas, 3 módulos); `./gradlew detekt`
+    (detekt + `:cpdCheck`) → BUILD SUCCESSFUL; `env -u JAVA_HOME .harness/init.sh` →
+    exit **0**.
+  - Offline: `RagChatServiceLiveTest` **omitido** sin `OPENCODE_LIVE_TEST=1` (sin
+    sockets). Fail-fast sin clave verificado:
+    `OPENCODE_LIVE_TEST=1 ./gradlew :backend:test --tests '*RagChatServiceLiveTest'`
+    → `TextGenerationException: Falta OPENCODE_API_KEY…` (esperado). Escenario 9
+    real **no ejecutado** (no hay `OPENCODE_API_KEY`; no se inventó).
+- Ficheros de producto: 7 `rag/chat/*.kt`, 5 tests en `rag/chat/` y
+  `docs/desarrollo-local.md` (sección «Chat RAG»). Harness: `ARCHITECTURE.md`,
+  `CONSTRAINTS.md` §«Chat RAG», ADR **0020** + índice, skill `rag-datapublico`
+  §5/§7, `feature_list.json` (FT00025 → `passing` + evidencia),
+  `docs/feature-ids.md` y este `PROGRESS.md`.
+- Riesgo o duda sin resolver: los del ADR 0020 — grounding **léxico y
+  conservador** (una paráfrasis válida puede degradar a `sin_fundamento`; se acepta
+  el falso negativo como fail-safe); recuperación no acotada a una publicación
+  (heredado de FT00017/FT00020); `CitationResolver` sin implementación de
+  producción hasta FT00031 (hasta `limit` consultas por publicación distinta);
+  escenario 9 real sin ejecutar.
+- Siguiente mejor paso: validación independiente (rol `validator`) del paquete
+  `rag/chat/`; después, commit/PR por el orquestador.
+
+### Session 067
+
+- Fecha: 2026-10-11
+- Objetivo: **cerrar** `chat-generacion` (FT00025): validación independiente y
+  commit/PR por el orquestador, desde la rama `feat/ft00025-chat-generacion`
+  (claim `63daeb1` sobre `origin/main` `f8ff126`, que incluye FT00001–FT00024).
+- Completado:
+  - **Validación independiente** (`feature-validator`): veredicto **`accept`**.
+    Reejecutó el gate sin red/BD/modelo/OpenCode en verde (`:backend:test
+    --rerun-tasks` **385 tests, 0 fallos** (+29; 356 previos intactos); `build
+    --no-daemon -PskipClient` 23 tareas; `test` 63 tareas/3 módulos; `detekt` +
+    `:cpdCheck` forzados; `env -u JAVA_HOME .harness/init.sh` exit **0**).
+    Confirmó los escenarios 1–8 (contexto vacío ⇒ `Unfounded` sin invocar al
+    proveedor; degradación por grounding; citas inyectadas vía `CitationResolver`;
+    `Answered`/`Refuted` con ≥1 cita resoluble; índice fuera de rango / estado
+    desconocido ⇒ `ChatGenerationException`; proveedor sustituible por doble), el
+    alcance acotado (solo `rag/chat/` + tests + `docs/desarrollo-local.md`), las
+    reglas MUST y la **veracidad** de la evidencia del implementer. Escenario 9
+    (live OpenCode) **no ejecutado** por falta de `OPENCODE_API_KEY`; fail-fast sin
+    clave confirmado (`RagChatServiceLiveTest.kt:49`). Sin hallazgos High/Medium;
+    deuda **Low** no bloqueante (duplicación con `SummaryGroundingChecker` por
+    debajo del umbral de CPD, live test como soft-skip, escenario 9 sin ejecutar,
+    no-inyección del prompt sin caso adversarial). Sin hallazgos de seguridad.
+    Registro en `docs/validations/chat-generacion.md`.
+  - Persistida la aceptación: `feature_list.json` FT00025 → **`accepted`** +
+    evidencia; `docs/feature-ids.md` → `accepted`; este `PROGRESS.md`.
+- Estado: **FT00025 `accepted`**. Rama de producto con el commit de la feature,
+  pusheada y PR hacia `main`. Siguiente feature lista: `api-feed-diario` (FT00026)
+  / `api-detalle-norma` (FT00027) / `api-busqueda` (FT00028), o
+  `english-identifiers-rename` (FT00047, por partes `FT00047-PT1..PT6`).

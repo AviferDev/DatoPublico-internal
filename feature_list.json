@@ -706,17 +706,26 @@
     "user_visible_behavior": "Dada una pregunta o una afirmación en lenguaje natural, se genera una respuesta fundamentada solo en los fragmentos recuperados del BOE, con citas a la fuente oficial y sin afirmaciones fuera del corpus; las afirmaciones falsas se refutan y las preguntas sin base se declaran como tales.",
     "depends_on": [
       "recuperacion-hibrida",
-      "generacion-resumen-go"
+      "generacion-resumen-go",
+      "guardrails-anti-alucinacion"
     ],
-    "status": "not_started",
+    "status": "accepted",
     "verification": [
       "Una pregunta sobre el corpus devuelve una respuesta con al menos una cita a la fuente oficial.",
       "Una afirmación falsa sobre el corpus se refuta con citas.",
       "Una pregunta sin base en el corpus no inventa: se declara sin fundamento.",
       "El proveedor se sustituye por un doble en tests sin tocar el servicio."
     ],
-    "evidence": [],
-    "notes": "Fuente: docs/roadmap.md 0.4-T07, docs/technical-discovery.md (OpenCode, deepseek-v4.1-flash). Dominio: Consulta (chat RAG)."
+    "evidence": [
+      "Implementado y autoverificado (implementer, 2026-10-11, rama `feat/ft00025-chat-generacion`): paquete nuevo `rag/chat/` en `:backend` como **librería sin wiring** — `ChatResult` (`ChatStatus` `ANSWERED`/`REFUTED`/`UNFOUNDED`, `ChatCitation(publicationId, title, officialUrl)`, sealed `ChatResult.Answered`/`Refuted`/`Unfounded` y `ChatGenerationException`), `ChatPromptBuilder` (puro: consulta + contexto numerado `[0]`, `[1]`… delimitado como datos no instrucciones + esquema JSON `estado`/`respuesta`/`citas`), `ChatOutputDto` (`@Serializable`, `@SerialName` explícito) + `ChatOutputParser` (puro: *fences*, JSON y token de estado con fail-fast), `ChatGroundingChecker` (puro; reutiliza `SummaryTextNormalizer` y `SummaryGroundingChecker.MIN_CLAIM_SUPPORT` = 0.6), `CitationResolver` (`fun interface`) y `RagChatService.answer(query, filter, limit)`: recuperación → prompt → proveedor → parser → grounding → citas inyectadas → `Answered`/`Refuted`/`Unfounded`; contexto vacío sin invocar al proveedor y respuesta citada exige ≥1 cita resoluble. 7 fuentes + 5 tests nuevos.",
+      "Gate sin red, BD, modelo ni OpenCode: `./gradlew :backend:test --rerun-tasks` → **385 tests, 0 fallos** (+29 nuevos: `ChatGroundingCheckerTest` 5, `ChatOutputParserTest` 8, `ChatPromptBuilderTest` 4, `RagChatServiceTest` 11 y `RagChatServiceLiveTest` 1; los 356 de FT00024 intactos); `./gradlew build --no-daemon -PskipClient` → BUILD SUCCESSFUL (23 tareas); `./gradlew test` → BUILD SUCCESSFUL (63 tareas, 3 módulos); `./gradlew detekt` (detekt + `:cpdCheck`, sin duplicación nueva) → BUILD SUCCESSFUL; `env -u JAVA_HOME .harness/init.sh` → exit **0**.",
+      "Offline confirmado: `RagChatServiceLiveTest` se **omite** sin `OPENCODE_LIVE_TEST=1` (sin abrir sockets); el resto de pruebas reales también se omiten. Escenarios 1–7 cubiertos por los tests de gate con dobles (respondida con cita, refutada con cita, sin fundamento, contexto vacío sin invocar al proveedor, prompt construido, degradación por grounding, cita vacía/no resoluble, índice fuera de rango y estado desconocido).",
+      "Escenario 9 (opt-in real con OpenCode) **NO ejecutado**: no hay `OPENCODE_API_KEY` en el entorno (no se inventó). Verificado el **fail-fast** sin clave: `OPENCODE_LIVE_TEST=1 ./gradlew :backend:test --tests '*RagChatServiceLiveTest'` falla en claro con `TextGenerationException: Falta OPENCODE_API_KEY: define la clave de OpenCode en el servidor (variable de entorno; nunca se versiona).` desde `OpenCodeConfig.fromEnv()`.",
+      "Alcance acotado confirmado: solo ficheros nuevos en `rag/chat/` + sus tests y `docs/desarrollo-local.md`; `Application.kt`/`ingesta/`/`persistence/`/`rag/retrieval/`/`rag/generation/`/`rag/guardrails/`/`rag/summary/`/`rag/review/`/`rag/evaluation/`/migraciones/`:shared`/`:composeApp`/CI/`init.sh` **intactos**; sin dependencias Gradle nuevas y sin migración. Docs durables: `ARCHITECTURE.md`, `CONSTRAINTS.md` §«Chat RAG», ADR **0020** + índice y skill `rag-datapublico` §5/§7.",
+      "Estado `passing` = implementado y autoverificado, **pendiente de validación independiente** (`feature-validator`).",
+      "Aceptación independiente (`feature-validator`, 2026-10-11): veredicto **`accept`**. Reejecutó el gate sin red/BD/modelo/OpenCode en verde (`:backend:test --rerun-tasks` **385 tests, 0 fallos** (+29; 356 previos intactos), `build --no-daemon -PskipClient` 23 tareas, `test` 63 tareas/3 módulos, `detekt`+`:cpdCheck` forzados verdes, `env -u JAVA_HOME .harness/init.sh` exit 0); confirmó los escenarios 1–8 (contexto vacío ⇒ `Unfounded` sin invocar al proveedor, degradación por grounding, citas inyectadas vía `CitationResolver`, `Answered`/`Refuted` con ≥1 cita resoluble, índice fuera de rango/estado desconocido ⇒ `ChatGenerationException`, proveedor sustituible por doble), el alcance acotado (solo `rag/chat/` + tests + `docs/desarrollo-local.md`; resto intacto), las reglas MUST y la veracidad de la evidencia del implementer. Escenario 9 (live OpenCode) **no ejecutado** por falta de `OPENCODE_API_KEY`; fail-fast sin clave confirmado en `RagChatServiceLiveTest.kt:49`. Sin hallazgos High/Medium; deuda **Low** no bloqueante (duplicación con `SummaryGroundingChecker` por debajo del umbral de CPD, live test como soft-skip, escenario 9 sin ejecutar, no-inyección del prompt sin caso adversarial). Sin hallazgos de seguridad. Registro en `docs/validations/chat-generacion.md`."
+    ],
+    "notes": "Fuente: docs/roadmap.md 0.4-T07, docs/technical-discovery.md (OpenCode, deepseek-v4.1-flash). Dominio: Consulta (chat RAG). **`accepted`** (2026-10-11): librería sin wiring `rag/chat/` (chat RAG tras el proveedor de texto intercambiable, con citas **inyectadas** vía `CitationResolver` y grounding léxico que degrada a `sin_fundamento`); validación independiente `accept`. Decisión durable en **ADR 0020**. Sin wiring: endpoint/rate limiting (FT00030/FT00031) y UI (FT00037)."
   },
   {
     "id": "api-feed-diario",
