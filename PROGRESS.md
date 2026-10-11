@@ -156,7 +156,9 @@
   `init.sh` exit 0) y prueba real **opt-in ejecutada y verde** por el validator
   (`DB_LIVE_TEST=1`: `cache round-trip OK`, `upsert idempotente OK`, `uso OK`).
   Decisión durable en **ADR 0016**; validación independiente `accept`
-  (`docs/validations/cacheo-resumenes.md`). Siguiente feature lista:
+  (`docs/validations/cacheo-resumenes.md`). **PR #22 fusionado** en `main` por
+  squash → `a1521eb` (CI run `38123902484` en verde); rama remota eliminada.
+  `main` contiene ahora FT00001–FT00021. Siguiente feature lista:
   `guardrails-anti-alucinacion` (FT00022, depende de FT00020) o
   `english-identifiers-rename` (FT00047).
 - Última verificación: 2026-10-10 (Sessions 032–038). **Cambio de alcance 1.0.0 =
@@ -3002,6 +3004,11 @@
 - Riesgo o duda sin resolver: los mismos del implementer (modelo inyectado,
   `PROMPT_VERSION` manual, cambio de validador no invalida caché, `usage` ausente
   registra 0, caché inerte hasta FT00026+). Sin bloqueos.
-- Siguiente mejor paso: commit del producto en `feat/ft00021-cacheo-resumenes`,
-  push y PR; después, siguiente feature lista `guardrails-anti-alucinacion`
+- Cierre (2026-10-11): commit de producto `2aa004a feat(FT00021): complete
+  cacheo-resumenes`; **PR #22** (https://github.com/AviferDev/DatoPublico/pull/22)
+  **fusionado** en `main` por squash → **`a1521eb`**; CI `Build and test` en verde
+  en la rama (run `38123902484`); rama remota `feat/ft00021-cacheo-resumenes`
+  eliminada tras el merge. Commit del harness `b25d3c5 docs(FT00021): complete
+  cacheo-resumenes` en `main` (privado).
+- Siguiente mejor paso: siguiente feature lista `guardrails-anti-alucinacion`
   (FT00022, depende de FT00020) o `english-identifiers-rename` (FT00047).
