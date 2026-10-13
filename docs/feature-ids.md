@@ -42,7 +42,7 @@
 | FT00024 | evaluacion-golden-set | Evaluación de calidad con golden set | simplificacion-ia | accepted |
 | FT00025 | chat-generacion | Generación del chat RAG con OpenCode | simplificacion-ia | accepted |
 | FT00026 | api-feed-diario | Endpoint del feed diario | api-publica | accepted |
-| FT00027 | api-detalle-norma | Endpoint de detalle de publicación | api-publica | not_started |
+| FT00027 | api-detalle-norma | Endpoint de detalle de publicación | api-publica | accepted |
 | FT00028 | api-busqueda | Endpoint de búsqueda | api-publica | not_started |
 | FT00029 | api-contratos-openapi | Contratos OpenAPI y versionado | api-publica | not_started |
 | FT00030 | api-cors-ratelimit-errores | Endurecimiento HTTP de la API | api-publica | not_started |

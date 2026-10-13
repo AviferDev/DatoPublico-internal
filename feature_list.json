@@ -756,14 +756,18 @@
     "title": "Endpoint de detalle de publicación",
     "user_visible_behavior": "La API devuelve el detalle de una publicación: resumen ciudadano estructurado, categoría, plazo (si aplica) y enlace a la fuente oficial.",
     "depends_on": [
-      "guardrails-anti-alucinacion"
+      "guardrails-anti-alucinacion",
+      "cola-revision-confianza"
     ],
-    "status": "not_started",
+    "status": "accepted",
     "verification": [
       "`GET` del detalle de una publicación devuelve las secciones del resumen, la categoría y la URL oficial."
     ],
-    "evidence": [],
-    "notes": "Fuente: docs/roadmap.md 0.5-T02."
+    "evidence": [
+      "FT00027 (2026-10-13, rama feat/ft00027-api-detalle-norma, implementer + autoverificación): endpoint público de solo lectura `GET /publicacion/{id}` que devuelve el **mismo** `PublicacionDto` de `:shared` (sin DTO nuevo), sirviendo **solo** publicaciones con `resumen.estado='publicado'`. `publication/PublicationDetailService` (suspend; un único `withContext(Dispatchers.IO)` que compone `PublicationRepository.findById` + `SummaryRepository.findByPublication`, filtra con el token tipado `SummaryState.PUBLISHED`, mapea con `feed.FeedDtoMapper.toPublicacionDto`; `null` si no existe / no tiene categoría (dato corrupto) / resumen no publicado; `MAX_ID_LENGTH=128`); `plugins/PublicationDetail.kt` (ruta delgada; blanco o > MAX_ID_LENGTH → 400; null → 404; DTO → 200); `plugins/Routing.kt` (segundo colaborador opcional, ruta condicional); `Application.kt` (el detalle se construye sobre el **pool JDBC único** ya compartido). Tests de gate: `PublicationDetailServiceTest` 6, `PublicationDetailRouteTest` 4; live opt-in `PublicationDetailLiveTest`. Gate sin red ni BD verde: `:backend:test --rerun-tasks` **414 tests, 0 fallos**; `:shared:jvmTest` 30; `build --no-daemon -PskipClient` 23 tareas; `test` 63 tareas/3 módulos; `detekt`+`:cpdCheck` 4 tareas; `init.sh` exit 0. Arranque sin BD: `/health` 200, `/feed` 404, `/publicacion/{id}` 404. Sin migración, sin dependencias nuevas, sin tocar `:shared`/`:composeApp`/CI/`init.sh`. Escenario live (opt-in) no ejecutado (sin Docker) — limitación aceptada. Dependencia `cola-revision-confianza` (FT00023) añadida a `depends_on` por el orquestador.",
+      "Aceptación independiente (`feature-validator`, 2026-10-13): veredicto **`accept`**. Confirmó el diff (8 ficheros vs `origin/main`, que ya incluye FT00026 `8bc7ad8`), reejecutó el gate real (`:backend:test` 414/0/0; `:shared:jvmTest` 30/0/0; `build -PskipClient` 23 tareas; `test` 63 tareas/3 módulos; `detekt`+`:cpdCheck` 4 tareas; `init.sh` exit 0; arranque sin BD `/health` 200, `/feed` 404, `/publicacion/{id}` 404) y comprobó los escenarios E1–E7 (E8 live no ejecutado sin Docker, limitación aceptada), el filtro `estado='publicado'` vía token tipado, la reutilización real sin SQL/mapeo duplicado, categoría nula → 404 sin crash, `Dispatchers.IO`, pool único, `@SerialName`/sufijos `Dto`, un solo `return`/sin `else if`/≤40 líneas y el alcance acotado. Sin hallazgos Critical/High/Medium; **Low** no bloqueante: estado del harness (`feature_list.json`/`feature-ids.md`/`PROGRESS.md`) pendiente de que el orquestador persistiera la aceptación (resuelto aquí). Sin hallazgos de seguridad."
+    ],
+    "notes": "Fuente: docs/roadmap.md 0.5-T02. Dependencia `cola-revision-confianza` (FT00023) añadida por el orquestador (sirve solo resúmenes `estado='publicado'`). Reutiliza `feed.FeedDtoMapper` y los repositorios de persistencia. Mismo gap de planificación que FT00026: sin cableado del pipeline de resumen, el detalle dará 404 en runtime hasta que exista ese wiring."
   },
   {
     "id": "api-busqueda",

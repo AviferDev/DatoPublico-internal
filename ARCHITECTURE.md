@@ -214,9 +214,18 @@
   exponen `motivos` **sin** `score`. `configureRouting` registra `/feed` **solo**
   si el servicio no es `null`; el composition root crea un **pool JDBC único**
   compartido por la API y la ingesta y lo cierra una vez en `ApplicationStopped`
-  (sin BD: `/health` operativo y `/feed` 404). Sigue **sin** filtros de búsqueda
-  (FT00028), detalle (FT00027), OpenAPI/CORS/*rate limiting* (FT00029/FT00030) ni
-  migración. Ver `docs/adr/0021`.
+  (sin BD: `/health` operativo y `/feed` 404). Ver `docs/adr/0021`.
+  FT00027 añade **`publication/`** y **`plugins/PublicationDetail.kt`**: el
+  **detalle de una publicación** (`GET /publicacion/{id}`), el segundo endpoint de
+  lectura de datos. `PublicationDetailService` (`suspend`, lectura JDBC en
+  `Dispatchers.IO`) compone `PublicationRepository.findById` +
+  `SummaryRepository.findByPublication` y **reutiliza** el mapeo puro
+  `feed/FeedDtoMapper`; **solo** sirve publicaciones con resumen `publicado` (si no,
+  identificador desconocido o categoría nula ⇒ `404`; `id` en blanco o desmesurado
+  ⇒ `400`). `configureRouting` registra `/publicacion/{id}` **solo** si el servicio
+  no es `null`; el composition root lo construye sobre el **mismo pool único** que
+  el feed y la ingesta. Sigue **sin** filtros de búsqueda (FT00028), OpenAPI/CORS/
+  *rate limiting* (FT00029/FT00030) ni migración. Ver `docs/adr/0022`.
   Existe **`persistence/`** (FT00008): repositorios **JDBC**
   + entidades `...Entity` de `publicacion`, `fragmento`, `resumen` y
   `cola_revision`, más los helpers JDBC compartidos; la configuración de
@@ -258,10 +267,12 @@
 - **Cliente → API HTTP** (público, solo lectura). El cliente no conoce los
   internals del backend. Desde FT00026 el backend sirve el **feed diario**
   (`GET /feed?fecha=…`, FT00026) con las publicaciones cuyo resumen está
-  `publicado`, paginadas y con los destacados del día explicados por motivos; el
-  contrato de wire vive en `:shared` (ver `docs/adr/0021`). Los demás endpoints
-  (detalle FT00027, búsqueda FT00028, chat FT00031, OpenAPI/CORS/*rate limiting*
-  FT00029/FT00030) llegan con sus features.
+  `publicado`, paginadas y con los destacados del día explicados por motivos, y
+  desde FT00027 el **detalle de publicación** (`GET /publicacion/{id}`), que
+  reutiliza el **mismo** contrato `PublicacionDto` y el mismo mapeo que el feed
+  (ver `docs/adr/0021` y `docs/adr/0022`). Los demás endpoints (búsqueda FT00028,
+  chat FT00031, OpenAPI/CORS/*rate limiting* FT00029/FT00030) llegan con sus
+  features.
 - **Backend → BOE** (API de datos abiertos + XML oficial, solo lectura, **sin
   clave ni credenciales**): `ingesta/` obtiene el sumario diario (JSON) y, por
   cada entrada, el **texto XML estructurado** (`xml.php`); el job programado
@@ -285,8 +296,8 @@
   *upsert* de publicación por `id` es idempotente y es la base del job diario: la
   segunda pasada reejecuta la misma fecha sin duplicar. Desde FT00026
   `Application.kt` crea un **pool único** si la config de BD resuelve, lo comparte
-  entre el feed (API) y la ingesta, y lo cierra **una sola vez** en
-  `ApplicationStopped`; sin BD no hay pool y el feed no se registra. La
+  entre el feed y el detalle (API) y la ingesta, y lo cierra **una sola vez** en
+  `ApplicationStopped`; sin BD no hay pool y ni el feed ni el detalle se registran. La
   **recuperación híbrida** (FT00017) consulta
   `fragmento` con un `JOIN publicacion` para aplicar los **filtros de metadatos**
   parametrizados (fecha/categoría/sección/organismo) junto a la distancia coseno;

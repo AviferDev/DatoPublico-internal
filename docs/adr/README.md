@@ -79,3 +79,4 @@ Aceptado (<AAAA-MM-DD>). [Quién decide y, si aplica, qué ADR supersede/ajusta.
 | [0019](0019-evaluacion-resumenes-golden-set.md) | Evaluación de la calidad del resumen ciudadano con golden set versionado, métricas léxicas puras y CLI one-shot opt-in | Aceptado |
 | [0020](0020-chat-rag-citas-inyectadas-grounding.md) | Chat RAG con citas inyectadas desde la publicación y grounding léxico que degrada a `sin_fundamento` | Aceptado |
 | [0021](0021-feed-diario-endpoint.md) | Feed diario por fecha, solo resúmenes publicados y destacados *on-the-fly* | Aceptado |
+| [0022](0022-detalle-publicacion-endpoint.md) | Detalle de publicación por identificador, solo resúmenes publicados y contrato reutilizado | Aceptado |

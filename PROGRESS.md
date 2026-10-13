@@ -3590,3 +3590,41 @@
   hasta que exista ese cableado. Propuesta: nueva feature `pipeline-resumen-job`
   (FT00048) que cablee generación+disposición en el job diario (o post-ingesta). A
   decidir por el dueño.
+
+### Session 069
+
+- Fecha: 2026-10-13
+- Objetivo: planificar, implementar y validar `api-detalle-norma` (FT00027) desde la
+  rama `feat/ft00027-api-detalle-norma`. **FT00026 ya fusionada** en `origin/main`
+  (`8bc7ad8`, squash del PR #27), así que FT00027 dejó de apilarse sobre la rama de
+  FT00026 y se **rebasó sobre `main`** antes de validar.
+- Completado:
+  - **Planner** (`feature-spec`): spec `docs/specs/api-detalle-norma.md` (~8 ficheros;
+    atómica). El orquestador añadió la dependencia `cola-revision-confianza` (FT00023)
+    a `depends_on` de FT00027.
+  - **Implementer** (`feature-implementer`): `GET /publicacion/{id}` (solo lectura)
+    que devuelve el **mismo** `PublicacionDto` de `:shared` (sin DTO nuevo) y sirve
+    **solo** resúmenes `estado='publicado'`. `publication/PublicationDetailService`
+    (suspend; `Dispatchers.IO`; compone `PublicationRepository.findById` +
+    `SummaryRepository.findByPublication`; filtra con `SummaryState.PUBLISHED`; mapea
+    con `feed.FeedDtoMapper.toPublicacionDto`; `MAX_ID_LENGTH=128`),
+    `plugins/PublicationDetail.kt` (400/404/200), `plugins/Routing.kt` (ruta
+    condicional), `Application.kt` (sobre el pool JDBC único). 8 ficheros de producto.
+    Docs durables: `ARCHITECTURE.md`, `CONSTRAINTS.md` §«API pública: detalle de
+    publicación», ADR **0022** + índice, `docs/desarrollo-local.md`, skill
+    `ktor-backend-architecture`.
+  - **Validator** (`feature-validator`): veredicto **`accept`**. `:backend:test`
+    **414 tests, 0 fallos** (+11); `:shared:jvmTest` 30; `build -PskipClient` 23
+    tareas; `test` 63 tareas/3 módulos; `detekt`+`:cpdCheck` 4 tareas; `init.sh` exit
+    0; arranque sin BD `/health` 200, `/feed` 404, `/publicacion/{id}` 404. Sin
+    hallazgos Critical/High/Medium; **Low** (estado del harness, resuelto aquí).
+    Escenario live (opt-in) no ejecutado (sin Docker).
+  - Persistida la aceptación: `feature_list.json` FT00027 → **`accepted`** +
+    evidencia; `docs/feature-ids.md` → `accepted`; `docs/validations/api-detalle-norma.md`;
+    este `PROGRESS.md`.
+- Estado: **FT00027 `accepted`**. Rama de producto commit/push + PR hacia `main` a
+  cargo del orquestador. Siguiente feature lista: `api-busqueda` (FT00028) /
+  `api-chat` (FT00031), o `english-identifiers-rename` (FT00047).
+- Nota de estrategia de PR: se abandonó el apilado de FT00027 (FT00026 ya estaba en
+  `main`); el PR de FT00027 tiene base `main`. El gap del pipeline de resumen
+  (Session 068) sigue abierto.

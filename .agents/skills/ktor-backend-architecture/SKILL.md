@@ -24,10 +24,14 @@ bloqueante** (solo con `INGESTA_ENABLED` y config de BD resoluble; cierre en
 **`feed/`** (`DailyFeedService` + `FeedDtoMapper`) y **`plugins/Feed.kt`**: el
 **primer endpoint de lectura de datos** (`GET /feed?fecha=…`), que sirve **solo**
 resúmenes `publicado`, paginado y con destacados *on-the-fly* (`relevance/`,
-FT00013). El composition root crea un **pool JDBC único** compartido por el feed
-(API) y la ingesta y lo cierra una vez en `ApplicationStopped`; sin BD no hay pool
-y `/feed` no se registra. Existen además los paquetes de librería `rag/` (FT00014–
-FT00025) y `relevance/` (FT00013). El resto del documento sigue siendo el
+FT00013). Desde **FT00027** existe **`publication/`** (`PublicationDetailService`) y
+**`plugins/PublicationDetail.kt`**: el **detalle de publicación**
+(`GET /publicacion/{id}`), que reutiliza el contrato `PublicacionDto` y el mapeo
+`FeedDtoMapper` y sirve **solo** resúmenes `publicado`. El composition root crea un
+**pool JDBC único** compartido por la API (feed y detalle) y la ingesta y lo cierra
+una vez en `ApplicationStopped`; sin BD no hay pool y ni `/feed` ni
+`/publicacion/{id}` se registran. Existen además los paquetes de librería `rag/`
+(FT00014–FT00025) y `relevance/` (FT00013). El resto del documento sigue siendo el
 **patrón objetivo acordado**, derivado de `docs/technical-discovery.md` y
 `docs/roadmap.md`; deriva los detalles reales del código cuando existan.
 
@@ -160,8 +164,10 @@ servicio, su(s) repositorio(s), sus modelos y sus clientes; lo transversal
 - Solo lectura y pública: `feed`, `detalle`, `búsqueda` (filtros de
   categoría/fecha) y `chat` (pregunta/verificación). El **feed** está
   **implementado** (FT00026, `GET /feed?fecha=…`, paginado, solo resúmenes
-  `publicado` y con destacados explicados por motivos; ver ADR 0021); `detalle`,
-  `búsqueda` y `chat` llegan con FT00027/FT00028/FT00031.
+  `publicado` y con destacados explicados por motivos; ver ADR 0021) y el
+  **detalle** también (FT00027, `GET /publicacion/{id}`, solo resúmenes `publicado`,
+  reutilizando el contrato y el mapeo del feed; ver ADR 0022); `búsqueda` y `chat`
+  llegan con FT00028/FT00031.
 - Contratos **OpenAPI** versionados; **CORS**; **rate limiting**; errores JSON
   consistentes (FT00029/FT00030; el feed aún responde `400` sin cuerpo tipado).
 - Sin cuentas ni datos personales: el servidor solo trata información pública. El

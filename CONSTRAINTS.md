@@ -227,6 +227,40 @@
   el contrato de `:shared`, el repositorio con dobles, el servicio, el mapeo y la
   ruta con `testApplication`, sin red ni BD.
 
+## API pública: detalle de publicación
+
+- **MUST**: el detalle (`GET /publicacion/{id}`) es de **solo lectura y público**,
+  sin cuentas ni datos personales, y se consulta por el **identificador oficial**
+  del BOE como **segmento de path** (`BOE-A-2026-20979`). Decisión durable en
+  `docs/adr/0022`.
+- **MUST**: sirve **solo** publicaciones con `resumen.estado = 'publicado'` (token
+  tipado `SummaryState.PUBLISHED` que escribe FT00023); un resumen no publicado (o
+  ausente), un identificador desconocido y una publicación sin categoría (dato
+  corrupto) responden `404` sin inventar categoría ni resumen. La respuesta es el
+  **mismo** `PublicacionDto` de `:shared` que usa el feed, con `urlOficial`,
+  `fuenteOficial` (trazabilidad), `avisoIA` y `plazo`; **no** se crea ningún DTO
+  nuevo.
+- **MUST**: el detalle **reutiliza** el mapeo puro `FeedDtoMapper.toPublicacionDto`
+  de FT00026 y los repositorios `PublicationRepository.findById` +
+  `SummaryRepository.findByPublication`; **no** duplica el SQL del feed ni modifica
+  `FeedRepository`/`HighlightRanker`/`SummaryRepository`.
+- **MUST**: el `id` es un segmento de path; un `id` **en blanco** o más largo que
+  `PublicationDetailService.MAX_ID_LENGTH` responde `400` **sin cuerpo tipado** y un
+  id desconocido/no publicado responde `404` (no es un error). El **formato** del
+  identificador es **opaco** (la existencia decide `200`/`404`); **no** se valida.
+- **MUST**: el arranque **no** depende de la BD: el composition root construye el
+  detalle sobre el **mismo pool JDBC único** que el feed y la ingesta y registra
+  `/publicacion/{id}` **solo** si hay pool; sin BD la ruta no se registra (`404`) y
+  `/health` queda operativo. La lectura JDBC va en `Dispatchers.IO` y el SQL está
+  parametrizado.
+- **MUST NOT**: esta feature **no** añade CORS, *rate limiting*, OpenAPI, versionado
+  del path ni cuerpo de error consistente (FT00029/FT00030), ni UI/aviso visible
+  (FT00033), ni migración (`V1`…`V5` intactas). **No** cambia el contrato de
+  `:shared`, ni el pipeline de resumen, ni `:composeApp`/CI/`init.sh`.
+- **MUST**: la prueba real (solo se sirve el resumen publicado) es **opt-in**
+  (`DB_LIVE_TEST=1`), fuera de `build`/`test`/`init.sh` y de la CI; el gate cubre el
+  servicio y la ruta con dobles deterministas y `testApplication`, sin red ni BD.
+
 ## Chat RAG
 
 - **MUST**: el chat responde **solo** con el contexto recuperado del BOE y **cita la
