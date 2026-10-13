@@ -3828,3 +3828,33 @@
 - Estado: **FT00032 `accepted`**; rama de producto commit/push + PR hacia `main` a
   cargo del orquestador. Siguiente: FT00033/34/35 (UI) tras mergear FT00032;
   FT00041 y FT00047 en marcha en worktrees.
+
+### Session 075
+
+- Fecha: 2026-10-13
+- Objetivo: implementar la **UI del cliente CMP (0.6–0.9)** en paralelo con
+  worktrees, **parando antes de Distribución**. El dueño fijó el alcance: solo
+  FT00033/34/35/36/37. FT00041 (deploy) y FT00047 (rename) quedan **fuera de
+  alcance** (FT00041 liberado: claim borrado y worktree eliminado; FT00047-PT1
+  aparcado con commit `4bbc145` en su rama, sin PR).
+- Completado (FT00033 `ui-detalle` → `accepted`):
+  - **Planner**: spec `docs/specs/ui-detalle.md`.
+  - **Implementer** (worktree `ft00033`, vía `general` por la restricción
+    `external_directory` de los agentes de proyecto): capa `feature/detail/` +
+    componentes `AiNotice`/`OfficialSourceLink`/`SectionBlock`; resumen
+    estructurado, plazo, enlace oficial y aviso de IA. Entrega `DetailRoute` como
+    **contrato** (navegación = FT00034; HTTP = FT00035). Extracción del vocabulario
+    compartido **diferida** (decisión del orquestador para evitar conflictos).
+  - **Validator** (`general`): veredicto **`accept`** (`:composeApp:jvmTest` 28/0;
+    `assembleDebug`; Wasm; iOS; `test` agregado 0 fallos; `detekt`+`:cpdCheck`;
+    `build` 211/211; 4 capturas verificadas). Sin hallazgos High/Medium; **Low**
+    (clave `detail_retry` duplicada, acoplamiento `detail→feed/domain` diferido).
+  - Persistida la aceptación: `feature_list.json` FT00033 → **`accepted`**;
+    `docs/feature-ids.md`; ADR **0028** + índice; `ARCHITECTURE.md`,
+    `CONSTRAINTS.md`; `docs/validations/ui-detalle.md`; este `PROGRESS.md`. PR
+    **#34** abierto.
+- Estado: **FT00033 `accepted`** (PR #34). **FT00034 `ui-navegacion-estado`** en
+  validación (implementer `general` en worktree `ft00034`; 21 ficheros, gate con
+  cliente verde: `:composeApp:jvmTest` 22/0, `build --no-daemon` 211 tareas, iOS
+  OK; capturas `antes-feed`/`despues-detalle`). Pendientes: **FT00035**
+  (serializado tras FT00034) y **FT00036/FT00037**. Stop antes de FT00038–40.

@@ -798,6 +798,16 @@
   contenido raíz se pinta con `safeDrawingPadding()`. Con `targetSdk 35` el modo
   *edge-to-edge* está forzado: un ActionBar de plataforma se **superpone** al
   contenido de Compose y oculta el encabezado de la pantalla.
+- **MUST**: la pantalla de **detalle** (`feature/detail/`) muestra **siempre** el
+  **enlace a la fuente oficial** (`OfficialSourceLink`, con guarda `http(s)://`
+  antes de `LocalUriHandler`) y el **aviso de contenido generado por IA**
+  (`AiNotice`); una URL inválida **no** provoca crash. Su punto de invocación es
+  `DetailRoute(stateHolder, onBack)` (contrato; la navegación la cablea FT00034).
+  Decisión durable en `docs/adr/0028`.
+- **MUST**: `PublicationCategory`/`HighlightReason`/`Deadline`/`formatIsoDate`
+  viven en `feature/feed/domain`; las features nuevas los **reutilizan**
+  importándolos desde ahí (la extracción a un `core/model` neutral está **diferida**;
+  ver `docs/adr/0028`).
 
 ## Build y repositorios
 

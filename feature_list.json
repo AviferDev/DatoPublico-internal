@@ -890,12 +890,15 @@
       "api-detalle-norma",
       "ui-feed"
     ],
-    "status": "not_started",
+    "status": "accepted",
     "verification": [
       "Abrir una publicación muestra «¿Qué cambia?», «¿A quién afecta?», «Cifras clave», el plazo si aplica, el enlace oficial y el aviso de IA."
     ],
-    "evidence": [],
-    "notes": "Fuente: docs/roadmap.md 0.6-T02, docs/build-brief.md."
+    "evidence": [
+      "FT00033 (2026-10-13, rama feat/ft00033-ui-detalle, implementer + autoverificación): **pantalla de detalle** en `:composeApp`, capa `feature/detail/{domain,data,ui}` (`PublicationDetail`/`CitizenSummary`/`DetailLoadResult` tipado, `GetPublicationDetail`, `DetailRepository` + `InMemoryDetailRepository` con modos `SAMPLE`/`NOT_FOUND`/`UNAVAILABLE`, `DetailUiState` Loading/Content/NotFound/Error, `DetailStateHolder`, `DetailRoute(stateHolder, onBack)` como **contrato**, `DetailScreen`/`DetailContent`) y componentes `design/components/{AiNotice,OfficialSourceLink,SectionBlock}`. Muestra resumen estructurado, **plazo** resaltado, **enlace a la fuente oficial** (con guarda `http(s)://`) y **aviso de IA** siempre. Reutiliza `DatoPublicoTheme`, `CategoryLabel`, `DeadlineBadge` e i18n. **No** cablea navegación/`onClick`/ViewModel (FT00034) ni HTTP/`:shared` (FT00035); `App.kt` solo se tocó para capturar y se revirtió. Gate **con cliente** verde: `:composeApp:jvmTest` **28 tests, 0 fallos** (13 nuevos); `assembleDebug` y `wasmJsBrowserDistribution` OK; iOS framework OK; `test` agregado (`:shared` 39 + `:backend` 481) 0 fallos; `detekt`+`:cpdCheck`; `build --no-daemon` 211/211 tareas. **Capturas** antes/después/no-encontrada/error en `docs/pr/ft00033-ui-detalle/`. Sin dependencias nuevas, sin tocar `:shared`/`:backend`/CI/`init.sh`. Desviaciones declaradas: `DetailContent.kt` separado (umbral `TooManyFunctions`); clave i18n `detail_retry` propia; extracción del vocabulario compartido **diferida** (ADR 0028).",
+      "Aceptación independiente (`feature-validator`, 2026-10-13): veredicto **`accept`**. Reejecutó el gate real con `--rerun-tasks` (`:composeApp:jvmTest` 28/0; `assembleDebug`; Wasm; `test` agregado 0 fallos; `detekt`+`:cpdCheck`; `build --no-daemon` 211/211 tareas; iOS framework) y **abrió y verificó las 4 capturas**. Comprobó i18n, `@Preview` (12 composables, 15 previews), Material Icons core, colores del tema, aviso de IA + enlace siempre visibles, `LocalUriHandler` con guarda, estados sin crashes, frontera respetada, estilo MUST y alcance. Sin hallazgos High/Medium; **Low**: duplicación de la clave `detail_retry`, acoplamiento `feature/detail → feature/feed/domain` (extracción diferida) y puerto de datos en `data/` (patrón preexistente). Sin hallazgos de seguridad."
+    ],
+    "notes": "Fuente: docs/roadmap.md 0.6-T02, docs/build-brief.md. Segunda pantalla real del cliente; entrega `DetailRoute` como contrato (la navegación es FT00034, el HTTP FT00035). ADR 0028. Deuda Low: extraer el vocabulario compartido a `core/model` en una limpieza posterior."
   },
   {
     "id": "ui-navegacion-estado",
@@ -1024,7 +1027,11 @@
     "user_visible_behavior": "El backend y la base de datos corren en el servidor propio con Docker + Nginx, HTTPS, cron para la ingesta y secretos por entorno.",
     "depends_on": [
       "api-contratos-openapi",
-      "api-cors-ratelimit-errores"
+      "api-cors-ratelimit-errores",
+      "bootstrap-postgres-pgvector",
+      "bootstrap-ktor-healthcheck",
+      "ingesta-job-diario",
+      "embeddings-locales-onnx"
     ],
     "status": "not_started",
     "verification": [

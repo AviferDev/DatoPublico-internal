@@ -330,11 +330,16 @@
   capas `feature/feed/{domain,data,ui}` (modelos propios del cliente,
   `GetDailyFeed` + `FeedRepository`, `InMemoryFeedRepository` con datos de
   ejemplo, `FeedUiState`/`FeedStateHolder`/`FeedRoute`/`FeedScreen`/
-  `HighlightsSection`). Es solo **UI + estado local**: **no** hay red ni
-  `ktor-client`, **no** se cablea `:shared` (el mapeo `PublicacionDto →
-  Publication` es FT00035), **no** hay `ViewModel`/`StateFlow`/navegación
-  (FT00034) ni detalle/búsqueda/chat (FT00033/FT00036/FT00037). Decisión durable
-  en `docs/adr/0027`.
+  `HighlightsSection`). Desde FT00033 añade la **segunda capa de feature**
+  `feature/detail/{domain,data,ui}` (`PublicationDetail`/`CitizenSummary`,
+  `GetPublicationDetail`, `DetailRepository`+`InMemoryDetailRepository`,
+  `DetailUiState`/`DetailStateHolder`/`DetailRoute`/`DetailScreen`) y los
+  componentes `AiNotice`/`OfficialSourceLink`/`SectionBlock`; el detalle se
+  entrega como **contrato** (`DetailRoute`, sin cablear la navegación). Sigue
+  siendo **UI + estado local**: **no** hay red ni `ktor-client`, **no** se cablea
+  `:shared` (el mapeo `PublicacionDto → Publication` es FT00035), **no** hay
+  `ViewModel`/`StateFlow`/navegación (FT00034) ni búsqueda/chat
+  (FT00036/FT00037). Decisiones durables en `docs/adr/0027` y `docs/adr/0028`.
 
 ## Build y gate
 
