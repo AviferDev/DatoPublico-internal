@@ -3752,3 +3752,42 @@
   cargo del orquestador. Siguiente feature lista: `api-cors-ratelimit-errores`
   (FT00030), que cerraría el hito 0.5.0 de la API; después la UI (FT00032+).
 - Decisión durable: **prefijo `/v1`** en las rutas de dominio (ADR 0025).
+
+### Session 073
+
+- Fecha: 2026-10-13
+- Objetivo: planificar, implementar y validar `api-cors-ratelimit-errores` (FT00030)
+  desde la rama `feat/ft00030-api-cors-ratelimit-errores` — **última feature del hito
+  0.5.0 (API pública)**.
+- Completado:
+  - **Planner** (`feature-spec`): spec `docs/specs/api-cors-ratelimit-errores.md`
+    (~19 ficheros; atómica). El orquestador añadió `api-contratos-openapi` (FT00029) a
+    `depends_on`.
+  - **Implementer** (`feature-implementer`): `:shared` `ApiErrorDto` +
+    `ApiErrorCodeDto`; `:backend` `infra/HttpHardeningConfig.kt`, `plugins/Cors.kt`,
+    `plugins/RateLimiting.kt`, `plugins/Errors.kt` (`StatusPages` 400/404/429/500/502),
+    `plugins/Routing.kt` (`applyRateLimits=false` por defecto) y `Application.kt`
+    (instala los 3 plugins); OpenAPI actualizado a `info.version 0.5.1` con esquemas
+    de error y `429`. **3 dependencias Gradle nuevas** (oficiales de Ktor 3.0.3:
+    cors/rate-limit/status-pages). Docs durables: `ARCHITECTURE.md`, `CONSTRAINTS.md`
+    §«API pública: endurecimiento HTTP», ADR **0026** + índice,
+    `docs/desarrollo-local.md`, skill `ktor-backend-architecture`.
+  - **Rebase:** la rama se rebasó sobre `main` (FT00029 ya fusionado) y se deshizo el
+    apilado.
+  - **Validator** (`feature-validator`): veredicto **`accept`**. `:backend:test`
+    **481 tests, 0 fallos**; `:shared:jvmTest` 39; `build -PskipClient`/`test`/
+    `detekt`+`:cpdCheck`/`init.sh` verdes; arranque sin BD/modelo/clave (`/health` 200;
+    `/openapi.json` 200 con `0.5.1`; `/v1/feed` 404 tipado; `OPTIONS /v1/chat`
+    preflight 200). Sin hallazgos Critical/High/Medium; **Low**: método CORS acotado y
+    entrada de baseline de detekt (declarados) y bookkeeping del harness (resuelto).
+  - Persistida la aceptación: `feature_list.json` FT00030 → **`accepted`** +
+    evidencia; `docs/feature-ids.md` → `accepted`;
+    `docs/validations/api-cors-ratelimit-errores.md`; este `PROGRESS.md`.
+- Estado: **FT00030 `accepted`** → **hito 0.5.0 (API pública) completo** (feed,
+  detalle, búsqueda, chat, OpenAPI/`/v1` y endurecimiento HTTP). Rama de producto
+  commit/push + PR hacia `main` a cargo del orquestador.
+- Siguiente: la **UI (FT00032+)** depende de la API y del esqueleto CMP (ya
+  `accepted`); `english-identifiers-rename` (FT00047) sigue `in_progress`.
+- Gaps de planificación abiertos: (1) pipeline de resumen sin cablear (Session 068);
+  (2) indexado del corpus sin cablear. Hasta resolverlos, en runtime el feed sale
+  vacío, el detalle da 404, la búsqueda 0 resultados y el chat `sin_fundamento`.

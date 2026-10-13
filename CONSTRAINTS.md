@@ -380,15 +380,62 @@
   *minor/patch* de `info.version`; un cambio **incompatible** exige un prefijo
   nuevo (`/v2`) con `/v1` conservado hasta su deprecación. **No** se conservan
   aliases sin `/v1`.
-- **MUST**: los códigos de error (`400`/`404`/`500`/`502`) se documentan **sin**
-  esquema de error compartido: el contrato de error tipado, el CORS y el rate
-  limiting son **FT00030**.
+- **MUST**: los códigos de error (`400`/`404`/`429`/`500`/`502`) se documentan
+  **con** el esquema de error compartido `ApiErrorDto`/`ApiErrorCodeDto`; el CORS y
+  el rate limiting los entrega **FT00030** (ver §«API pública: endurecimiento HTTP»
+  y `docs/adr/0026`).
 - **MUST NOT**: esta feature **no** añade dependencia Gradle de OpenAPI ni
   generación en tiempo de compilación (el compilador de Ktor exige Kotlin
   ≥ 2.2.20 y el proyecto fija 2.1.20), **no** añade migración (`V1`…`V5`
   intactas), **no** cambia los DTOs de `:shared` ni los servicios/rutas de
   dominio (solo **prefija** `/v1`), y **no** toca `:composeApp`/CI/`init.sh` ni
   añade Swagger UI/ReDoc.
+
+## API pública: endurecimiento HTTP
+
+- **MUST**: el **CORS** es configurable por entorno (`CORS_ALLOWED_ORIGINS`) y se
+  resuelve con el plugin oficial `CORS`; con la variable **ausente/vacía** se
+  permite cualquier origen (`anyHost()`) porque la API es pública y **sin
+  credenciales** (no hay datos de usuario que proteger), y con una lista se aplica
+  una **allowlist estricta**. `allowCredentials` es siempre `false`. El origen de
+  producción se fija con `CORS_ALLOWED_ORIGINS` en el despliegue (FT00039).
+  Decisión durable en `docs/adr/0026`.
+- **MUST**: el **rate limiting** es **por IP** (`request.origin.remoteHost`) y **en
+  memoria** (por instancia; el backend es un único proceso, **sin** Redis ni
+  almacén compartido), con un cupo **general** para `/v1/…`
+  (`RATE_LIMIT_REQUESTS`, por defecto 60/60 s) y otro más **estricto** para
+  `/v1/chat` (`CHAT_RATE_LIMIT_REQUESTS`, por defecto 6/60 s, porque es lo más
+  caro); `/health` y `/openapi.json` quedan **exentos** (operacionales). Superar el
+  cupo responde `429` con `Retry-After`. **No** se confía en cabeceras de proxy
+  (`X-Forwarded-For`/`Forwarded`): el trust de proxy es FT00041.
+- **MUST**: cualquier error de la API (`400`/`404`/`429`/`500`/`502`) responde un
+  **cuerpo JSON tipado** `ApiErrorDto` (`{"codigo":…,"mensaje":…}`) con
+  `Content-Type` JSON, vía el plugin oficial `StatusPages`; los tokens de
+  `ApiErrorCodeDto` son `snake_case` y **estables**. El `mensaje` es **genérico** y
+  **nunca** filtra detalles internos (trazas, SQL, mensajes de proveedores). El
+  `429` **conserva** la cabecera `Retry-After`. **No** cambia ningún **código** de
+  estado.
+- **MUST**: los tres plugins (`CORS`, `RateLimit`, `StatusPages`) son **oficiales**
+  de Ktor a la versión fijada (3.0.3) y **no** abren sockets ni servicios: el gate
+  sigue **offline** (tests con `testApplication`). Son las **únicas** dependencias
+  Gradle nuevas de FT00030 (excepción deliberada a la pauta de las features de API
+  previas, documentada). El composition root los instala **siempre** (no dependen
+  de BD/modelo/clave) y el rate limiting solo se aplica a las rutas de dominio
+  (`configureRouting(..., applyRateLimits = true)`).
+- **MUST**: el contrato OpenAPI refleja el error tipado (esquemas
+  `ApiErrorDto`/`ApiErrorCodeDto`, respuestas de error con su `$ref` y `429` con
+  `Retry-After`) y el **test anti-deriva** lo cubre; el cambio es aditivo y
+  compatible (`/v1` se mantiene y `info.version` sube a `0.5.1`).
+- **MUST NOT**: esta feature **no** añade autenticación/autorización ni cuotas por
+  usuario, **no** usa rate limiting distribuido/persistente, **no** implementa
+  trust de proxy, **no** añade Swagger UI ni UI, **no** cambia los DTOs de dominio,
+  los servicios, `rag/*` o `persistence/*`, **no** añade migración (`V1`…`V5`
+  intactas) y **no** toca `:composeApp`/CI/`init.sh`. Los tests de ruta `accepted`
+  existentes siguen verdes (`applyRateLimits` por defecto `false`).
+- **MUST**: la verificación (preflight CORS, `429` con `Retry-After`, cuerpo de
+  error en `400`/`404`/`429`/`500`/`502` y contrato OpenAPI) es de **gate** con
+  `testApplication` y dobles deterministas, sin red, BD, modelo ni OpenCode. No
+  aplica E2E persistente.
 
 ## Chat RAG
 

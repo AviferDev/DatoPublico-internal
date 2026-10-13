@@ -83,3 +83,4 @@ Aceptado (<AAAA-MM-DD>). [Quién decide y, si aplica, qué ADR supersede/ajusta.
 | [0023](0023-api-busqueda-endpoint.md) | Búsqueda sobre el corpus con `HybridSearch`, resultado a nivel de publicación y wiring condicional del proveedor de embeddings | Aceptado |
 | [0024](0024-api-chat-endpoint.md) | Endpoint de chat RAG sobre la librería FT00025, primer `CitationResolver` de producción y wiring condicional de OpenCode + embeddings sobre el pool único | Aceptado |
 | [0025](0025-openapi-contrato-versionado.md) | Contrato OpenAPI estático versionado, prefijo `/v1` en las rutas de dominio y test anti-deriva | Aceptado |
+| [0026](0026-endurecimiento-http-cors-ratelimit-errores.md) | Endurecimiento HTTP con plugins oficiales de Ktor (CORS por entorno, rate limiting por IP en memoria y cuerpo de error tipado) | Aceptado |

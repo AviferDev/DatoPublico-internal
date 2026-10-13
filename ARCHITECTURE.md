@@ -27,6 +27,11 @@
   wire `ChatStatusDto` (`respondida`/`refutada`/`sin_fundamento`) y
   `ChatCitationDto` (`publicacionId`/`titulo`/`urlOficial`); **sin** `usage`. Ver
   `docs/adr/0024`.
+  FT00030 añade al contrato de wire el **error tipado**: `ApiErrorDto` (`codigo`,
+  `mensaje`) y el enum de wire `ApiErrorCodeDto` (`solicitud_invalida`,
+  `no_encontrado`, `demasiadas_peticiones`, `error_interno`,
+  `servicio_no_disponible`), con `@SerialName` explícito y tokens `snake_case`. Ver
+  `docs/adr/0026`.
 - **`:backend`** — Ktor: ingesta del BOE, RAG, resúmenes, destacados y API.
   Namespace `es.aviferdev.datopublico.backend`. Ya existe el **esqueleto**
   (composition root `Application.kt`, `plugins/` e `infra/`, `GET /health`,
@@ -284,6 +289,21 @@
   generación en compilación (Kotlin 2.1.20), sin migración y sin Swagger UI. Ver
   `docs/adr/0025`. (Las menciones a `/feed`, `/publicacion/{id}`, `/buscar` y
   `/chat` de las features anteriores se sirven **hoy** bajo ese prefijo `/v1`.)
+  FT00030 añade **`plugins/{Cors,RateLimiting,Errors}.kt`** e
+  **`infra/HttpHardeningConfig.kt`**: el **endurecimiento HTTP** de la API. **CORS**
+  configurable por entorno (`CORS_ALLOWED_ORIGINS`; por defecto permisivo porque la
+  API es pública y **sin credenciales**, con allowlist estricta si se define),
+  **rate limiting por IP en memoria** (cupo general para `/v1/…`, por defecto
+  60/60 s, y más **estricto** para `/v1/chat`, 6/60 s; `/health` y
+  `/openapi.json` **exentos**) y **cuerpo de error tipado**
+  `ApiErrorDto`/`ApiErrorCodeDto` (`:shared`) para `400`/`404`/`429`/`500`/`502` vía
+  `StatusPages`, sin filtrar internos. Usa tres plugins **oficiales** de Ktor
+  (CORS, RateLimit, StatusPages; dependencias Gradle nuevas, excepción deliberada
+  documentada en el ADR 0026). El contrato OpenAPI se amplía (esquema de error,
+  `429` con `Retry-After`, `info.version` `0.5.1`) y los tests de ruta `accepted`
+  siguen verdes porque `configureRouting` aplica el rate limiting solo con
+  `applyRateLimits = true` (por defecto `false`). Sin migración. Ver
+  `docs/adr/0026`.
   Existe **`persistence/`** (FT00008): repositorios **JDBC**
   + entidades `...Entity` de `publicacion`, `fragmento`, `resumen` y
   `cola_revision`, más los helpers JDBC compartidos; la configuración de
@@ -338,8 +358,12 @@
   contrato, y desde FT00031 el **chat RAG** (`POST /v1/chat`), que responde una
   pregunta o verifica una afirmación contra el corpus con los tres estados del
   dominio y las **citas a la fuente oficial** (contrato propio en `:shared`; ver
-  `docs/adr/0021`, `docs/adr/0022`, `docs/adr/0023` y `docs/adr/0024`). Los demás
-  endpoints (CORS/*rate limiting*/error tipado FT00030) llegan con sus features.
+  `docs/adr/0021`, `docs/adr/0022`, `docs/adr/0023` y `docs/adr/0024`). Desde
+  FT00030 la frontera incorpora **CORS** (resuelve el *preflight* del cliente Web),
+  **rate limiting por IP en memoria** (general para `/v1/…` y más estricto para el
+  chat; `/health` y `/openapi.json` exentos) y un **contrato de error tipado**
+  (`ApiErrorDto`) para `400`/`404`/`429`/`500`/`502`, documentado en el OpenAPI; ver
+  `docs/adr/0026`.
 - **Backend → BOE** (API de datos abiertos + XML oficial, solo lectura, **sin
   clave ni credenciales**): `ingesta/` obtiene el sumario diario (JSON) y, por
   cada entrada, el **texto XML estructurado** (`xml.php`); el job programado

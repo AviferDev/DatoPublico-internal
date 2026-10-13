@@ -45,7 +45,7 @@
 | FT00027 | api-detalle-norma | Endpoint de detalle de publicación | api-publica | accepted |
 | FT00028 | api-busqueda | Endpoint de búsqueda | api-publica | accepted |
 | FT00029 | api-contratos-openapi | Contratos OpenAPI y versionado | api-publica | accepted |
-| FT00030 | api-cors-ratelimit-errores | Endurecimiento HTTP de la API | api-publica | not_started |
+| FT00030 | api-cors-ratelimit-errores | Endurecimiento HTTP de la API | api-publica | accepted |
 | FT00031 | api-chat | Endpoint de chat RAG | api-publica | accepted |
 | FT00032 | ui-feed | UI del feed con estados y dirección visual | cliente-cmp | not_started |
 | FT00033 | ui-detalle | Pantalla de detalle con resumen y fuente | cliente-cmp | not_started |

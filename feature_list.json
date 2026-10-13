@@ -822,16 +822,20 @@
       "api-feed-diario",
       "api-detalle-norma",
       "api-busqueda",
-      "api-chat"
+      "api-chat",
+      "api-contratos-openapi"
     ],
-    "status": "not_started",
+    "status": "accepted",
     "verification": [
       "Una petición preflight CORS del cliente se resuelve correctamente.",
       "Superar el límite de peticiones devuelve 429.",
       "Una petición inválida devuelve un JSON de error consistente."
     ],
-    "evidence": [],
-    "notes": "Fuente: docs/roadmap.md 0.5-T05."
+    "evidence": [
+      "FT00030 (2026-10-13, rama feat/ft00030-api-cors-ratelimit-errores, implementer + autoverificación): **endurecimiento HTTP** de la API pública. `:shared`: `ApiErrorDto` (`codigo`/`mensaje`) + `ApiErrorCodeDto` (enum `snake_case`, 5 tokens) con `@SerialName` explícito. `:backend`: `infra/HttpHardeningConfig.kt` (`CorsSettings` con `CORS_ALLOWED_ORIGINS`, default anyHost/allowlist; `RateLimitSettings` general 60/60 s y chat 6/60 s, fail-fast); `plugins/Cors.kt` (plugin oficial; GET/POST/OPTIONS, `allowCredentials=false`, preflight JSON de `/v1/chat`); `plugins/RateLimiting.kt` (por IP, en memoria, clave `origin.remoteHost`; `/health` y `/openapi.json` exentos; 429 + `Retry-After`); `plugins/Errors.kt` (`StatusPages` mapea 400→`solicitud_invalida`, 404→`no_encontrado`, 429→`demasiadas_peticiones`, 500→`error_interno`, 502→`servicio_no_disponible`; mensajes genéricos sin filtrar internos; `CancellationException` relanzada); `plugins/Routing.kt` (`applyRateLimits=false` por defecto para no romper los tests `accepted`); `Application.kt` (instala los 3 plugins siempre, `applyRateLimits=true`); `resources/openapi/openapi.json` (esquemas de error, `429`, `info.version` 0.5.0→**0.5.1**) y `OpenApiContractTest` extendido. **3 dependencias Gradle nuevas** (oficiales de Ktor 3.0.3): `ktor-server-cors`, `ktor-server-rate-limit`, `ktor-server-status-pages`. Gate sin red/BD/modelo/OpenCode verde: `:backend:test --rerun-tasks` **481 tests, 0 fallos**; `:shared:jvmTest` 39; `build -PskipClient` 23 tareas; `test` 67 tareas/3 módulos; `detekt`+`:cpdCheck`; `init.sh` exit 0. Arranque sin BD/modelo/clave: `/health` 200; `/openapi.json` 200 (`info.version=0.5.1`); `/v1/feed` 404 con cuerpo tipado; `OPTIONS /v1/chat` preflight 200. La rama se rebasó sobre `main` (FT00029 ya fusionado) y se deshizo el apilado. Desviaciones declaradas: entrada `RateLimiting.kt$ApiRateLimiter` en `config/detekt/backend-baseline.xml` (`MatchingDeclarationName`); `Access-Control-Allow-Methods` solo `OPTIONS` (Ktor filtra los métodos safelisted). Sin migración, sin tocar `:composeApp`/CI/`init.sh`.",
+      "Aceptación independiente (`feature-validator`, 2026-10-13): veredicto **`accept`**. Reejecutó el gate real (`:backend:test` 481/0/0; `:shared:jvmTest` 39/0/0; `build -PskipClient` 23 tareas; `test` 67 tareas/3 módulos; `detekt`+`:cpdCheck`; `init.sh` exit 0) y el arranque sin BD/modelo/clave (`/health` 200; `/openapi.json` 200 con `info.version=0.5.1` y esquemas de error; `/v1/feed` 404 tipado; `OPTIONS /v1/chat` preflight 200). Comprobó CORS (allowlist configurable, default anyHost, `allowCredentials=false`), rate limiting (general/chat, exenciones, 429+`Retry-After`, config fail-fast, `applyRateLimits=false` por defecto), error tipado (5 códigos, sin filtrar internos, `CancellationException` relanzada), la actualización del OpenAPI con test anti-deriva real, las 3 dependencias Ktor 3.0.3 (sin sockets) y el estilo MUST. Sin hallazgos Critical/High/Medium; **Low**: `Access-Control-Allow-Methods` solo `OPTIONS` (safelisted), entrada de baseline de detekt y bookkeeping del harness (resuelto aquí). Sin hallazgos de seguridad."
+    ],
+    "notes": "Fuente: docs/roadmap.md 0.5-T05. Dependencia `api-contratos-openapi` (FT00029) añadida por el orquestador. **Última feature del hito 0.5.0 (API pública).** Introduce los 3 plugins oficiales de Ktor (CORS/rate limit/status pages) y el cuerpo de error tipado; ADR 0026. CORS permisivo por defecto y límites en memoria por instancia quedan documentados; forwarded headers y límites distribuidos son de FT00041."
   },
   {
     "id": "api-chat",

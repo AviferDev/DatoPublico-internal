@@ -46,8 +46,14 @@ ingesta y lo cierra una vez en `ApplicationStopped`; sin BD no hay pool y ni
 **`plugins/OpenApi.kt`** y el recurso **`openapi/openapi.json`**: el **contrato
 OpenAPI 3.1 estático y versionado** (`GET /openapi.json`, siempre registrado, sin
 BD/modelo/OpenCode) y el **prefijo `/v1`** de las rutas de dominio, protegido por un
-**test anti-deriva** que lo mantiene alineado con los DTOs de `:shared`. Existen
-además los paquetes de
+**test anti-deriva** que lo mantiene alineado con los DTOs de `:shared`. Desde
+**FT00030** existen **`plugins/{Cors,RateLimiting,Errors}.kt`** e
+**`infra/HttpHardeningConfig.kt`**: el **endurecimiento HTTP** de la API (CORS por
+entorno, rate limiting por IP en memoria —general + chat más estricto; `/health` y
+`/openapi.json` exentos— y cuerpo de error tipado `ApiErrorDto`/`ApiErrorCodeDto`
+para `400`/`404`/`429`/`500`/`502` con `StatusPages`), con tres plugins **oficiales**
+de Ktor como dependencias nuevas (excepción documentada; ver `docs/adr/0026`).
+Existen además los paquetes de
 librería `rag/`
 (FT00014–FT00025) y `relevance/` (FT00013). El resto del documento sigue siendo el
 **patrón objetivo acordado**, derivado de `docs/technical-discovery.md` y
@@ -205,9 +211,19 @@ servicio, su(s) repositorio(s), sus modelos y sus clientes; lo transversal
   **fuente de verdad** del contrato y los DTOs `Dto` de `:shared` su implementación;
   un **test anti-deriva** (`OpenApiContractTest`) contrasta los esquemas con los
   `@SerialName`/tokens reales y falla ante divergencia. Un cambio aditivo mantiene
-  `/v1` y sube `info.version`; uno incompatible exige `/v2`. **CORS**; **rate
-  limiting** y errores JSON consistentes (FT00030; los endpoints aún responden
-  `400` sin cuerpo tipado).
+  `/v1` y sube `info.version`; uno incompatible exige `/v2`. El documento documenta
+  también el **esquema de error** `ApiErrorDto`/`ApiErrorCodeDto` y el `429` con
+  `Retry-After` (FT00030).
+- **Endurecimiento HTTP** (FT00030; `plugins/{Cors,RateLimiting,Errors}.kt` e
+  `infra/HttpHardeningConfig.kt`; ver ADR 0026): **CORS** configurable por entorno
+  (`CORS_ALLOWED_ORIGINS`; por defecto permisivo porque la API es pública y sin
+  credenciales), **rate limiting por IP en memoria** (cupo general para `/v1/…` y
+  otro más **estricto** para `/v1/chat`; `/health` y `/openapi.json` **exentos**;
+  `429` con `Retry-After`) y **cuerpo de error tipado** `ApiErrorDto`
+  (`400`/`404`/`429`/`500`/`502`) vía `StatusPages`, sin filtrar internos. Los tres
+  plugins son **oficiales** de Ktor (dependencias nuevas, excepción documentada) y
+  se instalan **siempre** (no dependen de BD/modelo/clave); el rate limiting se
+  aplica solo con `configureRouting(..., applyRateLimits = true)`.
 - Sin cuentas ni datos personales: el servidor solo trata información pública. El
   chat no persiste historial.
 
