@@ -15,6 +15,10 @@
   el contrato de wire de `ResumenDto`. Es el **contrato** (estructura y presencia
   de la fuente); los **guardrails de contenido** (alcanzabilidad del enlace y
   afirmaciones fuera del contexto recuperado) son de FT00022. Ver `docs/adr/0014`.
+  FT00026 añade al contrato de wire el **feed diario**: `HighlightReasonDto` (enum
+  de motivos con token `snake_case`), `HighlightDto` (publicación + motivos, **sin**
+  `score`) y `ResumenDiarioDto` ampliado con `destacados` y paginación
+  (`aditivo con defaults`). Ver `docs/adr/0021`.
 - **`:backend`** — Ktor: ingesta del BOE, RAG, resúmenes, destacados y API.
   Namespace `es.aviferdev.datopublico.backend`. Ya existe el **esqueleto**
   (composition root `Application.kt`, `plugins/` e `infra/`, `GET /health`,
@@ -198,6 +202,21 @@
   proveedor y una respuesta citada exige ≥1 cita resoluble. Sigue siendo **sin
   wiring** (el endpoint/rate limiting son FT00031 y la UI FT00037) y la prueba real
   es **opt-in** (`OPENCODE_LIVE_TEST=1`). Ver `docs/adr/0020`.
+  FT00026 añade **`feed/`** y **`plugins/Feed.kt`**: el **feed diario** (primer
+  endpoint de lectura de datos, `GET /feed?fecha=…&pagina=…&tamanoPagina=…`). La
+  ruta delgada valida (`fecha` ISO obligatoria; paginación con default/máximo) y
+  delega en `DailyFeedService` (`suspend`, lectura JDBC en `Dispatchers.IO`,
+  paginación en memoria y destacados *on-the-fly* con `HighlightRanker`), que
+  compone `FeedRepositoryJdbc` (una consulta `publicacion ⋈ resumen` filtrada por
+  `estado = 'publicado'`, orden por `id`, fecha con *cast* `?::date`) y
+  `FeedDtoMapper` (puro, hacia el contrato de `:shared`). Solo se sirven resúmenes
+  publicados; `total`/`totalPaginas` reflejan el día completo y los destacados
+  exponen `motivos` **sin** `score`. `configureRouting` registra `/feed` **solo**
+  si el servicio no es `null`; el composition root crea un **pool JDBC único**
+  compartido por la API y la ingesta y lo cierra una vez en `ApplicationStopped`
+  (sin BD: `/health` operativo y `/feed` 404). Sigue **sin** filtros de búsqueda
+  (FT00028), detalle (FT00027), OpenAPI/CORS/*rate limiting* (FT00029/FT00030) ni
+  migración. Ver `docs/adr/0021`.
   Existe **`persistence/`** (FT00008): repositorios **JDBC**
   + entidades `...Entity` de `publicacion`, `fragmento`, `resumen` y
   `cola_revision`, más los helpers JDBC compartidos; la configuración de
@@ -207,10 +226,10 @@
   condicional y no bloqueante**: solo si `INGESTA_ENABLED` está activo y la
   configuración de BD resuelve; un fallo al construirla se registra y el
   servidor sigue sirviendo `/health`; al parar se cancela el bucle y se cierran
-  el pool y los clientes HTTP. El **mismo scope** arranca el scheduler y el
-  vigilante de ventanas perdidas (`IngestionWatchdog`); la alerta es un log
-  `ERROR` estructurado (`event=ingestion.missed`), **sin** alertas externas ni
-  telemetría.
+  el **pool único** (una sola vez) y los clientes HTTP. El **mismo scope** arranca
+  el scheduler y el vigilante de ventanas perdidas (`IngestionWatchdog`); la
+  alerta es un log `ERROR` estructurado (`event=ingestion.missed`), **sin**
+  alertas externas ni telemetría.
 - **`:composeApp`** — cliente Compose Multiplatform (Android, iOS, Web).
   Namespace `es.aviferdev.datopublico`. Ya **existe y compila** para
   `androidTarget`, `iosArm64`/`iosSimulatorArm64` (framework `ComposeApp`) y
@@ -237,7 +256,12 @@
 ## Fronteras
 
 - **Cliente → API HTTP** (público, solo lectura). El cliente no conoce los
-  internals del backend.
+  internals del backend. Desde FT00026 el backend sirve el **feed diario**
+  (`GET /feed?fecha=…`, FT00026) con las publicaciones cuyo resumen está
+  `publicado`, paginadas y con los destacados del día explicados por motivos; el
+  contrato de wire vive en `:shared` (ver `docs/adr/0021`). Los demás endpoints
+  (detalle FT00027, búsqueda FT00028, chat FT00031, OpenAPI/CORS/*rate limiting*
+  FT00029/FT00030) llegan con sus features.
 - **Backend → BOE** (API de datos abiertos + XML oficial, solo lectura, **sin
   clave ni credenciales**): `ingesta/` obtiene el sumario diario (JSON) y, por
   cada entrada, el **texto XML estructurado** (`xml.php`); el job programado
@@ -259,9 +283,11 @@
   (log de tokens, **sin** FK). La conexión se **deriva** de `POSTGRES_*` (fuente
   única, la misma que Compose/Flyway) y falla en claro si falta la contraseña. El
   *upsert* de publicación por `id` es idempotente y es la base del job diario: la
-  segunda pasada reejecuta la misma fecha sin duplicar. `Application.kt` crea el
-  pool **solo** si la ingesta está habilitada y la config de BD resuelve, y lo
-  cierra en `ApplicationStopped`. La **recuperación híbrida** (FT00017) consulta
+  segunda pasada reejecuta la misma fecha sin duplicar. Desde FT00026
+  `Application.kt` crea un **pool único** si la config de BD resuelve, lo comparte
+  entre el feed (API) y la ingesta, y lo cierra **una sola vez** en
+  `ApplicationStopped`; sin BD no hay pool y el feed no se registra. La
+  **recuperación híbrida** (FT00017) consulta
   `fragmento` con un `JOIN publicacion` para aplicar los **filtros de metadatos**
   parametrizados (fecha/categoría/sección/organismo) junto a la distancia coseno;
   los valores de categoría/plazo los produce la ingesta desde FT00012

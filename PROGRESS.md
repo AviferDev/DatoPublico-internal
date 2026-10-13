@@ -3544,3 +3544,49 @@
   pusheada y PR hacia `main`. Siguiente feature lista: `api-feed-diario` (FT00026)
   / `api-detalle-norma` (FT00027) / `api-busqueda` (FT00028), o
   `english-identifiers-rename` (FT00047, por partes `FT00047-PT1..PT6`).
+
+### Session 068
+
+- Fecha: 2026-10-13
+- Objetivo: planificar, implementar y validar `api-feed-diario` (FT00026) — primer
+  endpoint de datos de `:backend` — desde la rama reclamada
+  `feat/ft00026-api-feed-diario` (claim `cff2c49` sobre `origin/main`).
+- Completado:
+  - **Planner** (`feature-spec`): spec en `docs/specs/api-feed-diario.md` (~15
+    ficheros; atómica, sin partes). El orquestador añadió la **dependencia
+    implícita** `cola-revision-confianza` (FT00023, que escribe el token
+    `estado='publicado'`) a `depends_on` de FT00026 en `feature_list.json` y a la
+    cabecera del spec.
+  - **Implementer** (`feature-implementer`): `GET /feed?fecha=<ISO>&pagina=&tamanoPagina=`
+    como **librería cableada por primera vez** en el composition root. `:shared`:
+    `HighlightReasonDto` + `HighlightDto` + `ResumenDiarioDto` ampliado (aditivo con
+    defaults). `:backend`: `persistence/FeedRepository` (`publicacion ⋈ resumen`,
+    `r.estado='publicado'`, orden por `id`, `?::date`), `feed/DailyFeedService`
+    (suspend, `Dispatchers.IO`, paginación en memoria, `HighlightRanker`),
+    `feed/FeedDtoMapper` (puro), `plugins/Feed.kt` (400/404/200) + `Routing.kt`
+    condicional, `Application.kt` con **pool JDBC único** compartido API/ingesta
+    cerrado una sola vez. 13 ficheros de producto. Docs durables: `ARCHITECTURE.md`,
+    `CONSTRAINTS.md` (§«API pública: feed diario»), ADR **0021** + índice,
+    `docs/desarrollo-local.md`, skill `ktor-backend-architecture`.
+  - **Validator** (`feature-validator`): veredicto **`accept`**. Reejecutó el gate
+    real sin red ni BD (`:backend:test --rerun-tasks` **403 tests, 0 fallos**;
+    `:shared:jvmTest` **30 tests, 0 fallos**; `build -PskipClient` 23 tareas; `test`
+    63 tareas/3 módulos; `detekt`+`:cpdCheck` 4 tareas; `init.sh` exit 0; arranque
+    sin BD `/health` 200 y `/feed` 404). Confirmó escenarios 1–8, filtro
+    `estado='publicado'`, destacados deterministas sin `score`, paginación,
+    `400`/`404`, pool único, SQL parametrizado. Escenario 9 (opt-in
+    `FeedPersistenceLiveTest`) no ejecutado (sin Docker) — limitación aceptada. Sin
+    hallazgos High/Medium; deuda **Low** (filtro `publicado` solo probado por el
+    live; token `'publicado'` literal en el SQL).
+  - Persistida la aceptación: `feature_list.json` FT00026 → **`accepted`** +
+    evidencia; `docs/feature-ids.md` → `accepted`; este `PROGRESS.md`.
+- Estado: **FT00026 `accepted`**. Rama de producto commit/push + PR hacia `main` a
+  cargo del orquestador. Siguiente feature lista: `api-detalle-norma` (FT00027) /
+  `api-busqueda` (FT00028) / `api-chat` (FT00031), o `english-identifiers-rename`
+  (FT00047).
+- Riesgo/gap sin resolver (planificación): **ninguna feature cablea el pipeline de
+  resumen** (FT00020 generación → FT00021 caché → FT00022 guardrails → FT00023
+  disposición son librerías sin wiring), así que el feed saldrá **vacío** en runtime
+  hasta que exista ese cableado. Propuesta: nueva feature `pipeline-resumen-job`
+  (FT00048) que cablee generación+disposición en el job diario (o post-ingesta). A
+  decidir por el dueño.

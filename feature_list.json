@@ -736,14 +736,18 @@
     "depends_on": [
       "ingesta-job-diario",
       "guardrails-anti-alucinacion",
-      "destacados-diarios"
+      "destacados-diarios",
+      "cola-revision-confianza"
     ],
-    "status": "not_started",
+    "status": "accepted",
     "verification": [
       "`GET` del feed devuelve publicaciones con resumen, categoría, destacados y enlace oficial, en páginas con tamaño configurable."
     ],
-    "evidence": [],
-    "notes": "Fuente: docs/roadmap.md 0.5-T01."
+    "evidence": [
+      "FT00026 (2026-10-13, rama feat/ft00026-api-feed-diario, implementer + autoverificación): primer endpoint de datos de `:backend` `GET /feed?fecha=<ISO>&pagina=&tamanoPagina=`. `:shared`: `HighlightReasonDto` (enum de wire snake_case), `HighlightDto` (publicación + motivos, sin `score`) y `ResumenDiarioDto` ampliado *aditivo con defaults* (`destacados`/`pagina`/`tamanoPagina`/`total`/`totalPaginas`). `:backend`: `persistence/FeedRepository` (`FeedItem` + `FeedRepositoryJdbc`, consulta `publicacion ⋈ resumen` con `r.estado='publicado'`, orden por `id`, `?::date`, SQL parametrizado, reutiliza `PublicationEntity.toDomain()`/`ResultSet.toSummaryEntity()`; categoría nula = dato corrupto excluido); `feed/DailyFeedService` (`suspend`, lectura JDBC en `Dispatchers.IO`, paginación en memoria, `HighlightRanker`, `DEFAULT_PAGE_SIZE=20`/`MAX_PAGE_SIZE=100`); `feed/FeedDtoMapper` (puro); `plugins/Feed.kt` (`GET /feed`, `400` sin cuerpo, `404` sin servicio) y `Routing.kt` condicional; `Application.kt` con **pool JDBC único** compartido API/ingesta cerrado una sola vez (`/feed` no se registra sin BD; `/health` operativo). Sin migración (`V1`…`V5` intactas), sin dependencias nuevas, sin tocar `:composeApp`/CI/`init.sh`. Gate sin red ni BD verde: `:backend:test --rerun-tasks` **403 tests, 0 fallos** y `:shared:jvmTest` **30 tests, 0 fallos** (nuevos: servicio 7, mapper 5, ruta 5, contrato 4); `build --no-daemon -PskipClient` 23 tareas; `test` 63 tareas/3 módulos; `detekt` 4 tareas; `init.sh` exit 0. Arranque real sin BD: `/health` 200 y `/feed` 404. Desviación justificada: `FeedDtoMapper.toHighlightDto` recibe el `Highlight` de dominio. `FeedPersistenceLiveTest` (escenario 9) **omitido** sin `DB_LIVE_TEST` (sin Docker/PostgreSQL en el entorno).",
+      "Aceptación independiente (`feature-validator`, 2026-10-13): veredicto **`accept`**. Reejecutó el gate real: `:backend:test --rerun-tasks` **403 tests, 0 fallos** y `:shared:jvmTest` **30 tests, 0 fallos**; `build -PskipClient` 23 tareas; `test` 63 tareas/3 módulos; `detekt`+`:cpdCheck` 4 tareas; `init.sh` exit 0; arranque real sin BD (`/health` 200, `/feed` 404). Confirmó los escenarios 1–8 y el escenario 9 no ejecutado (sin Docker) como limitación aceptada; el filtro `estado='publicado'` contra `SummaryState.PUBLISHED.persistedValue`; destacados deterministas sin `score`; paginación y `400`/`404`; pool JDBC único creado/cerrado una vez; SQL parametrizado; lectura en `Dispatchers.IO`; `@SerialName` explícito + sufijos `Dto`; un solo `return`/sin `else if`/≤40 líneas; alcance acotado (sin migración, sin dependencias nuevas, `:composeApp`/CI/`init.sh` intactos). Sin hallazgos High/Medium; **Low** no bloqueante: `PROGRESS.md` sin entrada de sesión (resuelto al persistir la aceptación), filtro `estado='publicado'` solo probado por el test opt-in, token `'publicado'` literal en el SQL. Sin hallazgos de seguridad. Registro detallado en la sesión de `PROGRESS.md`."
+    ],
+    "notes": "Fuente: docs/roadmap.md 0.5-T01. Dependencia `cola-revision-confianza` (FT00023) añadida por el orquestador (el feed sirve solo resúmenes `estado='publicado'`, token que escribe FT00023). Gap de planificación: ninguna feature cablea el pipeline de resumen (FT00020–FT00023 son librerías sin wiring), así que el feed saldrá vacío en runtime hasta que exista ese cableado."
   },
   {
     "id": "api-detalle-norma",

@@ -193,6 +193,40 @@
   estados, el motivo, el servicio con **dobles deterministas** y el contrato SQL de
   `V5`, sin red ni BD.
 
+## API pública: feed diario
+
+- **MUST**: el feed diario (`GET /feed`) es de **solo lectura y público**, sin
+  cuentas ni datos personales, y se consulta **por fecha** obligatoria ISO-8601
+  (`fecha`); no filtra por categoría (FT00028). Decisión durable en
+  `docs/adr/0021`.
+- **MUST**: sirve **solo** publicaciones con `resumen.estado = 'publicado'` (token
+  que escribe FT00023); las demás no aparecen ni cuentan en `total`. Cada
+  publicación lleva `resumen`, `categoria` y `urlOficial` (trazabilidad); el
+  `avisoIA` viaja tal cual lo persistió la disposición (el aviso visible es
+  FT00033).
+- **MUST**: los destacados se calculan ***on-the-fly*** con `HighlightRanker`
+  (ADR 0008) sobre el día completo, **no** se persisten; el contrato expone
+  `motivos` (`HighlightReasonDto`, ≥1 por destacado) y **no** el `score` numérico.
+- **MUST**: la paginación es por `pagina`/`tamanoPagina` (default `20`, máximo
+  `100`), en memoria; `total`/`totalPaginas` reflejan el **día completo**. Un
+  `fecha` ausente/no ISO o una paginación no entera, `< 1` o `> 100` responden
+  `400`; un día sin publicado responde `200` con listas vacías.
+- **MUST**: el arranque **no** depende de la BD: el composition root crea un
+  **pool JDBC único** solo si la config resuelve, lo comparte entre el feed y la
+  ingesta y lo cierra **una sola vez** en `ApplicationStopped`; `/feed` se registra
+  **solo** si hay pool y `/health` queda operativo sin BD. La lectura JDBC
+  bloqueante va en `Dispatchers.IO` y el SQL está **parametrizado** (fecha con
+  *cast* `?::date`), sin secretos.
+- **MUST NOT**: esta feature **no** añade CORS, *rate limiting*, OpenAPI, versionado
+  del path ni cuerpo de error consistente (FT00029/FT00030), ni UI (FT00032+), ni
+  migración (`V1`…`V5` intactas). **No** cambia `HighlightRanker`/`Highlight`,
+  `PublicacionRepository`/`SummaryRepository`, el job/backfill ni
+  `:composeApp`/CI/`init.sh`; reutiliza sus mappers y su ranker.
+- **MUST**: la prueba real (solo se sirve el resumen publicado) es **opt-in**
+  (`DB_LIVE_TEST=1`), fuera de `build`/`test`/`init.sh` y de la CI; el gate cubre
+  el contrato de `:shared`, el repositorio con dobles, el servicio, el mapeo y la
+  ruta con `testApplication`, sin red ni BD.
+
 ## Chat RAG
 
 - **MUST**: el chat responde **solo** con el contexto recuperado del BOE y **cita la
