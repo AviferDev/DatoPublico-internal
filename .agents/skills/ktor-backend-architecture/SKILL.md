@@ -33,10 +33,16 @@ FT00013). Desde **FT00027** existe **`publication/`** (`PublicationDetailService
 `HybridSearch`/`SearchFilter` de `rag/retrieval`, deduplica por publicación y
 devuelve el mismo contrato; el composition root **cablea por primera vez** el
 proveedor de embeddings (`rag/embeddings`, FT00015) de forma **condicional** (sin
-modelo, `/buscar` 404). El composition root crea un
-**pool JDBC único** compartido por la API (feed, detalle y búsqueda) y la ingesta y
-lo cierra una vez en `ApplicationStopped`; sin BD no hay pool y ni `/feed`, ni
-`/publicacion/{id}`, ni `/buscar` se registran. Existen además los paquetes de
+modelo, `/buscar` 404). Desde **FT00031** existe **`chat/`** (`ChatService`,
+`ChatDtoMapper` y `PublicationCitationResolver`, el primer `CitationResolver` de
+producción) y **`plugins/Chat.kt`**: el **chat RAG** (`POST /chat`), que consume la
+librería `rag/chat` (FT00025) sin modificarla y **cablea por primera vez** el
+proveedor de texto de OpenCode de forma **condicional** (sin `OPENCODE_API_KEY`,
+`/chat` 404). El composition root crea un
+**pool JDBC único** compartido por la API (feed, detalle, búsqueda y chat) y la
+ingesta y lo cierra una vez en `ApplicationStopped`; sin BD no hay pool y ni
+`/feed`, ni `/publicacion/{id}`, ni `/buscar`, ni `/chat` se registran (el chat
+exige además el modelo E5 y la clave de OpenCode). Existen además los paquetes de
 librería `rag/`
 (FT00014–FT00025) y `relevance/` (FT00013). El resto del documento sigue siendo el
 **patrón objetivo acordado**, derivado de `docs/technical-discovery.md` y
@@ -177,7 +183,13 @@ servicio, su(s) repositorio(s), sus modelos y sus clientes; lo transversal
   (FT00028, `GET /buscar?q=…`, top-k por similitud semántica con filtros de
   categoría y fecha, solo resúmenes `publicado` y deduplicada por publicación;
   `configureRouting` la registra solo si hay pool **y** proveedor de embeddings, que
-  se cablea condicionalmente; ver ADR 0023); `chat` llega con FT00031.
+  se cablea condicionalmente; ver ADR 0023). El **chat** también está implementado
+  (FT00031, `POST /chat` con cuerpo `ChatRequestDto`): responde una pregunta o
+  verifica una afirmación contra el corpus con los tres estados del dominio
+  (`respondida`/`refutada`/`sin_fundamento`) y **citas a la fuente oficial**
+  inyectadas desde la publicación; se registra solo si hay pool, proveedor de
+  embeddings **y** proveedor de texto de OpenCode (condicionales; sin ninguno,
+  `/chat` 404 y `/health` operativo); ver ADR 0024.
 - Contratos **OpenAPI** versionados; **CORS**; **rate limiting**; errores JSON
   consistentes (FT00029/FT00030; el feed aún responde `400` sin cuerpo tipado).
 - Sin cuentas ni datos personales: el servidor solo trata información pública. El

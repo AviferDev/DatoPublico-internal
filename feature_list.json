@@ -837,16 +837,21 @@
     "title": "Endpoint de chat RAG",
     "user_visible_behavior": "La API expone un endpoint de consulta o verificación en lenguaje natural que devuelve la respuesta (o refutación) con las fuentes oficiales citadas.",
     "depends_on": [
-      "chat-generacion"
+      "chat-generacion",
+      "api-feed-diario",
+      "embeddings-locales-onnx"
     ],
-    "status": "not_started",
+    "status": "accepted",
     "verification": [
       "Una consulta al endpoint de chat devuelve una respuesta con las citas de las publicaciones usadas.",
       "Una afirmación falsa devuelve una refutación con citas.",
-      "El endpoint respeta el rate limiting y devuelve errores consistentes."
+      "El endpoint valida la consulta y devuelve errores consistentes (el rate limiting y el contrato de error tipado llegan con FT00030, que depende de esta feature)."
     ],
-    "evidence": [],
-    "notes": "Fuente: docs/roadmap.md 0.5-T06, docs/build-brief.md (MVP Slice). Sin historial persistido en el servidor."
+    "evidence": [
+      "FT00031 (2026-10-13, rama feat/ft00031-api-chat, implementer + autoverificación): endpoint público de solo lectura `POST /chat` que expone el chat RAG de verificación contra el BOE reutilizando `rag/chat` (FT00025) **sin modificarlo**. `:shared`: `ChatRequestDto` (`consulta`), `ChatResponseDto` (`consulta`/`estado`/`respuesta`/`citas`), `ChatStatusDto` (wire `respondida`/`refutada`/`sin_fundamento`) y `ChatCitationDto`, con `@SerialName` explícito; sin exponer `usage`. `:backend`: `chat/PublicationCitationResolver` (**primer `CitationResolver` de producción**; resuelve la cita sobre `PublicationRepository.findById` e **inyecta** la URL oficial de la publicación); `chat/ChatDtoMapper` (puro, `when` exhaustivo); `chat/ChatService` (suspend, `Dispatchers.IO`, `MAX_QUERY_LENGTH=1000`, `limit` fijo); `plugins/Chat.kt` (`POST /chat`: 200 incl. `sin_fundamento`, 400 consulta inválida/ilegible, 404 sin servicio, 502 `TextGenerationException`/`ChatGenerationException`, 500 `EmbeddingException`; `CancellationException` re-lanzada); `plugins/Routing.kt` (colaborador opcional); `Application.kt` (**primer cableado condicional de OpenCode + embeddings**: sin clave/modelo/BD, `/chat` no se registra; cierre único; `monitorResources` unifica el cierre por Detekt `TooManyFunctions`). Tests de gate: `ChatServiceTest` 6, `ChatRouteTest` 8, `ChatDtoMapperTest` 4, `PublicationCitationResolverTest` 2, `ChatContractTest` 4; live opt-in `ChatRouteLiveTest`/`PublicationCitationResolverLiveTest`. Gate sin red/BD/modelo/OpenCode verde: `:backend:test --rerun-tasks` **436 tests, 0 fallos**; `:shared:jvmTest` 34; `build -PskipClient` 23 tareas; `test` 63 tareas/3 módulos; `detekt`+`:cpdCheck`; `init.sh` exit 0. Arranque sin BD/modelo/clave: `/health` 200; `/feed`/`/publicacion/{id}`/`/chat` 404. Sin migración, sin dependencias nuevas, sin tocar `:composeApp`/CI/`init.sh`. Reparación tras `revise`: renombrado `serviceCon`→`serviceWith` (castellano→inglés) en `ChatServiceTest.kt` y, por la misma regla MUST, en `RagChatServiceTest.kt` (test de FT00025; renombrado puro). Live opt-in no ejecutado (sin Docker/modelo/clave) — limitación aceptada.",
+      "Aceptación independiente (`feature-validator`, 2026-10-13): veredicto **`accept`** (tras un `revise` por el identificador en castellano `serviceCon`). Reejecutó el gate real (`:backend:test` 436/0/0; `:shared:jvmTest` 34/0/0; `build -PskipClient` 23 tareas; `test` 63 tareas/3 módulos; `detekt`+`:cpdCheck`; `init.sh` exit 0; arranque sin BD/modelo/clave con `/health` 200 y `/feed`/`/publicacion/{id}`/`/chat` 404) y comprobó el contrato `:shared`, el `CitationResolver` de producción (URL inyectada, no resoluble → `null`), el mapeo puro, el servicio (`Dispatchers.IO`, `MAX_QUERY_LENGTH`, `limit` fijo), los estados 200/400/404/502/500, el primer cableado condicional de OpenCode+embeddings y el cierre único, la reutilización sin modificar `rag/*`, el estilo MUST y el alcance. Confirmó el renombrado (`grep \"serviceCon\"` = 0) y que el cambio en `RagChatServiceTest.kt` es un renombrado puro (12/−12) sin cambio de comportamiento; lo acepta con nota (toca un test de FT00025). Sin hallazgos High; Medium (identificador) cerrado; **Low** de bookkeeping del harness resuelto aquí. Sin hallazgos de seguridad."
+    ],
+    "notes": "Fuente: docs/roadmap.md 0.5-T06, docs/build-brief.md (MVP Slice). Sin historial persistido en el servidor. Dependencias añadidas por el orquestador: `api-feed-diario` (FT00026, reutiliza el pool JDBC único y la firma de `configureRouting`) y `embeddings-locales-onnx` (FT00015, primer cableado directo del `E5EmbeddingProvider`). Primer cableado de OpenCode y primer `CitationResolver` de producción. Rate limiting/cuota y contrato de error tipado son FT00030. Mismo gap de planificación: sin pipeline de resumen/indexado cableados, `/chat` devolverá `sin_fundamento` en runtime."
   },
   {
     "id": "ui-feed",

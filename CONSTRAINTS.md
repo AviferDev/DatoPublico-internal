@@ -309,6 +309,54 @@
   servicio, la lectura por lote y la ruta con dobles deterministas y
   `testApplication`, sin red, BD ni modelo.
 
+## API pública: chat
+
+- **MUST**: el chat (`POST /chat`) es de **solo lectura y público**, sin cuentas ni
+  datos personales, sin historial persistido, y se consulta con un cuerpo JSON
+  `ChatRequestDto` (`{"consulta":"…"}`). Decisión durable en `docs/adr/0024`.
+- **MUST**: responde **solo** con el contexto recuperado y **cita la fuente
+  oficial**: `respondida`/`refutada` **exigen** ≥1 cita resoluble a la `urlOficial`
+  de la publicación del fragmento citado; `sin_fundamento` **no** es error (`200`),
+  lleva `citas` vacía y el proveedor **no** se invoca si no hay contexto. La URL la
+  **inyecta** el `CitationResolver` de producción
+  (`PublicationCitationResolver` sobre `PublicationRepository.findById`), nunca el
+  modelo (que solo aporta **índices**); una publicación no resoluble descarta esa
+  cita.
+- **MUST**: el contrato de transporte vive en `:shared` con sufijo `Dto` y
+  `@SerialName` explícito (`ChatRequestDto`/`ChatResponseDto`/`ChatStatusDto`/
+  `ChatCitationDto`); el enum de wire usa tokens `snake_case`
+  (`respondida`/`refutada`/`sin_fundamento`). **No** se expone el consumo de tokens
+  (`usage`): el control de coste/rate limiting es FT00030.
+- **MUST**: la consulta se acota con `ChatService.MAX_QUERY_LENGTH` y el contexto
+  con el `limit` por defecto de `RagChatService` (**no** controlable por el
+  cliente); una `consulta` ausente, en blanco, desmesurada o un cuerpo ilegible
+  responden `400` **sin cuerpo tipado**; un fallo del proveedor
+  (`TextGenerationException`) o una salida no interpretable
+  (`ChatGenerationException`) responden `502` y un fallo de la inferencia local
+  (`EmbeddingException`) responde `500` (el contrato de error es FT00030).
+- **MUST**: el arranque **no** depende de la BD, el modelo ni la clave: el
+  composition root cablea de forma **condicional** el proveedor de embeddings
+  (ONNX) y el proveedor de texto (OpenCode, fail-fast de `OPENCODE_API_KEY`
+  capturado ⇒ `null`) sobre el **mismo pool JDBC único**; `/chat` se registra
+  **solo** si existen los tres y `/health` queda operativo sin ninguno. El pool, el
+  proveedor de embeddings y el cliente HTTP de OpenCode se cierran **una sola vez**
+  en `ApplicationStopped`. La clave vive **solo** en el servidor y no se registra.
+- **MUST**: la recuperación ONNX/JDBC y la resolución de citas JDBC (bloqueantes)
+  van fuera del event loop (`Dispatchers.IO`); el SQL está parametrizado, sin
+  secretos. El parámetro `chatService` de `configureRouting` es **aditivo y
+  compatible**.
+- **MUST NOT**: esta feature **no** modifica `rag/chat`/`rag/generation`/
+  `rag/embeddings`/`rag/retrieval`/`persistence/*` (se reutilizan), **no** añade
+  CORS, *rate limiting*, OpenAPI, versionado del path ni cuerpo de error (FT00029/
+  FT00030), ni UI (FT00037), ni migración (`V1`…`V5` intactas), ni dependencias
+  Gradle nuevas, ni cablea el pipeline de resumen/indexado del corpus. **No** toca
+  `:composeApp`/CI/`init.sh`.
+- **MUST**: las pruebas reales (respuesta con cita contra OpenCode y resolución de
+  la cita contra PostgreSQL) son **opt-in** (`OPENCODE_LIVE_TEST=1` y
+  `DB_LIVE_TEST=1`), fuera de `build`/`test`/`init.sh` y de la CI; el gate cubre el
+  contrato de `:shared`, el mapeo, el resolver, el servicio y la ruta con dobles
+  deterministas y `testApplication`, sin red, BD, modelo ni OpenCode.
+
 ## Chat RAG
 
 - **MUST**: el chat responde **solo** con el contexto recuperado del BOE y **cita la
@@ -333,8 +381,9 @@
 - **MUST NOT**: el chat es una **librería sin wiring** (`rag/chat/`): **no** se
   construye en `Application.kt`/job/backfill, no añade endpoints/UI ni migración y
   **no** anticipa lo diferido — **sin** rate limiting ni control de cuota
-  (FT00030/FT00031), **sin** endpoint/API (FT00031), **sin** DTO de wire en
-  `:shared`, **sin** UI (FT00037) y **sin** persistir el historial del chat. No se
+  (FT00030), **sin** UI (FT00037) y **sin** persistir el historial del chat. (El
+  endpoint/API y el DTO de wire en `:shared` los entregó **FT00031**, que **consume**
+  esta librería sin modificarla; ver §«API pública: chat».) No se
   modifican `TextGenerationProvider`/`OpenCodeTextGenerationProvider`/`OpenCodeConfig`
   (FT00020), `SummaryTextNormalizer`/`SummaryGroundingChecker` (FT00022) ni
   `HybridSearch`/`SearchFilter` (FT00017): se **reutilizan**.

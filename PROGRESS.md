@@ -3672,3 +3672,45 @@
 - Gaps abiertos (planificación): (1) **pipeline de resumen** sin cablear
   (Session 068); (2) **indexado del corpus** sin feature que lo cablee (la búsqueda
   dará 0 resultados en runtime hasta entonces).
+
+### Session 071
+
+- Fecha: 2026-10-13
+- Objetivo: planificar, implementar y validar `api-chat` (FT00031) desde la rama
+  `feat/ft00031-api-chat`, basada en `main` (FT00025/26/27; FT00028 seguía en PR #29).
+- Completado:
+  - **Planner** (`feature-spec`): spec `docs/specs/api-chat.md` (~18 ficheros;
+    atómica). El orquestador añadió `api-feed-diario` (FT00026) y
+    `embeddings-locales-onnx` (FT00015) a `depends_on` y ajustó la `verification`
+    (rate limiting/errores tipados son FT00030).
+  - **Implementer** (`feature-implementer`): `POST /chat` (solo lectura) que expone
+    el chat RAG reutilizando `rag/chat` (FT00025) **sin modificarlo**. `:shared`:
+    `ChatRequestDto`/`ChatResponseDto`/`ChatStatusDto`/`ChatCitationDto`. `:backend`:
+    `chat/PublicationCitationResolver` (**primer `CitationResolver` de producción**),
+    `chat/ChatDtoMapper` (puro), `chat/ChatService` (suspend, `Dispatchers.IO`,
+    `MAX_QUERY_LENGTH=1000`, `limit` fijo), `plugins/Chat.kt` (200/400/404/502/500),
+    `plugins/Routing.kt` (colaborador opcional), `Application.kt` (**primer cableado
+    condicional de OpenCode + embeddings**; sin clave/modelo/BD, `/chat` 404; cierre
+    único; `monitorResources` por Detekt `TooManyFunctions`). 18 ficheros de
+    producto. Docs durables: `ARCHITECTURE.md`, `CONSTRAINTS.md` §«API pública:
+    chat», ADR **0024** + índice, `docs/desarrollo-local.md`, skills
+    `ktor-backend-architecture`/`rag-datapublico`.
+  - **Validator** (`feature-validator`): primer veredicto **`revise`** (Medium:
+    identificador en castellano `serviceCon` en `ChatServiceTest.kt`, regla MUST;
+    precedente FT00014). **Reparación** por el implementer: `serviceCon` →
+    `serviceWith` (y, por la misma regla y el grep de verificación, también en
+    `RagChatServiceTest.kt`, test de FT00025; renombrado puro). **Revalidación**:
+    veredicto **`accept`** (`:backend:test` **436 tests, 0 fallos**; `:shared:jvmTest`
+    34; `detekt` exit 0; `grep "serviceCon"` = 0; renombrado puro confirmado).
+  - Persistida la aceptación: `feature_list.json` FT00031 → **`accepted`** +
+    evidencia; `docs/feature-ids.md` → `accepted`; `docs/validations/api-chat.md`;
+    este `PROGRESS.md`.
+- Estado: **FT00031 `accepted`**. Rama de producto commit/push + PR hacia `main` a
+  cargo del orquestador. Con esto la **capa API de lectura está completa** (feed,
+  detalle, búsqueda, chat). Siguiente feature lista: `english-identifiers-rename`
+  (FT00047); después `api-contratos-openapi` (FT00029) y
+  `api-cors-ratelimit-errores` (FT00030), que ya tienen sus dependencias cubiertas.
+- Nota: FT00031 y FT00028 (PR #29) tocan ambos `Routing.kt`/`Application.kt` de forma
+  aditiva; al fusionar el segundo hará falta rebase/conflicto trivial.
+- Gaps abiertos (planificación): pipeline de resumen (Session 068) e indexado del
+  corpus sin cablear.

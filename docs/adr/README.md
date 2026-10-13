@@ -81,3 +81,4 @@ Aceptado (<AAAA-MM-DD>). [Quién decide y, si aplica, qué ADR supersede/ajusta.
 | [0021](0021-feed-diario-endpoint.md) | Feed diario por fecha, solo resúmenes publicados y destacados *on-the-fly* | Aceptado |
 | [0022](0022-detalle-publicacion-endpoint.md) | Detalle de publicación por identificador, solo resúmenes publicados y contrato reutilizado | Aceptado |
 | [0023](0023-api-busqueda-endpoint.md) | Búsqueda sobre el corpus con `HybridSearch`, resultado a nivel de publicación y wiring condicional del proveedor de embeddings | Aceptado |
+| [0024](0024-api-chat-endpoint.md) | Endpoint de chat RAG sobre la librería FT00025, primer `CitationResolver` de producción y wiring condicional de OpenCode + embeddings sobre el pool único | Aceptado |

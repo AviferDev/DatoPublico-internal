@@ -289,6 +289,38 @@ ingesta BOE → chunking → embeddings (ONNX) → pgvector → recuperación h�
   la prueba real es **opt-in** (`OPENCODE_LIVE_TEST=1`, sin PostgreSQL ni ONNX;
   fail-fast sin clave).
 
+### Estado actual del producto (FT00031)
+
+- El **chat RAG** se **cablea por primera vez** en la API HTTP: el paquete
+  `es.aviferdev.datopublico.backend.chat` (`ChatService` `suspend` con
+  `Dispatchers.IO`, `ChatDtoMapper` puro y `PublicationCitationResolver`) y
+  `plugins/Chat.kt` exponen `POST /chat`. `ChatService` **consume** `RagChatService`
+  (FT00025) sin modificarlo y mapea su `ChatResult` al contrato de `:shared`
+  (`ChatRequestDto`/`ChatResponseDto`/`ChatStatusDto`/`ChatCitationDto`, con tokens
+  de estado `respondida`/`refutada`/`sin_fundamento`); **no** expone el `usage`.
+  Decisión durable en `docs/adr/0024`.
+- `PublicationCitationResolver` es el **primer `CitationResolver` de producción**:
+  resuelve `publicationId → ChatCitation(id, titulo, urlOficial)` sobre
+  `PublicationRepository.findById` (la fuente la **inyecta** el servidor, nunca el
+  modelo); una publicación no resoluble descarta esa cita.
+- El composition root **cablea por primera vez** el proveedor de texto de OpenCode
+  de forma **condicional** (fail-fast de `OPENCODE_API_KEY` capturado ⇒ `null`) y
+  reutiliza el proveedor de embeddings (ONNX) sobre el **mismo pool único**;
+  `/chat` se registra **solo** si existen pool + embeddings + texto (sin ninguno,
+  `404` y `/health` operativo) y el pool, el proveedor y el cliente HTTP se cierran
+  **una sola vez** en `ApplicationStopped`. Cuerpo/consulta inválidos ⇒ `400`; fallo
+  del proveedor o salida no interpretable ⇒ `502`; fallo de la inferencia local ⇒
+  `500` (sin cuerpo tipado; FT00030). La recuperación ONNX/JDBC y la resolución de
+  citas van fuera del event loop.
+- **Sin** migración (`V1`…`V5` intactas), sin dependencias nuevas y sin
+  rate limiting/control de cuota (FT00030) ni UI (FT00037). El **corpus puede estar
+  vacío** en runtime (el pipeline de resumen y el indexado siguen sin cablear):
+  `/chat` devolverá `sin_fundamento` hasta que existan esos cableados (gap de
+  planificación). **Verificación**: el gate cubre contrato, mapeo, resolver, servicio
+  y ruta con **dobles deterministas** (`testApplication`), sin red/BD/modelo/OpenCode;
+  las pruebas reales son **opt-in** (`ChatRouteLiveTest` con `OPENCODE_LIVE_TEST=1`;
+  `PublicationCitationResolverLiveTest` con `DB_LIVE_TEST=1`).
+
 ## 6. Guardrails (anti-alucinación y trazabilidad)
 
 - Ningún resumen se publica sin **enlace válido** a la fuente oficial.
@@ -408,9 +440,9 @@ ingesta BOE → chunking → embeddings (ONNX) → pgvector → recuperación h�
   `EMBEDDING_LIVE_TEST=1`) con umbral conservador (`meanWhatChangesF1 >= 0.3`,
   `hitRate >= 0.3`). El F1 es **léxico** (penaliza paráfrasis): el objetivo es
   detectar **regresiones**, no certificar calidad absoluta. La **generación** del
-  chat ya existe (`rag/chat/`, FT00025), pero su **evaluación** (respuestas con
-  citas, refutaciones y `sin_fundamento`) sigue pendiente: llegará después, con su
-  propio golden set.
+  chat ya existe (`rag/chat/`, FT00025) y su **endpoint** HTTP (`POST /chat`,
+  FT00031), pero su **evaluación** (respuestas con citas, refutaciones y
+  `sin_fundamento`) sigue pendiente: llegará después, con su propio golden set.
 
 ## Riesgos conocidos
 

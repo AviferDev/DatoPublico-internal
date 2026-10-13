@@ -22,6 +22,11 @@
   FT00028 añade al contrato de wire la **búsqueda**: `SearchResultsDto` (`q` eco de
   la consulta + `resultados`, una lista del **mismo** `PublicacionDto` del feed,
   **sin** `total` ni paginación). Ver `docs/adr/0023`.
+  FT00031 añade al contrato de wire el **chat RAG**: `ChatRequestDto` (`consulta`),
+  `ChatResponseDto` (`consulta` eco, `estado`, `respuesta` y `citas`), el enum de
+  wire `ChatStatusDto` (`respondida`/`refutada`/`sin_fundamento`) y
+  `ChatCitationDto` (`publicacionId`/`titulo`/`urlOficial`); **sin** `usage`. Ver
+  `docs/adr/0024`.
 - **`:backend`** — Ktor: ingesta del BOE, RAG, resúmenes, destacados y API.
   Namespace `es.aviferdev.datopublico.backend`. Ya existe el **esqueleto**
   (composition root `Application.kt`, `plugins/` e `infra/`, `GET /health`,
@@ -247,6 +252,25 @@
   **mismo pool único** que el feed y la ingesta, y cierra el proveedor **una sola
   vez** en `ApplicationStopped`. Sin migración (`V1`…`V5` intactas) ni CORS/OpenAPI/
   *rate limiting*. Ver `docs/adr/0023`.
+  FT00031 añade **`chat/`** y **`plugins/Chat.kt`**: el **chat RAG**
+  (`POST /chat`), que **consume** la librería `rag/chat` (FT00025) **sin
+  modificarla**. `ChatService` (`suspend`, `Dispatchers.IO`) envuelve
+  `RagChatService.answer` y mapea su `ChatResult` al contrato de `:shared` con
+  `ChatDtoMapper` (puro); la consulta se acota con `MAX_QUERY_LENGTH` y el contexto
+  con el `limit` por defecto de `RagChatService` (no controlable por el cliente).
+  `PublicationCitationResolver` es el **primer `CitationResolver` de producción**:
+  adapta `PublicationRepository.findById` e **inyecta** la fuente oficial desde la
+  publicación (el modelo solo aporta índices). El composition root **cablea por
+  primera vez** el proveedor de texto de OpenCode (`OpenCodeConfig.fromEnv()` +
+  `openCodeHttpClient()` + `OpenCodeTextGenerationProvider`, **fail-fast** de
+  `OPENCODE_API_KEY` capturado ⇒ `null`) y reutiliza el proveedor de embeddings
+  (ONNX) sobre el **mismo pool único**; `/chat` se registra **solo** si existen los
+  tres (sin BD, modelo o clave es `404` y `/health` sigue `200`) y el pool, el
+  proveedor y el cliente HTTP se cierran **una sola vez** en `ApplicationStopped`.
+  Un cuerpo ilegible o una consulta inválida responden `400`, un fallo del proveedor
+  o una salida no interpretable `502` y un fallo de la inferencia local `500` (sin
+  cuerpo tipado; FT00030 unificará el contrato). Sin migración (`V1`…`V5` intactas)
+  ni CORS/OpenAPI/*rate limiting*. Ver `docs/adr/0024`.
   Existe **`persistence/`** (FT00008): repositorios **JDBC**
   + entidades `...Entity` de `publicacion`, `fragmento`, `resumen` y
   `cola_revision`, más los helpers JDBC compartidos; la configuración de
@@ -292,10 +316,12 @@
   desde FT00027 el **detalle de publicación** (`GET /publicacion/{id}`), que
   reutiliza el **mismo** contrato `PublicacionDto` y el mismo mapeo que el feed, y
   desde FT00028 la **búsqueda** (`GET /buscar?q=…`), que devuelve las publicaciones
-  publicadas más relevantes por similitud semántica con el mismo contrato
-  (ver `docs/adr/0021`, `docs/adr/0022` y `docs/adr/0023`). Los demás endpoints
-  (chat FT00031, OpenAPI/CORS/*rate limiting* FT00029/FT00030) llegan con sus
-  features.
+  publicadas más relevantes por similitud semántica con el mismo contrato, y desde
+  FT00031 el **chat RAG** (`POST /chat`), que responde una pregunta o verifica una
+  afirmación contra el corpus con los tres estados del dominio y las **citas a la
+  fuente oficial** (contrato propio en `:shared`; ver `docs/adr/0021`,
+  `docs/adr/0022`, `docs/adr/0023` y `docs/adr/0024`). Los demás endpoints
+  (OpenAPI/CORS/*rate limiting* FT00029/FT00030) llegan con sus features.
 - **Backend → BOE** (API de datos abiertos + XML oficial, solo lectura, **sin
   clave ni credenciales**): `ingesta/` obtiene el sumario diario (JSON) y, por
   cada entrada, el **texto XML estructurado** (`xml.php`); el job programado
@@ -319,9 +345,10 @@
   *upsert* de publicación por `id` es idempotente y es la base del job diario: la
   segunda pasada reejecuta la misma fecha sin duplicar. Desde FT00026
   `Application.kt` crea un **pool único** si la config de BD resuelve, lo comparte
-  entre el feed, el detalle y la búsqueda (API) y la ingesta, y lo cierra **una sola
-  vez** en `ApplicationStopped`; sin BD no hay pool y ni el feed, ni el detalle, ni
-  la búsqueda se registran. La
+  entre el feed, el detalle, la búsqueda y el chat (API) y la ingesta, y lo cierra
+  **una sola vez** en `ApplicationStopped`; sin BD no hay pool y ni el feed, ni el
+  detalle, ni la búsqueda, ni el chat se registran (desde FT00031 el chat exige
+  además el modelo E5 y `OPENCODE_API_KEY`). La
   **recuperación híbrida** (FT00017) consulta
   `fragmento` con un `JOIN publicacion` para aplicar los **filtros de metadatos**
   parametrizados (fecha/categoría/sección/organismo) junto a la distancia coseno;
@@ -333,10 +360,15 @@
   contexto recuperado y lee `choices[0].message.content`; los clientes HTTP fijan
   `HttpTimeout` explícito. Es una dependencia **externa en tiempo de ejecución**, no
   del gate: los tests del gate usan un doble/`MockEngine` sin red y la prueba real
-  es **opt-in** (`OPENCODE_LIVE_TEST=1`). La **fuente oficial** no la produce el
+  es **opt-in** (`OPENCODE_LIVE_TEST=1`). Desde FT00031 el composition root lo
+  **cablea de forma condicional** para el chat (sin `OPENCODE_API_KEY` el cliente
+  queda a `null` y `/chat` es `404`, sin romper el arranque) y cierra el `HttpClient`
+  una sola vez en `ApplicationStopped`. La **fuente oficial** no la produce el
   modelo: en el resumen se inyecta desde `Publicacion.urlOficial` (ver `docs/adr/0015`)
   y en el chat (`rag/chat/`, FT00025, ADR 0020) el modelo solo aporta **índices** de
-  fragmento y el `CitationResolver` inyecta la URL de la publicación.
+  fragmento y el `CitationResolver` inyecta la URL de la publicación (en producción,
+  `PublicationCitationResolver` sobre `PublicationRepository.findById`; ver
+  `docs/adr/0024`).
 - **Backend:** `plugins/` (HTTP) → servicios → dominio puro → repositorios y
   clientes → `infra/`.
 - **IA:** embeddings **locales** (ONNX) y generación/chat **remoto** (OpenCode),
@@ -346,8 +378,10 @@
   condicional** en el composition root (sin modelo, `/buscar` 404) sobre
   pgvector/HNSW (FT00016). La **generación** está implementada como librería en
   `rag/generation/` + `rag/summary/` (FT00020, ADR 0015), tras
-  `TextGenerationProvider`, **sin** wiring ni endpoints; el **cacheo** del resumen y
-  el **control de coste** (FT00021, ADR 0016) la envuelven también **sin** wiring.
+  `TextGenerationProvider`; desde FT00031 el chat la **cablea de forma
+  condicional** en el composition root (sin `OPENCODE_API_KEY`, `/chat` 404) y el
+  **cacheo** del resumen y el **control de coste** (FT00021, ADR 0016) la envuelven
+  también **sin** wiring.
   Los **guardrails anti-alucinación** (FT00022, ADR 0017) verifican fuente y
   grounding **después** de generar y **antes** de publicar, también como librería sin
   wiring y sin persistencia. El **chat RAG** (`rag/chat/`, FT00025, ADR 0020) usa el
