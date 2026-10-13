@@ -22,27 +22,32 @@ bloqueante** (solo con `INGESTA_ENABLED` y config de BD resoluble; cierre en
 (repositorios JDBC + entidades, FT00008) con `infra/DatabaseConfig` (derivada de
 `POSTGRES_*`) e `infra/Database` (pool HikariCP). Desde **FT00026** existe
 **`feed/`** (`DailyFeedService` + `FeedDtoMapper`) y **`plugins/Feed.kt`**: el
-**primer endpoint de lectura de datos** (`GET /feed?fecha=…`), que sirve **solo**
+**primer endpoint de lectura de datos** (`GET /v1/feed?fecha=…`), que sirve **solo**
 resúmenes `publicado`, paginado y con destacados *on-the-fly* (`relevance/`,
 FT00013). Desde **FT00027** existe **`publication/`** (`PublicationDetailService`) y
 **`plugins/PublicationDetail.kt`**: el **detalle de publicación**
-(`GET /publicacion/{id}`), que reutiliza el contrato `PublicacionDto` y el mapeo
+(`GET /v1/publicacion/{id}`), que reutiliza el contrato `PublicacionDto` y el mapeo
 `FeedDtoMapper` y sirve **solo** resúmenes `publicado`. Desde **FT00028** existe
 **`search/`** (`SearchService`) y **`plugins/Search.kt`**: la **búsqueda**
-(`GET /buscar?q=…&categoria=…&desde=…&hasta=…&limite=…`), que reutiliza
+(`GET /v1/buscar?q=…&categoria=…&desde=…&hasta=…&limite=…`), que reutiliza
 `HybridSearch`/`SearchFilter` de `rag/retrieval`, deduplica por publicación y
 devuelve el mismo contrato; el composition root **cablea por primera vez** el
 proveedor de embeddings (`rag/embeddings`, FT00015) de forma **condicional** (sin
-modelo, `/buscar` 404). Desde **FT00031** existe **`chat/`** (`ChatService`,
+modelo, `/v1/buscar` 404). Desde **FT00031** existe **`chat/`** (`ChatService`,
 `ChatDtoMapper` y `PublicationCitationResolver`, el primer `CitationResolver` de
-producción) y **`plugins/Chat.kt`**: el **chat RAG** (`POST /chat`), que consume la
+producción) y **`plugins/Chat.kt`**: el **chat RAG** (`POST /v1/chat`), que consume la
 librería `rag/chat` (FT00025) sin modificarla y **cablea por primera vez** el
 proveedor de texto de OpenCode de forma **condicional** (sin `OPENCODE_API_KEY`,
-`/chat` 404). El composition root crea un
+`/v1/chat` 404). El composition root crea un
 **pool JDBC único** compartido por la API (feed, detalle, búsqueda y chat) y la
 ingesta y lo cierra una vez en `ApplicationStopped`; sin BD no hay pool y ni
-`/feed`, ni `/publicacion/{id}`, ni `/buscar`, ni `/chat` se registran (el chat
-exige además el modelo E5 y la clave de OpenCode). Existen además los paquetes de
+`/v1/feed`, ni `/v1/publicacion/{id}`, ni `/v1/buscar`, ni `/v1/chat` se registran
+(el chat exige además el modelo E5 y la clave de OpenCode). Desde **FT00029** existe
+**`plugins/OpenApi.kt`** y el recurso **`openapi/openapi.json`**: el **contrato
+OpenAPI 3.1 estático y versionado** (`GET /openapi.json`, siempre registrado, sin
+BD/modelo/OpenCode) y el **prefijo `/v1`** de las rutas de dominio, protegido por un
+**test anti-deriva** que lo mantiene alineado con los DTOs de `:shared`. Existen
+además los paquetes de
 librería `rag/`
 (FT00014–FT00025) y `relevance/` (FT00013). El resto del documento sigue siendo el
 **patrón objetivo acordado**, derivado de `docs/technical-discovery.md` y
@@ -175,23 +180,34 @@ servicio, su(s) repositorio(s), sus modelos y sus clientes; lo transversal
 ## API
 
 - Solo lectura y pública: `feed`, `detalle`, `búsqueda` (filtros de
-  categoría/fecha) y `chat` (pregunta/verificación). El **feed** está
-  **implementado** (FT00026, `GET /feed?fecha=…`, paginado, solo resúmenes
+  categoría/fecha) y `chat` (pregunta/verificación). Los endpoints de **dominio**
+  se sirven bajo el prefijo de versión **`/v1`** (FT00029). El **feed** está
+  **implementado** (FT00026, `GET /v1/feed?fecha=…`, paginado, solo resúmenes
   `publicado` y con destacados explicados por motivos; ver ADR 0021), el
-  **detalle** también (FT00027, `GET /publicacion/{id}`, solo resúmenes `publicado`,
+  **detalle** también (FT00027, `GET /v1/publicacion/{id}`, solo resúmenes `publicado`,
   reutilizando el contrato y el mapeo del feed; ver ADR 0022) y la **búsqueda**
-  (FT00028, `GET /buscar?q=…`, top-k por similitud semántica con filtros de
+  (FT00028, `GET /v1/buscar?q=…`, top-k por similitud semántica con filtros de
   categoría y fecha, solo resúmenes `publicado` y deduplicada por publicación;
   `configureRouting` la registra solo si hay pool **y** proveedor de embeddings, que
   se cablea condicionalmente; ver ADR 0023). El **chat** también está implementado
-  (FT00031, `POST /chat` con cuerpo `ChatRequestDto`): responde una pregunta o
+  (FT00031, `POST /v1/chat` con cuerpo `ChatRequestDto`): responde una pregunta o
   verifica una afirmación contra el corpus con los tres estados del dominio
   (`respondida`/`refutada`/`sin_fundamento`) y **citas a la fuente oficial**
   inyectadas desde la publicación; se registra solo si hay pool, proveedor de
   embeddings **y** proveedor de texto de OpenCode (condicionales; sin ninguno,
-  `/chat` 404 y `/health` operativo); ver ADR 0024.
-- Contratos **OpenAPI** versionados; **CORS**; **rate limiting**; errores JSON
-  consistentes (FT00029/FT00030; el feed aún responde `400` sin cuerpo tipado).
+  `/v1/chat` 404 y `/health` operativo); ver ADR 0024.
+- **Contratos OpenAPI versionados** (FT00029): el **contrato OpenAPI 3.1** es un
+  documento **estático y versionado** en los recursos de `:backend`
+  (`openapi/openapi.json`, **sin** dependencia Gradle ni generación en compilación)
+  que se sirve **siempre** en `GET /openapi.json` (sin versión, como `/health`);
+  los endpoints de **dominio** van bajo `/v1` (`/v1/feed`, `/v1/publicacion/{id}`,
+  `/v1/buscar`, `/v1/chat`) y una ruta sin `/v1` es `404`. El documento es la
+  **fuente de verdad** del contrato y los DTOs `Dto` de `:shared` su implementación;
+  un **test anti-deriva** (`OpenApiContractTest`) contrasta los esquemas con los
+  `@SerialName`/tokens reales y falla ante divergencia. Un cambio aditivo mantiene
+  `/v1` y sube `info.version`; uno incompatible exige `/v2`. **CORS**; **rate
+  limiting** y errores JSON consistentes (FT00030; los endpoints aún responden
+  `400` sin cuerpo tipado).
 - Sin cuentas ni datos personales: el servidor solo trata información pública. El
   chat no persiste historial.
 

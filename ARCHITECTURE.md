@@ -271,6 +271,19 @@
   o una salida no interpretable `502` y un fallo de la inferencia local `500` (sin
   cuerpo tipado; FT00030 unificará el contrato). Sin migración (`V1`…`V5` intactas)
   ni CORS/OpenAPI/*rate limiting*. Ver `docs/adr/0024`.
+  FT00029 añade **`plugins/OpenApi.kt`** y el recurso
+  **`src/main/resources/openapi/openapi.json`**: el **contrato OpenAPI 3.1
+  estático y versionado** de los endpoints de dominio, servido en
+  `GET /openapi.json` (`200` `application/json`, **siempre** registrado, sin
+  depender de BD/modelo/OpenCode) y protegido por un **test anti-deriva**
+  (`OpenApiContractTest`) que contrasta los esquemas con los `@SerialName`/tokens
+  de los DTOs de `:shared`. `configureRouting` **prefija `/v1`** a las rutas de
+  dominio (`/v1/feed`, `/v1/publicacion/{id}`, `/v1/buscar`, `/v1/chat`)
+  reutilizando las funciones de ruta **sin** modificarlas; `/health` y
+  `/openapi.json` quedan **sin** versión. Sin dependencia Gradle nueva, sin
+  generación en compilación (Kotlin 2.1.20), sin migración y sin Swagger UI. Ver
+  `docs/adr/0025`. (Las menciones a `/feed`, `/publicacion/{id}`, `/buscar` y
+  `/chat` de las features anteriores se sirven **hoy** bajo ese prefijo `/v1`.)
   Existe **`persistence/`** (FT00008): repositorios **JDBC**
   + entidades `...Entity` de `publicacion`, `fragmento`, `resumen` y
   `cola_revision`, más los helpers JDBC compartidos; la configuración de
@@ -310,18 +323,23 @@
 ## Fronteras
 
 - **Cliente → API HTTP** (público, solo lectura). El cliente no conoce los
-  internals del backend. Desde FT00026 el backend sirve el **feed diario**
-  (`GET /feed?fecha=…`, FT00026) con las publicaciones cuyo resumen está
+  internals del backend. Desde FT00029 los endpoints de **dominio** se sirven bajo
+  el prefijo de versión **`/v1`** y existe un **contrato OpenAPI 3.1** estático y
+  versionado (`GET /openapi.json`, **sin** versión, como `/health`), que es la
+  **fuente de verdad** del contrato (los DTOs `Dto` de `:shared` son su
+  implementación, con un test anti-deriva en el gate); ver `docs/adr/0025`. Desde
+  FT00026 el backend sirve el **feed diario**
+  (`GET /v1/feed?fecha=…`, FT00026) con las publicaciones cuyo resumen está
   `publicado`, paginadas y con los destacados del día explicados por motivos, y
-  desde FT00027 el **detalle de publicación** (`GET /publicacion/{id}`), que
+  desde FT00027 el **detalle de publicación** (`GET /v1/publicacion/{id}`), que
   reutiliza el **mismo** contrato `PublicacionDto` y el mismo mapeo que el feed, y
-  desde FT00028 la **búsqueda** (`GET /buscar?q=…`), que devuelve las publicaciones
-  publicadas más relevantes por similitud semántica con el mismo contrato, y desde
-  FT00031 el **chat RAG** (`POST /chat`), que responde una pregunta o verifica una
-  afirmación contra el corpus con los tres estados del dominio y las **citas a la
-  fuente oficial** (contrato propio en `:shared`; ver `docs/adr/0021`,
-  `docs/adr/0022`, `docs/adr/0023` y `docs/adr/0024`). Los demás endpoints
-  (OpenAPI/CORS/*rate limiting* FT00029/FT00030) llegan con sus features.
+  desde FT00028 la **búsqueda** (`GET /v1/buscar?q=…`), que devuelve las
+  publicaciones publicadas más relevantes por similitud semántica con el mismo
+  contrato, y desde FT00031 el **chat RAG** (`POST /v1/chat`), que responde una
+  pregunta o verifica una afirmación contra el corpus con los tres estados del
+  dominio y las **citas a la fuente oficial** (contrato propio en `:shared`; ver
+  `docs/adr/0021`, `docs/adr/0022`, `docs/adr/0023` y `docs/adr/0024`). Los demás
+  endpoints (CORS/*rate limiting*/error tipado FT00030) llegan con sus features.
 - **Backend → BOE** (API de datos abiertos + XML oficial, solo lectura, **sin
   clave ni credenciales**): `ingesta/` obtiene el sumario diario (JSON) y, por
   cada entrada, el **texto XML estructurado** (`xml.php`); el job programado

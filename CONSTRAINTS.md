@@ -357,6 +357,39 @@
   contrato de `:shared`, el mapeo, el resolver, el servicio y la ruta con dobles
   deterministas y `testApplication`, sin red, BD, modelo ni OpenCode.
 
+## API pública: contratos y versionado
+
+- **MUST**: el **contrato OpenAPI** es **público y de solo lectura** y el
+  versionado vive en el **path**: los endpoints de **dominio** se sirven bajo
+  `/v1/…` (`/v1/feed`, `/v1/publicacion/{id}`, `/v1/buscar`, `/v1/chat`) y
+  `/health` y `GET /openapi.json` quedan **sin** versión (operacionales y
+  estables). El prefijo solo versiona: **no** cambia métodos, parámetros ni
+  semántica. Decisión durable en `docs/adr/0025`.
+- **MUST**: el **documento es la fuente de verdad** del contrato y los **DTOs
+  `Dto` de `:shared` su implementación**. El documento es un artefacto **estático
+  y versionado** en los recursos de `:backend`
+  (`src/main/resources/openapi/openapi.json`, OpenAPI **3.1**) y se sirve en
+  `GET /openapi.json` (`200` `application/json`, `info.version = "0.5.0"`),
+  **siempre** registrado y **sin** depender de la base de datos, el modelo ni
+  OpenCode.
+- **MUST**: un **test anti-deriva** en el gate contrasta los esquemas documentados
+  con los `@SerialName` (`serializer().descriptor.elementNames`) y los **tokens**
+  de los enums de wire reales de `:shared`; una divergencia **falla**. Si un DTO
+  cambia, hay que actualizar el documento.
+- **MUST**: los cambios **aditivos y compatibles** mantienen `/v1` y suben la
+  *minor/patch* de `info.version`; un cambio **incompatible** exige un prefijo
+  nuevo (`/v2`) con `/v1` conservado hasta su deprecación. **No** se conservan
+  aliases sin `/v1`.
+- **MUST**: los códigos de error (`400`/`404`/`500`/`502`) se documentan **sin**
+  esquema de error compartido: el contrato de error tipado, el CORS y el rate
+  limiting son **FT00030**.
+- **MUST NOT**: esta feature **no** añade dependencia Gradle de OpenAPI ni
+  generación en tiempo de compilación (el compilador de Ktor exige Kotlin
+  ≥ 2.2.20 y el proyecto fija 2.1.20), **no** añade migración (`V1`…`V5`
+  intactas), **no** cambia los DTOs de `:shared` ni los servicios/rutas de
+  dominio (solo **prefija** `/v1`), y **no** toca `:composeApp`/CI/`init.sh` ni
+  añade Swagger UI/ReDoc.
+
 ## Chat RAG
 
 - **MUST**: el chat responde **solo** con el contexto recuperado del BOE y **cita la

@@ -3714,3 +3714,41 @@
   aditiva; al fusionar el segundo hará falta rebase/conflicto trivial.
 - Gaps abiertos (planificación): pipeline de resumen (Session 068) e indexado del
   corpus sin cablear.
+
+### Session 072
+
+- Fecha: 2026-10-13
+- Objetivo: planificar, implementar y validar `api-contratos-openapi` (FT00029) desde
+  la rama `feat/ft00029-api-contratos-openapi`.
+- Completado:
+  - **Planner** (`feature-spec`): spec `docs/specs/api-contratos-openapi.md` (~11
+    ficheros; atómica). Decisión clave: **documento OpenAPI 3.1 estático** servido en
+    `/openapi.json` + **prefijo `/v1`** en las rutas de dominio + test anti-deriva,
+    **sin** dependencia Gradle nueva (Kotlin 2.1.20 no permite la generación en
+    compilación de Ktor).
+  - **Bloqueo resuelto:** la pila `ft00029 → ft00031 → defd04f` **no** contenía
+    `/buscar` (FT00028 se fusionó después). Se rebasó `feat/ft00031` sobre `main` y
+    luego `feat/ft00029` sobre ella; al fusionarse FT00031, FT00029 se **rebasó sobre
+    `main`** y se deshizo el apilado. El orquestador resolvió los conflictos
+    aditivos de `Application.kt`/`Routing.kt`/`docs/desarrollo-local.md` (feed +
+    detalle + búsqueda + chat) y verificó compilación/tests antes de validar.
+  - **Implementer** (`feature-implementer`): `openapi.json` (OpenAPI 3.1, 14
+    esquemas espejo de los DTOs), `plugins/OpenApi.kt` (`GET /openapi.json`),
+    `plugins/Routing.kt` (`route("/v1")` reutilizando las rutas de dominio), tests
+    `OpenApiRouteTest` + `OpenApiContractTest` (anti-deriva) y URLs de los tests de
+    ruta a `/v1/…`. Docs durables: `ARCHITECTURE.md`, `CONSTRAINTS.md` §«API pública:
+    contratos y versionado», ADR **0025** + índice, `docs/desarrollo-local.md`, skill
+    `ktor-backend-architecture`.
+  - **Validator** (`feature-validator`): veredicto **`accept`**. `:backend:test`
+    **460 tests, 0 fallos**; `:shared:jvmTest` 37; `build -PskipClient`/`test`/
+    `detekt`+`:cpdCheck`/`init.sh` verdes; arranque sin BD/modelo/clave (`/health`
+    200, `/openapi.json` 200, `/v1/…` 404, sin `/v1` 404). Verificó a mano el test
+    anti-deriva contra los DTOs. Sin hallazgos Critical/High/Medium; **Low**
+    (bookkeeping del harness, resuelto; cobertura del anti-deriva, mejora futura).
+  - Persistida la aceptación: `feature_list.json` FT00029 → **`accepted`** +
+    evidencia; `docs/feature-ids.md` → `accepted`;
+    `docs/validations/api-contratos-openapi.md`; este `PROGRESS.md`.
+- Estado: **FT00029 `accepted`**. Rama de producto commit/push + PR hacia `main` a
+  cargo del orquestador. Siguiente feature lista: `api-cors-ratelimit-errores`
+  (FT00030), que cerraría el hito 0.5.0 de la API; después la UI (FT00032+).
+- Decisión durable: **prefijo `/v1`** en las rutas de dominio (ADR 0025).

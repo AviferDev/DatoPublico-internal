@@ -802,12 +802,15 @@
       "api-busqueda",
       "api-chat"
     ],
-    "status": "not_started",
+    "status": "accepted",
     "verification": [
       "El contrato OpenAPI se genera y describe los endpoints de feed, detalle, búsqueda y chat."
     ],
-    "evidence": [],
-    "notes": "Fuente: docs/roadmap.md 0.5-T04."
+    "evidence": [
+      "FT00029 (2026-10-13, rama feat/ft00029-api-contratos-openapi, implementer + autoverificación): **documento OpenAPI 3.1 estático y versionado** en `backend/src/main/resources/openapi/openapi.json` (`info.version=\"0.5.0\"`, `servers [/]`) que documenta `/v1/feed`, `/v1/publicacion/{id}`, `/v1/buscar`, `/v1/chat`, `/health` y `/openapi.json`, con `components.schemas` espejo de los DTOs de wire (14 esquemas) y 400/404/500/502 sin esquema de error (FT00030). `plugins/OpenApi.kt`: `GET /openapi.json` (carga **única** del recurso desde el classpath, fail-fast, `application/json`; siempre registrada). `plugins/Routing.kt`: rutas de dominio anidadas bajo `route(\"/v1\")` (reutilizando `feedRoutes`/`publicationDetailRoutes`/`searchRoutes`/`chatRoutes` **sin modificarlas**); `/health` y `/openapi.json` sin prefijo. **Test anti-deriva** `OpenApiContractTest` (contrasta las propiedades documentadas con `serializer().descriptor.elementNames` y los `enum` con los tokens de `CategoriaDto`/`SeccionBoeDto`/`HighlightReasonDto`/`ChatStatusDto`) + `OpenApiRouteTest`. Tests de ruta de features `accepted` actualizados a `/v1/…` (mecánico, +1 test aditivo en `FeedRouteTest`). **Sin dependencia Gradle nueva**, sin migración, sin tocar `:composeApp`/CI/`init.sh`. Gate sin red/BD/modelo/OpenCode verde: `:backend:test --rerun-tasks` **460 tests, 0 fallos**; `:shared:jvmTest` 37; `build -PskipClient` 23 tareas; `test` 3 módulos; `detekt`+`:cpdCheck`; `init.sh` exit 0. Arranque sin BD/modelo/clave: `/health` 200, `/openapi.json` 200 `application/json`, rutas `/v1/…` 404 y sin `/v1` 404. La rama se rebasó sobre `main` (FT00031 ya fusionado) y se deshizo el apilado. Desviación declarada: carga del documento con `object`+`by lazy`; `ChatRouteLiveTest` actualizado a `/v1/chat`.",
+      "Aceptación independiente (`feature-validator`, 2026-10-13): veredicto **`accept`**. Reejecutó el gate real (`:backend:test` 460/0/0; `:shared:jvmTest` 37/0/0; `build -PskipClient` 23 tareas; `test` 3 módulos; `detekt`+`:cpdCheck`; `init.sh` exit 0; arranque sin BD/modelo/clave con `/health` 200, `/openapi.json` 200, `/v1/…` 404 y sin `/v1` 404) y comprobó el documento OpenAPI 3.1, el **test anti-deriva real** (verificado a mano contra los DTOs: `PublicacionDto` 10 props, `ResumenDiarioDto` 7, `CategoriaDto` 11 tokens, `SeccionBoeDto` 8, `ChatStatusDto` 3), el prefijo `/v1`, la reutilización sin modificar las rutas, los tests de features `accepted` solo con cambio de URL, la ausencia de dependencia/migración/CI/`:composeApp` y el estilo MUST. Sin hallazgos Critical/High/Medium; **Low** no bloqueante: estado del harness pendiente de persistir (resuelto aquí) y cobertura del anti-deriva podría afirmar que todos los esquemas están cubiertos (mejora futura). Sin hallazgos de seguridad."
+    ],
+    "notes": "Fuente: docs/roadmap.md 0.5-T04. Introduce el **prefijo `/v1`** en las rutas de dominio (decisión durable en ADR 0025) y el documento OpenAPI 3.1 servido en `/openapi.json`. Sin dependencia Gradle nueva (el proyecto fija Kotlin 2.1.20, que no permite la generación en compilación de Ktor). Rate limiting/CORS/cuerpo de error tipado son FT00030."
   },
   {
     "id": "api-cors-ratelimit-errores",
