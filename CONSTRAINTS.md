@@ -261,6 +261,54 @@
   (`DB_LIVE_TEST=1`), fuera de `build`/`test`/`init.sh` y de la CI; el gate cubre el
   servicio y la ruta con dobles deterministas y `testApplication`, sin red ni BD.
 
+## API pública: búsqueda
+
+- **MUST**: la búsqueda (`GET /buscar`) es de **solo lectura y pública**, sin
+  cuentas ni datos personales, y se consulta con `q` **obligatoria** (no vacía) más
+  filtros opcionales: `categoria` como **token de wire** de `CategoriaDto`,
+  `desde`/`hasta` ISO-8601 **inclusivas** y `limite` (default `10`, máx `50`).
+  Decisión durable en `docs/adr/0023`.
+- **MUST**: sirve **solo** publicaciones con `resumen.estado = 'publicado'` (token
+  tipado `SummaryState.PUBLISHED` que escribe FT00023); las demás no aparecen
+  (aunque el fragmento exista). Cada resultado es el **mismo** `PublicacionDto` de
+  `:shared` que el feed (con `resumen`, `categoria` y `urlOficial`), y se
+  **reutiliza** el mapeo puro `FeedDtoMapper`; **no** hay DTO ni mapper nuevo por
+  ítem.
+- **MUST**: la recuperación **reutiliza** `HybridSearch`/`SearchFilter`/
+  `SearchFilterSql` (FT00017) **sin modificarlos**; el filtro de metadatos va
+  parametrizado. El resultado es **top-k** (ANN, sin `total` ni paginación) y se
+  **deduplica** por publicación conservando el orden de relevancia, con una ventana
+  de sobre-recuperación `limite * CANDIDATE_FACTOR` (`CANDIDATE_FACTOR = 5`,
+  heurística documentada).
+- **MUST**: la lectura por lote de las publicaciones publicadas vive en
+  `FeedRepository.listPublishedByIds` (`ANY(?)`, token `SummaryState.PUBLISHED`,
+  categoría nula excluida); un lote vacío devuelve lista vacía **sin** abrir
+  conexión. `FeedRepository` solo se **amplía**; `PublicationRepository`/
+  `SummaryRepository`/`HighlightRanker` no se tocan.
+- **MUST**: `q` ausente/en blanco, `categoria` no válida, fecha no ISO o `limite` no
+  entero, `< 1` o `> MAX_LIMIT` responden `400` **sin cuerpo tipado** (el contrato
+  de error es FT00030); una consulta sin resultados y un rango `desde > hasta`
+  responden `200` con `resultados` vacío.
+- **MUST**: el arranque **no** depende de la BD ni del modelo: el composition root
+  **cablea por primera vez** el proveedor de embeddings (`E5EmbeddingProvider`,
+  FT00015) de forma **condicional** (sin modelo o config ⇒ `null`, con aviso y sin
+  fallo), registra `/buscar` **solo** si hay pool **y** proveedor (`404` en caso
+  contrario) y cierra el pool y el proveedor **una sola vez** en
+  `ApplicationStopped`. `/health` queda operativo sin BD ni modelo.
+- **MUST**: la inferencia ONNX y la lectura JDBC (bloqueantes) van fuera del event
+  loop (`Dispatchers.IO`); el SQL está parametrizado, sin secretos.
+- **MUST NOT**: esta feature **no** añade CORS, *rate limiting*, OpenAPI, versionado
+  del path ni cuerpo de error (FT00029/FT00030), ni UI (FT00032+), ni migración
+  (`V1`…`V5` intactas), ni dependencias Gradle nuevas. **No** modifica
+  `HybridSearch`/`SearchFilter`/`SearchFilterSql`/`FragmentRepository`/`PgVector`/
+  `ArticleChunker`/`rag/embeddings`/`SummaryRepository`/`PublicationRepository`/
+  `HighlightRanker`/el job/backfill ni `:composeApp`/CI/`init.sh`.
+- **MUST**: la prueba real (publicación relevante primero con el modelo E5 y solo
+  publicados) es **opt-in** (`DB_LIVE_TEST=1` + `EMBEDDING_LIVE_TEST=1`), fuera de
+  `build`/`test`/`init.sh` y de la CI; el gate cubre el contrato de `:shared`, el
+  servicio, la lectura por lote y la ruta con dobles deterministas y
+  `testApplication`, sin red, BD ni modelo.
+
 ## Chat RAG
 
 - **MUST**: el chat responde **solo** con el contexto recuperado del BOE y **cita la

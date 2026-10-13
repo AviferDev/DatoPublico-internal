@@ -3628,3 +3628,47 @@
 - Nota de estrategia de PR: se abandonó el apilado de FT00027 (FT00026 ya estaba en
   `main`); el PR de FT00027 tiene base `main`. El gap del pipeline de resumen
   (Session 068) sigue abierto.
+
+### Session 070
+
+- Fecha: 2026-10-13
+- Objetivo: planificar, implementar y validar `api-busqueda` (FT00028) desde la rama
+  `feat/ft00028-api-busqueda`, basada en `main` (que ya incluía FT00026 y FT00027).
+- Completado:
+  - **Planner** (`feature-spec`): spec `docs/specs/api-busqueda.md` (~14 ficheros;
+    atómica). El orquestador añadió `api-feed-diario` (FT00026) y
+    `cola-revision-confianza` (FT00023) a `depends_on`.
+  - **Implementer** (`feature-implementer`): `GET /buscar?q=&categoria=&desde=&hasta=&limite=`
+    (solo lectura; top-k). `:shared`: `SearchResultsDto`. `:backend`:
+    `search/SearchService` (suspend, `Dispatchers.IO`, reutiliza `HybridSearch`/
+    `SearchFilter` sin tocarlos, dedup por publicación, reutiliza `FeedDtoMapper`),
+    `plugins/Search.kt` (400/200), `plugins/Routing.kt` (tercer colaborador
+    opcional), `Application.kt` (primer **cableado condicional** del
+    `EmbeddingProvider` ONNX; cierre único de pool y proveedor),
+    `persistence/FeedRepository.listPublishedByIds` (aditivo). 14 ficheros de
+    producto. Docs durables: `ARCHITECTURE.md`, `CONSTRAINTS.md` §«API pública:
+    búsqueda», ADR **0023** + índice, `docs/desarrollo-local.md`, skills
+    `ktor-backend-architecture` y `rag-datapublico`.
+  - **Rebase/conflictos:** la rama se rebasó sobre `main` (que ya traía FT00027, que
+    también toca `Routing.kt`/`Application.kt`); el orquestador resolvió conflictos
+    **aditivos** en `Application.kt`, `Routing.kt` y `docs/desarrollo-local.md`
+    (convivencia de feed, detalle y búsqueda) y verificó compilación + tests antes de
+    validar.
+  - **Validator** (`feature-validator`): veredicto **`accept`**. `:backend:test`
+    **432 tests, 0 fallos** (+18); `:shared:jvmTest` 33; `build -PskipClient` 23
+    tareas; `test` 63 tareas/3 módulos; `detekt`+`:cpdCheck`; `init.sh` exit 0;
+    arranque sin BD ni modelo (`/health` 200, `/feed`/`/publicacion/{id}`/`/buscar`
+    404). Revisó la resolución del rebase. Sin hallazgos Critical/High/Medium;
+    **Low** (estado del harness, resuelto; frase obsoleta en `ARCHITECTURE.md`,
+    corregida; puntos colgantes en `docs/desarrollo-local.md`, corregidos).
+    Live opt-in no ejecutado (sin Docker/modelo).
+  - Persistida la aceptación: `feature_list.json` FT00028 → **`accepted`** +
+    evidencia; `docs/feature-ids.md` → `accepted`; `docs/validations/api-busqueda.md`;
+    este `PROGRESS.md`.
+- Estado: **FT00028 `accepted`**. Rama de producto commit/push + PR hacia `main` a
+  cargo del orquestador. Siguiente feature lista: `api-chat` (FT00031), o
+  `english-identifiers-rename` (FT00047). Tras la capa API, el resto (FT00029+,
+  UI/dist) depende de estos.
+- Gaps abiertos (planificación): (1) **pipeline de resumen** sin cablear
+  (Session 068); (2) **indexado del corpus** sin feature que lo cablee (la búsqueda
+  dará 0 resultados en runtime hasta entonces).

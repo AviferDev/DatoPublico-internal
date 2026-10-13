@@ -153,6 +153,26 @@ ingesta BOE → chunking → embeddings (ONNX) → pgvector → recuperación h�
   `FragmentIndexerLiveTest` (`DB_LIVE_TEST=1` + `EMBEDDING_LIVE_TEST=1`, modelo E5
   real) contra el PostgreSQL de `docker-compose`.
 
+### Estado actual del producto (FT00028)
+
+- La **búsqueda HTTP** (`api-busqueda`, `GET /buscar`) **consume** `HybridSearch`
+  sin modificarlo: `search/SearchService` vectoriza la consulta con `embedQuery`,
+  recupera con `SearchFilter` (categoría y rango de fechas), **deduplica** por
+  publicación conservando el orden de relevancia y **reutiliza**
+  `feed/FeedDtoMapper`; solo sirve publicaciones con resumen `publicado`
+  (`FeedRepository.listPublishedByIds`, lote `ANY(?)` con
+  `SummaryState.PUBLISHED`). El resultado es **top-k** (`limite`, default 10, máx
+  50) con ventana de sobre-recuperación `limite * CANDIDATE_FACTOR`
+  (`CANDIDATE_FACTOR = 5`). Decisión durable en `docs/adr/0023`.
+- El proveedor de embeddings (`rag/embeddings`, FT00015) se **cablea por primera
+  vez** en el composition root de forma **condicional**: sin modelo/config, aviso y
+  `/buscar` **404** (el arranque no falla); con BD y modelo, `/buscar` se registra
+  sobre el **mismo pool** que el feed/la ingesta y el proveedor se cierra **una
+  sola vez** en `ApplicationStopped`. La inferencia ONNX y la lectura JDBC van en
+  `Dispatchers.IO`.
+- **Sin** reranking ni fusión léxica (diferidos): la búsqueda sigue siendo
+  semántica ANN sobre el índice `fragmento` existente.
+
 ## 5. Generación (resumen y chat)
 
 - Proveedor: **OpenCode** (OpenAI-compatible, candidato `deepseek-v4.1-flash`)

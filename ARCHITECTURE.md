@@ -19,6 +19,9 @@
   de motivos con token `snake_case`), `HighlightDto` (publicación + motivos, **sin**
   `score`) y `ResumenDiarioDto` ampliado con `destacados` y paginación
   (`aditivo con defaults`). Ver `docs/adr/0021`.
+  FT00028 añade al contrato de wire la **búsqueda**: `SearchResultsDto` (`q` eco de
+  la consulta + `resultados`, una lista del **mismo** `PublicacionDto` del feed,
+  **sin** `total` ni paginación). Ver `docs/adr/0023`.
 - **`:backend`** — Ktor: ingesta del BOE, RAG, resúmenes, destacados y API.
   Namespace `es.aviferdev.datopublico.backend`. Ya existe el **esqueleto**
   (composition root `Application.kt`, `plugins/` e `infra/`, `GET /health`,
@@ -224,8 +227,26 @@
   identificador desconocido o categoría nula ⇒ `404`; `id` en blanco o desmesurado
   ⇒ `400`). `configureRouting` registra `/publicacion/{id}` **solo** si el servicio
   no es `null`; el composition root lo construye sobre el **mismo pool único** que
-  el feed y la ingesta. Sigue **sin** filtros de búsqueda (FT00028), OpenAPI/CORS/
-  *rate limiting* (FT00029/FT00030) ni migración. Ver `docs/adr/0022`.
+  el feed y la ingesta. En FT00027 aún **no** había búsqueda; OpenAPI/CORS/
+  *rate limiting* (FT00029/FT00030) y la migración siguen pendientes. Ver
+  `docs/adr/0022`.
+  FT00028 añade **`search/`** y **`plugins/Search.kt`**: la **búsqueda** sobre el
+  corpus (`GET /buscar?q=…&categoria=…&desde=…&hasta=…&limite=…`), el tercer
+  endpoint de lectura de datos. `SearchService` (`suspend`, `Dispatchers.IO`)
+  compone `HybridSearch` (FT00017, **sin modificarla**) con la lectura de
+  publicaciones publicadas: recupera por similitud con filtros (`SearchFilter`),
+  **deduplica** por publicación y **reutiliza** el mapeo puro `feed/FeedDtoMapper`;
+  el resultado es **top-k** (`limite`, default 10, máx 50) sin paginación. Solo se
+  sirven publicaciones con resumen `publicado`, resueltas por lote con
+  `FeedRepository.listPublishedByIds` (`ANY(?)`, token `SummaryState.PUBLISHED`);
+  un parámetro inválido responde `400` sin cuerpo tipado y una consulta sin
+  resultados, `200` con lista vacía. `configureRouting` registra `/buscar` **solo**
+  si el servicio no es `null`; el composition root **cablea por primera vez** el
+  proveedor de embeddings locales (`E5EmbeddingProvider`, FT00015) de forma
+  **condicional** (sin modelo, `/buscar` 404 y `/health` operativo) sobre el
+  **mismo pool único** que el feed y la ingesta, y cierra el proveedor **una sola
+  vez** en `ApplicationStopped`. Sin migración (`V1`…`V5` intactas) ni CORS/OpenAPI/
+  *rate limiting*. Ver `docs/adr/0023`.
   Existe **`persistence/`** (FT00008): repositorios **JDBC**
   + entidades `...Entity` de `publicacion`, `fragmento`, `resumen` y
   `cola_revision`, más los helpers JDBC compartidos; la configuración de
@@ -269,9 +290,11 @@
   (`GET /feed?fecha=…`, FT00026) con las publicaciones cuyo resumen está
   `publicado`, paginadas y con los destacados del día explicados por motivos, y
   desde FT00027 el **detalle de publicación** (`GET /publicacion/{id}`), que
-  reutiliza el **mismo** contrato `PublicacionDto` y el mismo mapeo que el feed
-  (ver `docs/adr/0021` y `docs/adr/0022`). Los demás endpoints (búsqueda FT00028,
-  chat FT00031, OpenAPI/CORS/*rate limiting* FT00029/FT00030) llegan con sus
+  reutiliza el **mismo** contrato `PublicacionDto` y el mismo mapeo que el feed, y
+  desde FT00028 la **búsqueda** (`GET /buscar?q=…`), que devuelve las publicaciones
+  publicadas más relevantes por similitud semántica con el mismo contrato
+  (ver `docs/adr/0021`, `docs/adr/0022` y `docs/adr/0023`). Los demás endpoints
+  (chat FT00031, OpenAPI/CORS/*rate limiting* FT00029/FT00030) llegan con sus
   features.
 - **Backend → BOE** (API de datos abiertos + XML oficial, solo lectura, **sin
   clave ni credenciales**): `ingesta/` obtiene el sumario diario (JSON) y, por
@@ -296,8 +319,9 @@
   *upsert* de publicación por `id` es idempotente y es la base del job diario: la
   segunda pasada reejecuta la misma fecha sin duplicar. Desde FT00026
   `Application.kt` crea un **pool único** si la config de BD resuelve, lo comparte
-  entre el feed y el detalle (API) y la ingesta, y lo cierra **una sola vez** en
-  `ApplicationStopped`; sin BD no hay pool y ni el feed ni el detalle se registran. La
+  entre el feed, el detalle y la búsqueda (API) y la ingesta, y lo cierra **una sola
+  vez** en `ApplicationStopped`; sin BD no hay pool y ni el feed, ni el detalle, ni
+  la búsqueda se registran. La
   **recuperación híbrida** (FT00017) consulta
   `fragmento` con un `JOIN publicacion` para aplicar los **filtros de metadatos**
   parametrizados (fecha/categoría/sección/organismo) junto a la distancia coseno;
@@ -318,7 +342,8 @@
 - **IA:** embeddings **locales** (ONNX) y generación/chat **remoto** (OpenCode),
   cada uno tras una interfaz intercambiable. Los embeddings están **implementados**
   como librería en `rag/embeddings/` (FT00015, ADR 0010): E5 int8 vía ONNX Runtime
-  en CPU, tras `EmbeddingProvider`; **no** cableados aún y sin anticipar
+  en CPU, tras `EmbeddingProvider`; desde FT00028 se **cablea de forma
+  condicional** en el composition root (sin modelo, `/buscar` 404) sobre
   pgvector/HNSW (FT00016). La **generación** está implementada como librería en
   `rag/generation/` + `rag/summary/` (FT00020, ADR 0015), tras
   `TextGenerationProvider`, **sin** wiring ni endpoints; el **cacheo** del resumen y

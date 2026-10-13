@@ -776,14 +776,19 @@
     "title": "Endpoint de búsqueda",
     "user_visible_behavior": "La API permite buscar en el corpus con una consulta y filtros de categoría y fecha.",
     "depends_on": [
-      "recuperacion-hibrida"
+      "recuperacion-hibrida",
+      "api-feed-diario",
+      "cola-revision-confianza"
     ],
-    "status": "not_started",
+    "status": "accepted",
     "verification": [
       "`GET` de búsqueda con consulta y filtros devuelve resultados relevantes y respeta los filtros."
     ],
-    "evidence": [],
-    "notes": "Fuente: docs/roadmap.md 0.5-T03."
+    "evidence": [
+      "FT00028 (2026-10-13, rama feat/ft00028-api-busqueda, implementer + autoverificación): endpoint público de solo lectura `GET /buscar?q=<consulta>&categoria=<token>&desde=<ISO>&hasta=<ISO>&limite=<n>` (top-k, default 10, máx 50). `:shared`: `SearchResultsDto` (`q` + `resultados: List<PublicacionDto>`) + `SearchContractTest`. `:backend`: `search/SearchService` (suspend; `Dispatchers.IO`; reutiliza `HybridSearch`/`SearchFilter`/`SearchFilterSql` de FT00017 **sin modificarlos**; dedup por publicación conservando relevancia; `candidateLimit = limite × 5`; reutiliza `FeedDtoMapper.toPublicacionDto`); `plugins/Search.kt` (`GET /buscar`, validación de `q`/`categoria`/fechas/`limite` → 400 sin cuerpo); `plugins/Routing.kt` (tercer colaborador opcional, ruta condicional); `Application.kt` (primer **cableado condicional** del `EmbeddingProvider` ONNX: sin modelo o sin BD, `/buscar` no se registra; cierre único del pool y del proveedor); `persistence/FeedRepository` ampliado *aditivo* con `listPublishedByIds(ids)` (`ANY(?::text[])`, `r.estado = SummaryState.PUBLISHED`). Tests de gate: `SearchServiceTest` 9, `SearchRouteTest` 7, `SearchContractTest` 3; live opt-in `SearchPersistenceLiveTest`/`SearchServiceLiveTest`. Solo sirve publicaciones con resumen `estado='publicado'`. Gate sin red/BD/modelo verde: `:backend:test --rerun-tasks` **432 tests, 0 fallos**; `:shared:jvmTest` 33; `build -PskipClient` 23 tareas; `test` 63 tareas/3 módulos; `detekt`+`:cpdCheck`; `init.sh` exit 0. Arranque sin BD ni modelo: `/health` 200, `/feed` 404, `/publicacion/{id}` 404, `/buscar` 404. Sin migración, sin dependencias nuevas, sin tocar `:composeApp`/CI/`init.sh`. Nota: la rama se rebasó sobre `main` (con FT00026 y FT00027) y el orquestador resolvió conflictos aditivos en `Application.kt`/`Routing.kt`/`docs/desarrollo-local.md`. Live opt-in no ejecutado (sin Docker/modelo) — limitación aceptada.",
+      "Aceptación independiente (`feature-validator`, 2026-10-13): veredicto **`accept`**. Confirmó el diff (14 ficheros vs `origin/main`, merge-base `defd04f`), reejecutó el gate real (`:backend:test` 432/0/0; `:shared:jvmTest` 33/0/0; `build -PskipClient` 23 tareas; `test` 63 tareas/3 módulos; `detekt`+`:cpdCheck`; `init.sh` exit 0; arranque sin BD ni modelo con `/health` 200 y `/feed`/`/publicacion/{id}`/`/buscar` 404), revisó con lupa la resolución del rebase (convivencia de feed/detalle/búsqueda y cierre único de pool y proveedor) y comprobó los escenarios 1–8, el filtro `estado='publicado'` vía token tipado, la reutilización real sin mapper por ítem, `FeedRepository` solo ampliado, SQL parametrizado, `Dispatchers.IO`, `@SerialName`/sufijos `Dto`, un solo `return`/sin `else if`/≤40 líneas y el alcance acotado. Sin hallazgos Critical/High/Medium; **Low** no bloqueante: estado del harness pendiente de persistir (resuelto aquí), frase obsoleta en `ARCHITECTURE.md` (corregida) y dos puntos colgantes en `docs/desarrollo-local.md` (corregidos). Sin hallazgos de seguridad."
+    ],
+    "notes": "Fuente: docs/roadmap.md 0.5-T03. Dependencias añadidas por el orquestador: `api-feed-diario` (FT00026, reutiliza `FeedDtoMapper` y amplía `FeedRepository`) y `cola-revision-confianza` (FT00023, token `estado='publicado'`). Primer cableado del proveedor de embeddings ONNX. Mismo gap de planificación que FT00026/FT00027: sin indexado del corpus ni pipeline de resumen cableados, la búsqueda puede dar 0 resultados en runtime."
   },
   {
     "id": "api-contratos-openapi",
