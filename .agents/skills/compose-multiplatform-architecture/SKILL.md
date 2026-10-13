@@ -15,11 +15,24 @@ fija el lenguaje de dominio.
 (`wasmJs { browser(); binaries.executable() }`), con la UI compartida en
 `commonMain` (`App()`) y un entrypoint mínimo por plataforma. El target `jvm()` se
 conserva **solo** para tests/dev (`:composeApp:jvmTest` y la task raíz `test`).
-Todavía **no** hay pantallas reales, navegación, ViewModels, tema completo,
-recursos ni red; y `:composeApp` **no** depende de `:shared` (llega con la primera
-UI que necesite DTOs, FT00032). El patrón de este documento sigue siendo el
-**objetivo acordado**: no asumas que el estado actual ya lo cumple y no inventes
-otra arquitectura.
+
+Desde FT00032 (`ui-feed`) hay **UI real y su base** (decisión durable en
+`docs/adr/0027`): el **tema** `DatoPublicoTheme` (`design/theme/`, tokens de
+`DESIGN.md`, única entrada), los **componentes reutilizables**
+`design/components/{CategoryLabel,PublicationCard,PublicationBadges}`, los
+**textos i18n** en `composeResources/values/strings.xml` (leídos con
+`stringResource(Res.string.*)`) y la **primera capa de feature**
+`feature/feed/{domain,data,ui}` con modelos propios del cliente, `GetDailyFeed` +
+`FeedRepository` + `InMemoryFeedRepository` (datos de ejemplo; modos vacío/fallo),
+`FeedUiState`/`FeedStateHolder` (estado **local** con `mutableStateOf`) y
+`FeedRoute`/`FeedScreen`/`HighlightsSection` (stateless + `@Preview` por estado).
+
+Todavía **no** hay navegación, ViewModels/`StateFlow`, cliente HTTP ni caché
+(FT00034/FT00035) ni detalle/búsqueda/chat (FT00033/FT00036/FT00037); y
+`:composeApp` **no** depende de `:shared` (el mapeo `PublicacionDto → Publication`
+llega con FT00035, para no romper el gate SDK-free). El patrón de este documento
+sigue siendo el **objetivo acordado**: no asumas que el estado actual ya lo cumple
+y no inventes otra arquitectura.
 
 ## Topología de build (decidido)
 

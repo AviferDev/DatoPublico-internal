@@ -870,12 +870,15 @@
       "api-feed-diario",
       "bootstrap-cmp-targets"
     ],
-    "status": "not_started",
+    "status": "accepted",
     "verification": [
       "El feed muestra tarjetas de publicaciones con su categoría y los destacados, y los estados vacío/carga/error en las tres plataformas."
     ],
-    "evidence": [],
-    "notes": "Fuente: docs/roadmap.md 0.6-T01/T07, DESIGN.md."
+    "evidence": [
+      "FT00032 (2026-10-13, rama feat/ft00032-ui-feed, implementer + autoverificación): primera **UI real** de `:composeApp` (Compose Multiplatform, `commonMain`), arquitectura por capas `feature/feed/{domain,data,ui}` + `design/{theme,components}`. **Tema** `DatoPublicoTheme` (tokens de `DESIGN.md`); **i18n** con `composeResources/values/strings.xml` (30 claves, 0 literales de UI fuera de previews); **componentes** `CategoryLabel`, `PublicationBadges`, `PublicationCard`; **capas** `domain/` (`DailyFeed`, `Publication`, `PublicationCategory`, `HighlightReason`, `Deadline`, `FeedLoadResult` sin excepción, `GetDailyFeed`, `formatIsoDate` puro), `data/` (`FeedRepository`, `InMemoryFeedRepository` con 6 publicaciones de ejemplo y modos `SAMPLE`/`EMPTY`/`UNAVAILABLE`), `ui/` (`FeedUiState`, `FeedStateHolder` local con `mutableStateOf`, `FeedRoute`, `FeedScreen`, `HighlightsSection`, estados vacío/carga/error). `App()` con DI manual. `:composeApp` queda **desacoplado de `:shared`** (HTTP real = FT00035); sin ViewModel/StateFlow/navegación (FT00034). `@Preview` en toda función `@Composable`; Material Icons; colores solo de `MaterialTheme.colorScheme` (definición en el tema); sin crashes; estilo MUST. Gate **con cliente** verde: `:composeApp:jvmTest` **15 tests, 0 fallos**; `assembleDebug` (APK) y `wasmJsBrowserDistribution` OK; `test` (`:composeApp` 15 + `:backend` 481 + `:shared` 39, 0 fallos); `detekt`+`:cpdCheck`; `build --no-daemon` 211 tareas; `init.sh` y `init.sh --with-client` exit 0; framework iOS OK. **Capturas** antes/después/vacío/error en `docs/pr/ft00032-ui-feed/` (emulador Android headless). Sin tocar `:shared`/`:backend`/CI/`init.sh`/`libs.versions.toml`. Desviaciones declaradas: `AndroidManifest.xml` (`Theme.Material.Light.NoActionBar`) + `safeDrawingPadding()` por edge-to-edge con `targetSdk 35`; `formatIsoDate` en `FeedModels.kt`; mapeo categoría→tono; datos de preview factorizados. ADR 0027.",
+      "Aceptación independiente (`feature-validator`, 2026-10-13): veredicto **`accept`**. Reejecutó el gate real (`:composeApp:jvmTest` 15/0; `assembleDebug`; `wasmJsBrowserDistribution`; `test` agregado 0 fallos; `detekt`+`:cpdCheck`; `build --no-daemon` 211 tareas; `init.sh` y `init.sh --with-client` exit 0) y **abrió y verificó las 4 capturas** (antes = esqueleto FT00005; después = feed con destacados/tarjetas/badges; vacío; error con reintento). Comprobó i18n (30 claves usadas, 0 literales fuera de preview), `@Preview` en las 16 funciones `@Composable`, Material Icons, colores solo del tema, ausencia de crashes, arquitectura por capas sin invadir FT00034/FT00035, estilo MUST y alcance. Sin hallazgos Critical/High/Medium; **Low**: tono de «Empleo público» (reconciliar `DESIGN.md`), inversión design→feature/domain (declarada en ADR 0027) y bookkeeping del harness (resuelto aquí). Sin hallazgos de seguridad."
+    ],
+    "notes": "Fuente: docs/roadmap.md 0.6-T01/T07, DESIGN.md. Primera UI real de Compose Multiplatform; introduce tema, i18n, componentes y capas del cliente. `:composeApp` desacoplado de `:shared` (HTTP real = FT00035); estado local sin ViewModel (FT00034). ADR 0027. Low: reconciliar en `DESIGN.md` el tono de «Empleo público»."
   },
   {
     "id": "ui-detalle",

@@ -3791,3 +3791,40 @@
 - Gaps de planificación abiertos: (1) pipeline de resumen sin cablear (Session 068);
   (2) indexado del corpus sin cablear. Hasta resolverlos, en runtime el feed sale
   vacío, el detalle da 404, la búsqueda 0 resultados y el chat `sin_fundamento`.
+
+### Session 074
+
+- Fecha: 2026-10-13
+- Objetivo: planificar, implementar y validar `ui-feed` (FT00032) — primera UI real
+  de Compose Multiplatform — y **arrancar el trabajo en paralelo** con worktrees.
+- Completado (FT00032):
+  - **Planner**: spec `docs/specs/ui-feed.md` (~24 ficheros; atómica).
+  - **Implementer**: UI del feed en `:composeApp` (`feature/feed/{domain,data,ui}` +
+    `design/{theme,components}`): tema `DatoPublicoTheme`, i18n
+    (`composeResources/values/strings.xml`), componentes (categoría, badges, tarjeta),
+    estados vacío/carga/error, repositorio en memoria con datos de ejemplo. `App()`
+    con DI manual. `:composeApp` **desacoplado de `:shared`** (HTTP real = FT00035);
+    sin ViewModel/navegación (FT00034). Capturas antes/después/vacío/error en
+    `docs/pr/ft00032-ui-feed/` (emulador Android headless). Docs durables:
+    `ARCHITECTURE.md`, `CONSTRAINTS.md` §«Cliente», ADR **0027** + índice, skill
+    `compose-multiplatform-architecture`, `docs/desarrollo-local.md`.
+  - **Validator**: veredicto **`accept`** (gate con cliente verde: `:composeApp:jvmTest`
+    15/0; `assembleDebug`; Wasm; `test` 0 fallos; `detekt`+`:cpdCheck`; `build`
+    211 tareas; `init.sh`/`--with-client` exit 0; **4 capturas abiertas y
+    verificadas**). Sin hallazgos Critical/High/Medium; **Low**: tono de «Empleo
+    público» (reconciliado en `DESIGN.md`), inversión `design→feature/domain`
+    (seguimiento en FT00033+) y bookkeeping (resuelto).
+  - Persistida la aceptación: `feature_list.json` FT00032 → **`accepted`** +
+    evidencia; `docs/feature-ids.md` → `accepted`; `docs/validations/ui-feed.md`;
+    `DESIGN.md` reconciliado; este `PROGRESS.md`.
+- Paralelismo (petición del usuario: «continua con todos los que puedas en paralelo
+  usando worktree»). Con FT00032 aceptada, el grafo de dependencias solo deja libres
+  **FT00041 `deploy-backend`** y **FT00047 `english-identifiers-rename`**; el resto de
+  la UI (FT00033/34/35 y siguientes) depende de `ui-feed`/`ui-navegacion-estado`.
+  Creados **worktrees** en `/Users/aviferdev/Documents/Git/DatoPublico-wt/{ft00041,ft00047}`
+  (el checkout principal no contiene `.harness`, así que los subagentes leen specs del
+  harness en la ruta absoluta del checkout principal y ejecutan Gradle dentro de su
+  worktree). Reclamadas ambas ramas con push del *claim*.
+- Estado: **FT00032 `accepted`**; rama de producto commit/push + PR hacia `main` a
+  cargo del orquestador. Siguiente: FT00033/34/35 (UI) tras mergear FT00032;
+  FT00041 y FT00047 en marcha en worktrees.

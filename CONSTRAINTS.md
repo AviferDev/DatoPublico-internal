@@ -779,6 +779,25 @@
   los glifos Unicode/ASCII se reservan a lo tipográfico dentro de un texto.
 - **MUST**: las pantallas leen sus colores **solo** de `MaterialTheme.colorScheme.*`;
   nunca fijan un color de runtime. Los literales de color solo se permiten en `@Preview`.
+- **MUST**: el tema del cliente es **`DatoPublicoTheme`** (`design/theme/`), la
+  **única** entrada de tema: mapea los tokens de `DESIGN.md` (color, tipografía y
+  formas) a `MaterialTheme` y es el **único** lugar con literales de color. Una
+  pantalla nueva no define su propio `MaterialTheme`. Decisión durable en
+  `docs/adr/0027`.
+- **MUST**: los **componentes reutilizables** del cliente viven en
+  `design/components/` (los usa ≥2 features o los reutilizarán las siguientes:
+  `CategoryLabel`, `PublicationCard`, `PublicationBadges`); lo específico de una
+  sola feature va en `feature/<nombre>/ui/`. Decisión durable en `docs/adr/0027`.
+- **MUST**: los **textos de UI** de `:composeApp` salen de
+  `composeResources/values*/strings.xml` (leídos con `stringResource(Res.string.*)`)
+  y la **fecha** se formatea con una función pura `dd/mm/aaaa` (sin
+  `java.time`/`kotlinx-datetime`, que romperían iOS/Wasm). Decisión durable en
+  `docs/adr/0027`.
+- **MUST**: el cliente Android declara un tema **sin ActionBar**
+  (`@android:style/Theme.Material.Light.NoActionBar` en `AndroidManifest.xml`) y el
+  contenido raíz se pinta con `safeDrawingPadding()`. Con `targetSdk 35` el modo
+  *edge-to-edge* está forzado: un ActionBar de plataforma se **superpone** al
+  contenido de Compose y oculta el encabezado de la pantalla.
 
 ## Build y repositorios
 

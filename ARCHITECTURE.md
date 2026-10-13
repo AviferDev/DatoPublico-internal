@@ -322,8 +322,19 @@
   `androidTarget`, `iosArm64`/`iosSimulatorArm64` (framework `ComposeApp`) y
   `wasmJs` (browser, ejecutable), con la **UI compartida en `commonMain`**
   (`App()`) y un entrypoint por plataforma; además conserva `jvm()` **solo** para
-  tests/dev. Aún **no** depende de `:shared` (llega con la primera UI que necesite
-  DTOs, FT00032).
+  tests/dev. Desde FT00032 tiene la **primera UI real**: `design/` (tema
+  `DatoPublicoTheme` con los tokens de `DESIGN.md` y componentes reutilizables
+  `CategoryLabel`/`PublicationCard`/`PublicationBadges` en `design/components/`),
+  **recursos i18n** en `composeResources/values/strings.xml` (todo texto visible
+  sale de `stringResource(Res.string.*)`) y la **primera capa de feature** por
+  capas `feature/feed/{domain,data,ui}` (modelos propios del cliente,
+  `GetDailyFeed` + `FeedRepository`, `InMemoryFeedRepository` con datos de
+  ejemplo, `FeedUiState`/`FeedStateHolder`/`FeedRoute`/`FeedScreen`/
+  `HighlightsSection`). Es solo **UI + estado local**: **no** hay red ni
+  `ktor-client`, **no** se cablea `:shared` (el mapeo `PublicacionDto →
+  Publication` es FT00035), **no** hay `ViewModel`/`StateFlow`/navegación
+  (FT00034) ni detalle/búsqueda/chat (FT00033/FT00036/FT00037). Decisión durable
+  en `docs/adr/0027`.
 
 ## Build y gate
 

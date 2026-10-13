@@ -64,11 +64,12 @@ hacerlo, se guardarán en `docs/design/concepts/` y se referenciarán aquí.
 
 ## Colors
 
-- **primary `#1A4D8F`:** acciones principales, encabezados y enlaces.
-- **secondary `#0F766E`:** acentos informativos (contexto, datos) y categoría
-  **Empleo público**.
-- **accent `#F59E0B`:** avisos y plazos que requieren atención, y categoría
-  **Becas y subvenciones**.
+- **primary `#1A4D8F`:** acciones principales, encabezados, enlaces y categorías
+  normativas.
+- **secondary `#0F766E`:** acentos informativos (contexto, datos) y categorías
+  administrativas (p. ej. nombramientos y ceses, convenios y acuerdos).
+- **accent `#F59E0B`:** avisos y plazos que requieren atención, y las
+  **convocatorias** (empleo público, becas y subvenciones).
 - **background `#F7F9FC`:** fondo general, descansado.
 - **surface `#FFFFFF`:** tarjetas y superficies de contenido.
 - **text `#1F2937`:** texto principal con buen contraste.
@@ -76,7 +77,7 @@ hacerlo, se guardarán en `docs/design/concepts/` y se referenciarán aquí.
 Las categorías (**11**) se muestran como **etiquetas sobrias**; no se asigna un
 color único a cada una. Se agrupan en tonos: `primary` para lo normativo,
 `secondary` para lo informativo/administrativo y `accent` para lo que implica
-plazo o atención (convocatorias y ayudas).
+plazo o atención (**convocatorias**: empleo público y ayudas).
 
 ## Typography
 
