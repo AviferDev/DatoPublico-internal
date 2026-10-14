@@ -340,10 +340,15 @@
   `ktor-client` con motores por plataforma, URL base y fecha por `expect/actual`,
   `HttpTimeout` y errores tipados) y `feature/feed/data/` añade **DTOs de wire del
   cliente** (capa anti-corrupción), su **mapeo al dominio** y una **cache offline en
-  memoria**. `:composeApp` **sigue sin cablear `:shared`** (para no romper el gate
-  SDK-free) y **no** hay `ViewModel`/`StateFlow`/navegación (FT00034) ni
-  búsqueda/chat (FT00036/FT00037). Decisiones durables en `docs/adr/0027`,
-  `docs/adr/0028` y `docs/adr/0029`.
+  memoria**. Desde FT00034 el estado del feed lo expone un **`FeedViewModel`**
+  (androidx.lifecycle multiplataforma) como `StateFlow<FeedUiState>` (UDF, composables
+  stateless, `collectAsStateWithLifecycle`) y la app monta el **grafo de navegación**
+  `app/AppNavHost`/`app/AppRoutes` (`feed` y `detail/{publicationId}`,
+  `navigation-compose` oficial); el destino `detail` es un **placeholder** (la
+  pantalla real de FT00033 se integrará después). `:composeApp` **sigue sin cablear
+  `:shared`** (para no romper el gate SDK-free) y **no** hay búsqueda/chat
+  (FT00036/FT00037). Decisiones durables en `docs/adr/0027`, `docs/adr/0028`,
+  `docs/adr/0029` y `docs/adr/0031`.
 
 ## Build y gate
 

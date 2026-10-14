@@ -822,6 +822,14 @@
   memoria y **sin datos personales**; al fallar la red se sirve el último contenido
   cacheado o se muestra el estado de error. La persistencia entre arranques no es
   un requisito (deuda futura). Decisión durable en `docs/adr/0029`.
+- **MUST**: cada pantalla expone su estado con un **`XViewModel`** (androidx.lifecycle
+  multiplataforma) como `StateFlow<XUiState>` **inmutable** (UDF); los composables son
+  **stateless** y la UI recolecta con `collectAsStateWithLifecycle()`; los eventos son
+  métodos del ViewModel (p. ej. `onRetry()`), **nunca** estado mutable expuesto.
+  Decisión durable en `docs/adr/0031`.
+- **MUST**: la navegación usa la **librería oficial de CMP** (`navigation-compose`),
+  con las rutas declaradas en `app/AppRoutes` y `navArgument`; el argumento se lee con
+  `.orEmpty()` (nunca `!!`). Decisión durable en `docs/adr/0031`.
 
 ## Build y repositorios
 

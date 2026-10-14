@@ -3911,3 +3911,30 @@
   **FT00036/FT00037** esperan FT00034 en `main` para implementarse. Stop antes de
   Distribución (FT00038–40).
 - Decisión durable: **ADR 0029** (cliente HTTP común + cache offline).
+
+### Session 078
+
+- Fecha: 2026-10-14
+- Objetivo: cerrar `ui-navegacion-estado` (FT00034).
+- Completado (FT00034 → `accepted`):
+  - **Implementer** (worktree `ft00034`, vía `general`): estado UDF (`FeedViewModel`
+    con `StateFlow`, composables stateless, `collectAsStateWithLifecycle`;
+    `FeedStateHolder` eliminado) + navegación oficial CMP (`AppNavHost`/`AppRoutes`,
+    `feed`/`detail/{publicationId}`, `navigation-compose` 2.8.0-alpha11 + `lifecycle`
+    2.8.4) + clic en `PublicationCard`; destino `detail` **placeholder**.
+  - **Validator** (`general`): veredicto **`accept`** (`:composeApp:jvmTest` 22/0;
+    `assembleDebug`; Wasm; iOS; `test` 0 fallos; `detekt`+`:cpdCheck`; `build` 211
+    tareas; `build -PskipClient`). Sin hallazgos High/Medium.
+  - **Rebase e incidencias:** la rama se rebasó sobre `main` (FT00033); conflicto de
+    `docs/desarrollo-local.md` resuelto y **duplicado de la clave i18n `cd_back`**
+    (rompía `convertXmlValueResourcesForCommonMain`) corregido; KDoc que citaba
+    «ADR 0028» corregido a **0031**.
+  - Persistida la aceptación: `feature_list.json` FT00034 → **`accepted`**;
+    `docs/feature-ids.md`; ADR **0031** + índice; `ARCHITECTURE.md`,
+    `CONSTRAINTS.md`; `docs/validations/ui-navegacion-estado.md`; este `PROGRESS.md`.
+    PR abierto.
+- Estado: **FT00034 `accepted`** (PR). **FT00036/FT00037** ya pueden implementarse
+  (dependen de FT00034). **FT00033/FT00034** conviven: el detalle real (FT00033) aún
+  **no** está integrado en el grafo (el destino `detail` es placeholder); integración
+  pendiente.
+- Decisión durable: **ADR 0031** (navegación + ViewModel/`StateFlow`).

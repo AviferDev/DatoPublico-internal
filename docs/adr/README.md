@@ -88,3 +88,4 @@ Aceptado (<AAAA-MM-DD>). [Quién decide y, si aplica, qué ADR supersede/ajusta.
 | [0028](0028-detalle-cliente-contrato-vocabulario-diferido.md) | Pantalla de detalle del cliente como contrato (`DetailRoute`) y vocabulario compartido diferido | Aceptado |
 | [0029](0029-cliente-http-comun-cache-offline.md) | Cliente HTTP común del cliente CMP (`ktor-client`), DTOs anti-corrupción y cache offline en memoria | Aceptado |
 | [0030](0030-despliegue-servidor-propio.md) | Despliegue del backend en servidor propio (Docker + Nginx + HTTPS, cabeceras de proxy opt-in, sin cron externo) | Aceptado |
+| [0031](0031-navegacion-viewmodel-stateflow-cmp.md) | Navegación oficial de Compose Multiplatform y estado por ViewModel/`StateFlow` (UDF) | Aceptado |

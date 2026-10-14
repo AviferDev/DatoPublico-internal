@@ -909,12 +909,15 @@
     "depends_on": [
       "ui-feed"
     ],
-    "status": "not_started",
+    "status": "accepted",
     "verification": [
       "La navegación feed → detalle → atrás funciona y se conserva el estado."
     ],
-    "evidence": [],
-    "notes": "Fuente: docs/roadmap.md 0.6-T03, docs/technical-discovery.md (StateFlow/ViewModels)."
+    "evidence": [
+      "FT00034 (2026-10-14, rama feat/ft00034-ui-navegacion-estado, implementer + autoverificación): **navegación y estado** en `:composeApp`. **Estado UDF**: `FeedViewModel` (androidx.lifecycle multiplataforma) expone `StateFlow<FeedUiState>` inmutable (`stateIn(viewModelScope, SharingStarted.Eagerly, Loading)`), `onRetry()` como evento, composables stateless y `collectAsStateWithLifecycle`; **`FeedStateHolder` eliminado**. **Navegación oficial CMP**: `app/AppNavHost` + `app/AppRoutes` (`feed` y `detail/{publicationId}`) con `navigation-compose` (2.8.0-alpha11) + `lifecycle-*-compose` (2.8.4), `navArgument` y `.orEmpty()`. `PublicationCard` ahora `Surface(onClick=…)` propagado por `HighlightsSection`/`FeedScreen`/`FeedRoute`; destino `detail` = **placeholder** (`DetailPlaceholderScreen`) hasta integrar FT00033. Tests: `FeedViewModelTest` 7, `AppRoutesTest` 6 (borrado `FeedStateHolderTest`). Gate **con cliente** verde: `:composeApp:jvmTest` **22 tests, 0 fallos**; `assembleDebug`; `wasmJsBrowserDistribution`; `linkDebugFrameworkIosSimulatorArm64`; `test` agregado (`:composeApp` 22 + `:backend` 481 + `:shared` 39) 0 fallos; `detekt`+`:cpdCheck`; `build --no-daemon` 211 tareas; `build -PskipClient`. **Capturas** `antes-feed`/`despues-detalle` en `docs/pr/ft00034-ui-navegacion-estado/` (emulador Android). Sin tocar `:shared`/`:backend`/CI/`init.sh`/`DESIGN.md`. Desviación declarada: `@Suppress(\"FunctionNaming\")` en `AppNavHost.kt`. Decisión durable en ADR 0031.",
+      "Aceptación independiente (`feature-validator`, 2026-10-14): veredicto **`accept`**. Reejecutó el gate real (`:composeApp:jvmTest` 22/0; `assembleDebug`; Wasm; iOS; `test` agregado 0 fallos; `detekt`+`:cpdCheck`; `build --no-daemon` 211 tareas; `build -PskipClient`) y verificó: UDF (`StateFlow` inmutable, composables stateless, `collectAsStateWithLifecycle`, `FeedStateHolder` eliminado sin referencias stale), navegación (`AppNavHost`/`AppRoutes`, `navArgument`, `.orEmpty()`), clic propagado, detalle placeholder, conservación de estado al volver, i18n, `@Preview`, Material Icons, colores del tema, capturas abiertas y alcance. Sin hallazgos High/Medium; **Low**: docs durables del harness (resueltas aquí), `@Suppress(\"FunctionNaming\")`, KDoc de `FeedViewModel` que citaba el ADR (corregido a 0031), cabecera de `strings.xml` y frontera con FT00033. Sin hallazgos de seguridad. Nota del orquestador: el rebase sobre `main` (FT00033) produjo un duplicado de la clave i18n `cd_back` (corregido) y el conflicto de `docs/desarrollo-local.md` (resuelto)."
+    ],
+    "notes": "Fuente: docs/roadmap.md 0.6-T03, docs/technical-discovery.md (StateFlow/ViewModels). Patrón de estado objetivo (ViewModel+StateFlow UDF) y navegación oficial CMP; destino `detail` placeholder hasta integrar `DetailRoute` (FT00033). ADR 0031. Dependencia de `navigation-compose` (alpha, versión fijada) + `lifecycle` multiplataforma."
   },
   {
     "id": "ui-cliente-http-cache",
