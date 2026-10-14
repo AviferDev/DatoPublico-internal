@@ -3958,3 +3958,27 @@
   (FT00041 despliegue) queda abierto a petición del dueño (lo mergeará al final).
 - Siguiente: **FT00036 `ui-busqueda-filtros`** y **FT00037 `ui-chat`** (serializadas
   por compartir el grafo de navegación).
+
+### Session 080
+
+- Fecha: 2026-10-14
+- Objetivo: cerrar `ui-chat` (FT00037) y `ui-busqueda-filtros` (FT00036), las dos
+  últimas features de la **UI del cliente CMP**.
+- Completado (FT00037 → `accepted`):
+  - **Implementer** (worktree `ft00037`, vía `general`): `feature/chat/` con estados
+    de dominio, citas y aviso IA; **`HttpChatRepository`** sobre `core/network`
+    (ajuste del orquestador, FT00035 ya en `main`); navegación aditiva (destino
+    `chat` + acción en el encabezado del feed).
+  - **Validator** (`general`): `revise` → reparación → **`accept`**. Hallazgos
+    cerrados: `@Preview` de `ChatStatusLabel` (MUST) y encabezado del feed visible
+    en **todos** los estados. Gate `:composeApp:jvmTest` 78/0. PR abierto.
+  - Persistida: `feature_list.json` FT00037 → **`accepted`**; `docs/feature-ids.md`;
+    ADR **0032** + índice; `ARCHITECTURE.md`, `CONSTRAINTS.md`;
+    `docs/validations/ui-chat.md`; este `PROGRESS.md`.
+- En curso: **FT00036** (implementada, rebasada; validator dio `revise` por el mismo
+  hallazgo del encabezado del feed, que la reparación de FT00037 ya resuelve). Se
+  rebasará sobre FT00037/main y se revalidará.
+- Estado: **FT00032–FT00035, FT00034-PT1 y FT00037 `accepted`** (FT00037 en PR);
+  **FT00036** pendiente de revalidación. #35 (despliegue) queda abierto a petición
+  del dueño.
+- Decisión durable: **ADR 0032** (UI del chat RAG).

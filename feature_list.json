@@ -965,13 +965,16 @@
       "api-chat",
       "ui-navegacion-estado"
     ],
-    "status": "not_started",
+    "status": "accepted",
     "verification": [
       "La app permite enviar una pregunta o afirmación y muestra la respuesta (o refutación) con las fuentes citadas en las tres plataformas.",
       "Se cubren los estados de carga, error, sin fundamento y refutación."
     ],
-    "evidence": [],
-    "notes": "Fuente: docs/roadmap.md 0.6-T08, DESIGN.md."
+    "evidence": [
+      "FT00037 (2026-10-14, rama feat/ft00037-ui-chat, implementer + autoverificación): **UI del chat RAG** en `:composeApp`. Capa `feature/chat/{domain,data,ui}`: `ChatStatus`/`ChatCitation`/`ChatAnswer`/`ChatLoadResult`, `AskChatQuestion` (`MAX_QUERY_LENGTH=1000`, consulta en blanco no llama), puerto `ChatRepository`, `InMemoryChatRepository` (previews/tests), **`HttpChatRepository` + `ChatApi`** sobre `core/network` (`POST /v1/chat`, DTOs `@SerialName` + mapeo) inyectado en `App()`; `ChatViewModel` (`StateFlow`, UDF), `ChatRoute`/`ChatScreen`/`ChatQuestionField`/`ChatAnswerCard`/`ChatCitations`. Estados **idle/carga/respondida/refutada/sin fundamento/error+reintento**; `sin_fundamento` es estado (no error, citas vacías); `respondida`/`refutada` con ≥1 cita y **aviso de IA**. Navegación aditiva: `AppRoutes.CHAT`, destino `chat` y acción «Preguntar al BOE» en el **encabezado del feed visible en todos los estados**. `@Preview` en toda función `@Composable`; i18n; Material Icons; colores del tema. Gate **con cliente** verde: `:composeApp:jvmTest` **78 tests, 0 fallos** (24 nuevos, con `MockEngine`); `assembleDebug`; `wasmJsBrowserDistribution`; iOS framework; `test`; `detekt`+`:cpdCheck`; `build -PskipClient`. **Capturas** `antes`/`despues`/`despues-chat-sin-fundamento` en `docs/pr/ft00037-ui-chat/`. Sin tocar `:shared`/`:backend`/CI/`init.sh`. Desviaciones declaradas: DTOs+mapeo en `ChatDtos.kt`; `AiNotice(text=…)`/`isHttpUrl` aditivos; HTTP real (ajuste del orquestador); `ChatUiState.kt` fusionado en `ChatViewModel.kt` (límite de 30 ficheros). ADR 0032.",
+      "Aceptación independiente (`feature-validator`, 2026-10-14): veredicto **`accept`** (tras un `revise`). Reejecutó el gate real (`:composeApp:jvmTest` 78/0; `assembleDebug`; Wasm; iOS; `test`; `detekt`+`:cpdCheck`; `build -PskipClient`) y verificó los estados, `sin_fundamento` (citas vacías), `respondida`/`refutada` con cita + aviso IA, `AskChatQuestion`, `HttpChatRepository` sobre `core/network`, navegación aditiva, `@Preview` (cerrado el hallazgo del `ChatStatusLabel`), i18n, Material Icons, colores del tema y estilo MUST; capturas abiertas. **Cerrados**: falta de `@Preview` (MUST) y entrada al chat solo desde `Content` (ahora el encabezado se ve en todos los estados). **Parcial declarado**: capturas `refutada`/`error` no incluidas por el límite de 30 ficheros (verificadas en vivo). Sin hallazgos High; sin hallazgos de seguridad."
+    ],
+    "notes": "Fuente: docs/roadmap.md 0.6-T08, DESIGN.md. Chat RAG con estados de dominio y citas; conectado a la API real (`/v1/chat`) sobre `core/network` (ajuste del orquestador, ya que FT00035 estaba en `main`). ADR 0032. En runtime, sin el pipeline de resumen/indexado cableados, el chat devuelve `sin_fundamento`."
   },
   {
     "id": "dist-android",

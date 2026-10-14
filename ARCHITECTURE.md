@@ -345,10 +345,13 @@
   stateless, `collectAsStateWithLifecycle`) y la app monta el **grafo de navegación**
   `app/AppNavHost`/`app/AppRoutes` (`feed` y `detail/{publicationId}`,
   `navigation-compose` oficial); el destino `detail` monta ya la **pantalla real**
-  de FT00033 (`DetailRoute`, integrada por FT00034-PT1). `:composeApp` **sigue sin cablear
-  `:shared`** (para no romper el gate SDK-free) y **no** hay búsqueda/chat
-  (FT00036/FT00037). Decisiones durables en `docs/adr/0027`, `docs/adr/0028`,
-  `docs/adr/0029` y `docs/adr/0031`.
+  de FT00033 (`DetailRoute`, integrada por FT00034-PT1). Desde FT00037 añade la capa
+  `feature/chat/{domain,data,ui}` (chat RAG con los estados de dominio, citas y
+  aviso de IA; `HttpChatRepository` sobre `core/network`), el destino `chat` y una
+  acción en el encabezado del feed. `:composeApp` **sigue sin cablear `:shared`**
+  (para no romper el gate SDK-free) y **no** hay búsqueda (FT00036). Decisiones
+  durables en `docs/adr/0027`, `docs/adr/0028`, `docs/adr/0029`, `docs/adr/0031` y
+  `docs/adr/0032`.
 
 ## Build y gate
 

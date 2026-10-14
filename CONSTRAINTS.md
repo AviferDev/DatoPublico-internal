@@ -830,6 +830,11 @@
 - **MUST**: la navegación usa la **librería oficial de CMP** (`navigation-compose`),
   con las rutas declaradas en `app/AppRoutes` y `navArgument`; el argumento se lee con
   `.orEmpty()` (nunca `!!`). Decisión durable en `docs/adr/0031`.
+- **MUST**: la **UI del chat RAG** muestra los tres estados de dominio
+  (`respondida`/`refutada`/`sin_fundamento`) con las **citas a la fuente oficial** y
+  el **aviso de IA**; `sin_fundamento` **no** es un error (sin reintento, citas
+  vacías) y la consulta en blanco no llama al proveedor. Decisión durable en
+  `docs/adr/0032`.
 
 ## Build y repositorios
 
