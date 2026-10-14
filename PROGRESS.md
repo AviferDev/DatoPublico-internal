@@ -4008,3 +4008,31 @@
   `accepted`; FT00036 en PR. #35 (FT00041 despliegue) sigue abierto a petición del
   dueño.
 - Decisión durable: **ADR 0033** (UI de búsqueda).
+
+### Session 082
+
+- Fecha: 2026-10-14
+- Objetivo: conseguir que la app muestre publicaciones reales de extremo a extremo
+  (conexión + datos + detalle), tras una incidencia en uso local.
+- Diagnóstico y arreglos de soporte (acotados, sin feature-flow):
+  - El puerto `8080` del host estaba ocupado por otro proyecto (`vuelantis`, vía
+    Colima): el emulador (por `10.0.2.2`/`adb reverse`) no alcanzaba DatoPublico.
+    Se bajó el stack ajeno y `127.0.0.1:8080` pasó a servir DatoPublico.
+  - `GET /v1/buscar` no se registraba (backend arrancado sin el modelo E5): se
+    reinició con `EMBEDDING_MODEL_PATH`/`EMBEDDING_TOKENIZER_PATH` (+ clave OpenCode).
+  - El backend arrancaba sin datos: se ingirieron 2 semanas del BOE
+    (`:backend:backfill`, 2823 publicaciones) con un truststore JVM que añade la
+    raíz **FNMT-RCM** (el JBR no valida `*.boe.es`).
+- Features nuevas (registradas aquí + PRs de producto):
+  - **FT00048** `cliente-http-detalle` → PR **#41** (detalle real sobre HTTP; el
+    cliente estaba cableado a `InMemoryDetailRepository`).
+  - **FT00049** `operacion-generacion-resumenes` → PR **#42** (CLI
+    `:backend:generateSummaries` + arreglo `x-opencode-session` del proveedor OpenCode,
+    que respondía `400`).
+- Evidencia: `:backend:detekt` y `:composeApp:detekt` + `:cpdCheck` verdes;
+  `HttpDetailRepositoryTest` 5/5; generación real contra el backend local con
+  publicados visibles en `GET /v1/feed`.
+- Pendiente / riesgos: los PRs **#41** y **#42** quedan **sin fusionar** a revisión
+  del dueño; el cambio de `Platform.android.kt` (`localhost` + `adb reverse`) sigue
+  **sin commitear** en la rama de desarrollo; los guardrails envían a revisión una
+  fracción alta de resúmenes (feed visible = solo `publicado`).

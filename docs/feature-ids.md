@@ -64,7 +64,9 @@
 | FT00045 | beta-cerrada | Beta cerrada y corrección de bugs | operacion | not_started |
 | FT00046 | publicacion-1.0.0 | Publicación pública 1.0.0 | operacion | not_started |
 | FT00047 | english-identifiers-rename | Renombrado de identificadores a inglés | calidad | in_progress |
+| FT00048 | cliente-http-detalle | Cliente HTTP del detalle de publicación | cliente-cmp | in_progress |
+| FT00049 | operacion-generacion-resumenes | Generación one-shot de resúmenes ciudadanos y sesión de OpenCode | operacion | in_progress |
 
 ## Siguiente FT libre
 
-**FT00048**
+**FT00050**

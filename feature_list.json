@@ -1198,5 +1198,46 @@
         "status": "not_started"
       }
     ]
+  },
+  {
+    "id": "cliente-http-detalle",
+    "ft_id": "FT00048",
+    "area": "cliente-cmp",
+    "title": "Cliente HTTP del detalle de publicación",
+    "user_visible_behavior": "Al abrir una publicación desde el feed o la búsqueda, la app muestra su detalle real (resumen, plazo, fuente oficial y aviso de IA) servido por `GET /v1/publicacion/{id}`, en vez de datos de ejemplo.",
+    "depends_on": [
+      "api-detalle-norma",
+      "ui-detalle"
+    ],
+    "status": "in_progress",
+    "verification": [
+      "`:composeApp:detekt` y `:cpdCheck` en verde.",
+      "`HttpDetailRepositoryTest` (MockEngine): `200` -> contenido, `404` -> no encontrada, `500`/red -> error, y el `id` viaja en la ruta.",
+      "En el emulador, el detalle de una publicación real muestra resumen, plazo, fuente oficial y aviso de IA."
+    ],
+    "evidence": [
+      "PR #41 (rama `feat/ft00048-cliente-http-detalle`, 2026-10-14): añade `DetailApi`, DTOs de wire del detalle, `DetailDtoMapper`, `HttpDetailRepository` y su test; cablea el repositorio HTTP en `App`/`AppNavHost` (el en memoria queda para `@Preview`/tests). `:composeApp:compileKotlinJvm`, `:composeApp:detekt`, `:cpdCheck` y `:composeApp:jvmTest` (5/5 del nuevo test) en verde."
+    ]
+  },
+  {
+    "id": "operacion-generacion-resumenes",
+    "ft_id": "FT00049",
+    "area": "operacion",
+    "title": "Generación one-shot de resúmenes ciudadanos y sesión de OpenCode",
+    "user_visible_behavior": "Se pueden generar y publicar resúmenes ciudadanos reales de un rango de fechas con `:backend:generateSummaries`; los publicados aparecen en el feed y la búsqueda. El chat y la generación dejan de fallar con `400` por la cabecera de sesión de OpenCode.",
+    "depends_on": [
+      "generacion-resumen-go",
+      "cola-revision-confianza",
+      "pgvector-indexado"
+    ],
+    "status": "in_progress",
+    "verification": [
+      "`:backend:detekt` y `:cpdCheck` en verde.",
+      "`OpenCodeTextGenerationProviderTest` verifica la cabecera `x-opencode-session` y el `User-Agent`.",
+      "`SUMMARY_FROM=… SUMMARY_TO=… SUMMARY_LIMIT=… ./gradlew :backend:generateSummaries` publica/encola/descarta según los guardrails y los publicados aparecen en `GET /v1/feed`."
+    ],
+    "evidence": [
+      "PR #42 (rama `feat/ft00049-operacion-generacion-resumenes`, 2026-10-14): envía `x-opencode-session` (id estable por proceso; `OPENCODE_SESSION_ID`) y un `User-Agent` propio; añade el CLI `:backend:generateSummaries` que compone indexado E5 + OpenCode + guardrails + disposición (publicar/encolar/descartar), reejecutable. Ejecutado contra el backend local: reparto `PUBLISHED`/`QUEUED`/`INVALID`/`DISCARDED` coherente y publicados visibles en el feed."
+    ]
   }
 ]
