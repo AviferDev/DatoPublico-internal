@@ -56,7 +56,7 @@
 | FT00038 | dist-android | Empaquetado Android y preparación para Google Play | distribucion | not_started |
 | FT00039 | dist-web | Despliegue web (Wasm) y enlaces compartibles | distribucion | not_started |
 | FT00040 | dist-ios | App iOS distribuible vía TestFlight | distribucion | not_started |
-| FT00041 | deploy-backend | Despliegue del backend en servidor propio | operacion | not_started |
+| FT00041 | deploy-backend | Despliegue del backend en servidor propio | operacion | accepted |
 | FT00042 | observabilidad-y-backups | Observabilidad y backups de producción | operacion | not_started |
 | FT00043 | accesibilidad-i18n | Accesibilidad y textos en español | operacion | not_started |
 | FT00044 | legal-avisos | Avisos legales y disclaimer | operacion | not_started |

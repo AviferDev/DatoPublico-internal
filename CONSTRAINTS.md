@@ -886,3 +886,32 @@
   **fail-fast** (arranque abortado con mensaje claro) si un valor es inválido.
 - **N100 / 8 GB**: backfill por lotes en baja carga; `shared_buffers` ~1 GB,
   heap JVM ~1 GB, swap activado.
+
+## Despliegue
+
+Decisión durable en `docs/adr/0030`; el runbook está en `deploy/README.md`.
+
+- **MUST**: los secretos se inyectan **solo por entorno** (`deploy/.env.production`,
+  ignorado por git y con permisos restringidos) y **nunca** se versionan; la
+  plantilla `deploy/.env.production.example` solo admite *placeholders*. Un secreto
+  ausente **falla con mensaje claro** (fail-fast).
+- **MUST**: en producción, PostgreSQL se publica **solo en loopback**
+  (`127.0.0.1`) y el **backend no publica puerto**: la única entrada es **Nginx**
+  (80/443). HTTPS obligatorio.
+- **MUST**: la confianza de cabeceras de proxy (`TRUST_PROXY_HEADERS`) es **opt-in**
+  (por defecto `false`); con ella, el plugin oficial `XForwardedHeaders`
+  (`useFirstProxy()`) hace que el rate limiting use la **IP real** del cliente. Solo
+  es segura porque el backend no publica puerto.
+- **MUST**: la ingesta en producción es el **scheduler interno** (ADR 0004); **no**
+  se añade cron externo.
+- **MUST**: el **modelo E5 no va en la imagen** (se monta por volumen `:ro`);
+  aprovisionarlo con `backend/tools/download-embedding-model.sh`.
+- **MUST**: el **gate no arranca servidores ni Docker**. `docker build`,
+  `docker compose config`, el lint de Nginx y `flywayMigrate` son **opt-in**
+  (fuera de `build`/`check`/CI); el único test nuevo usa `testApplication` y no abre
+  sockets.
+- **MUST**: los puertos publicados de Nginx son **parametrizables**
+  (`HTTP_PORT`/`HTTPS_PORT`, defaults 80/443) para no ocupar el 80/443 si el VPS ya
+  tiene otro servicio; hay dos vías documentadas (detrás de un proxy existente o
+  publicar el backend directo con `deploy/docker-compose.backend-direct.yml`, solo
+  pruebas y sin HTTPS).

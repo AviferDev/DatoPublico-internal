@@ -3858,3 +3858,31 @@
   cliente verde: `:composeApp:jvmTest` 22/0, `build --no-daemon` 211 tareas, iOS
   OK; capturas `antes-feed`/`despues-detalle`). Pendientes: **FT00035**
   (serializado tras FT00034) y **FT00036/FT00037**. Stop antes de FT00038–40.
+
+### Session 076
+
+- Fecha: 2026-10-14
+- Objetivo: **desplegar el backend en un VPS** (petición del dueño). Se retoma
+  `deploy-backend` (FT00041), que estaba aparcada, y se implementa y valida en
+  paralelo con la UI.
+- Completado (FT00041 `deploy-backend` → `accepted`):
+  - **Implementer** (worktree `ft00041`, vía `general`): imagen multi-stage,
+    compose de producción (postgres loopback + backend sin puerto + nginx 80/443),
+    Nginx TLS, secretos por entorno, cabeceras de proxy **opt-in**
+    (`TRUST_PROXY_HEADERS`), runbook y script de verificación. **Ajuste posterior**
+    (petición del dueño, «dejar el 80 libre»): puertos de Nginx **parametrizables**
+    (`HTTP_PORT`/`HTTPS_PORT`) y override `deploy/docker-compose.backend-direct.yml`
+    para publicar el backend sin Nginx (pruebas, sin HTTPS).
+  - **Validator** (`general`): veredicto **`accept`** (gate SDK-free verde:
+    `:backend` 486/0, `ForwardedHeadersRouteTest` 2/0; `installDist`; `docker compose
+    config -q` base + puertos alternativos + override; `verify-deploy.sh` exit 0).
+    Sin hallazgos Critical/High/Medium.
+  - Persistida la aceptación: `feature_list.json` FT00041 → **`accepted`**;
+    `docs/feature-ids.md`; ADR **0030** + índice; `ARCHITECTURE.md` (§«Despliegue»),
+    `CONSTRAINTS.md` (§«Despliegue»); `docs/validations/deploy-backend.md`; este
+    `PROGRESS.md`. PR abierto.
+- Paralelismo: **FT00034** en validación; **FT00035** implementada y en validación;
+  **FT00036/FT00037** con spec lista (esperan FT00034 en `main`). Alcance del dueño:
+  UI del cliente CMP hasta antes de Distribución; FT00041 se añadió a petición
+  expresa para el despliegue del VPS.
+- Decisión durable: **ADR 0030** (despliegue en servidor propio).

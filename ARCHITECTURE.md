@@ -356,6 +356,28 @@
 - **Migraciones** Flyway con tareas explícitas (`./gradlew :backend:flywayMigrate`), fuera
   de `check`; la CI no necesita base de datos.
 
+## Despliegue
+
+Decisión durable en `docs/adr/0030`; runbook en `deploy/README.md`.
+
+- **Imagen del backend** (`backend/Dockerfile`, multi-stage): build con JDK 21
+  (`installDist -PskipClient`, sin Android SDK) y runtime JRE 21, usuario no-root,
+  **sin secretos ni modelo**; `.dockerignore` deja el contexto pequeño.
+- **Compose de producción** (`deploy/docker-compose.prod.yml`): `postgres`
+  (pgvector, **solo loopback**, volumen `pgdata`), `backend` (**sin puerto
+  publicado**; modelo montado `:ro`) y `nginx` (**única entrada**, puertos
+  parametrizables `HTTP_PORT`/`HTTPS_PORT`), con `restart: unless-stopped` y
+  healthchecks.
+- **Nginx** termina **TLS** (certbot manual), redirige HTTP→HTTPS y hace proxy a
+  `backend:8080` con `X-Forwarded-*`; el backend confía en esas cabeceras **solo**
+  si `TRUST_PROXY_HEADERS=true` (por defecto false) para que el rate limiting vea la
+  IP real.
+- **Secretos por entorno** (`deploy/.env.production`, ignorado; plantilla
+  `.example` versionada) con *fail-fast*. La **ingesta** es el scheduler interno
+  (ADR 0004); **sin** cron externo. El **gate sigue offline** (Docker/`compose`/
+  lint/`flywayMigrate` son opt-in). Alternativas para no ocupar el 80 documentadas
+  (detrás de un proxy existente o backend directo sin Nginx).
+
 ## Fronteras
 
 - **Cliente → API HTTP** (público, solo lectura). El cliente no conoce los

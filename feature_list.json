@@ -1033,14 +1033,17 @@
       "ingesta-job-diario",
       "embeddings-locales-onnx"
     ],
-    "status": "not_started",
+    "status": "accepted",
     "verification": [
       "El backend responde por HTTPS desde el servidor y la base persiste datos.",
       "El cron ejecuta la ingesta diaria.",
       "Los secretos se inyectan por entorno y no están en el repositorio."
     ],
-    "evidence": [],
-    "notes": "Fuente: docs/roadmap.md 0.7-T04, 0.10-T04. Incluye hardening (HTTPS y secretos)."
+    "evidence": [
+      "FT00041 (2026-10-14, rama feat/ft00041-deploy-backend, implementer + autoverificación): **despliegue en servidor propio** con Docker + Nginx + HTTPS. Producto (18 ficheros): `backend/Dockerfile` multi-stage (`installDist -PskipClient`, JRE 21, no-root, sin secretos ni modelo) + `.dockerignore`; `deploy/docker-compose.prod.yml` (`postgres` **solo loopback** con `shared_buffers=1GB` y volumen `pgdata`; `backend` **sin puerto** con healthcheck y modelo `:ro`; `nginx` única entrada con puertos **parametrizables** `HTTP_PORT`/`HTTPS_PORT`; `restart: unless-stopped`; `INGESTA_ENABLED=true`); `deploy/nginx/templates/datopublico.conf.template` (TLS, redirect 301, `X-Forwarded-*`, cabeceras de seguridad); `deploy/.env.production.example` (placeholders) + `.gitignore` (ignora `deploy/.env.production`, versiona la plantilla con `!deploy/.env.production.example`); `deploy/docker-compose.backend-direct.yml` (alternativa sin Nginx, solo pruebas); `deploy/README.md` (runbook) + `deploy/verify-deploy.sh`; dependencia oficial `ktor-server-forwarded-header` 3.0.3; `infra/HttpHardeningConfig.kt` (`ProxySettings`), `plugins/ForwardedHeaders.kt` y `Application.kt` (**cabeceras de proxy opt-in** por `TRUST_PROXY_HEADERS`, por defecto false); tests `ForwardedHeadersRouteTest`/`HttpHardeningConfigTest`; `docs/desarrollo-local.md` y `README.md`. La **ingesta** usa el scheduler interno (ADR 0004); **sin** cron externo. Gate SDK-free verde: `build -PskipClient`, `test -PskipClient` (`:backend` **486 tests, 0 fallos**; `:shared` 39), `detekt -PskipClient`; `installDist` OK; `docker compose config -q` OK (base y con `HTTP_PORT=8088`/`HTTPS_PORT=8443` y con el override backend-direct); `verify-deploy.sh` exit 0; sin secretos versionados. `docker build`/lint Nginx/`flywayMigrate` opt-in (daemon no disponible). Decisión durable en ADR 0030.",
+      "Aceptación independiente (`feature-validator`, 2026-10-14): veredicto **`accept`**. Reejecutó el gate real (`build/test/detekt -PskipClient` verdes; `:backend` 486/0; `ForwardedHeadersRouteTest` 2/0; `installDist`; `docker compose config -q` base + puertos alternativos + override; `verify-deploy.sh` exit 0). Verificó los escenarios 1–7 (postgres loopback, backend sin puerto, nginx 80/443 parametrizable, cabeceras opt-in solo cuando `TRUST_PROXY_HEADERS=true`, ingesta interna sin cron externo, volumen `pgdata`, gate offline) y que la plantilla `deploy/.env.production.example` se versiona (negación en `.gitignore` frente al patrón global `.env.*` de `.git/info/exclude`) mientras `deploy/.env.production` queda ignorado. Sin hallazgos Critical/High/Medium; **Low**: docs durables del harness (resueltas aquí), referencia ADR (fijada a 0030) y `default.conf` de Nginx (hardening opcional). Sin secretos versionados."
+    ],
+    "notes": "Fuente: docs/roadmap.md 0.7-T04, 0.10-T04. Docker + Nginx + HTTPS + secretos por entorno; cabeceras de proxy opt-in (`TRUST_PROXY_HEADERS`); ingesta por scheduler interno (ADR 0004, sin cron externo); puertos de Nginx parametrizables y alternativa sin Nginx para no ocupar el 80/443. ADR 0030. Dependencias ampliadas por el orquestador (FT00003/04/09/15)."
   },
   {
     "id": "observabilidad-y-backups",

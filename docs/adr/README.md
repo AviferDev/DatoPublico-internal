@@ -86,3 +86,4 @@ Aceptado (<AAAA-MM-DD>). [Quién decide y, si aplica, qué ADR supersede/ajusta.
 | [0026](0026-endurecimiento-http-cors-ratelimit-errores.md) | Endurecimiento HTTP con plugins oficiales de Ktor (CORS por entorno, rate limiting por IP en memoria y cuerpo de error tipado) | Aceptado |
 | [0027](0027-cliente-cmp-tema-i18n-capas.md) | Base del cliente Compose Multiplatform: tema/design system, i18n por recursos, capas de feature y datos de ejemplo | Aceptado |
 | [0028](0028-detalle-cliente-contrato-vocabulario-diferido.md) | Pantalla de detalle del cliente como contrato (`DetailRoute`) y vocabulario compartido diferido | Aceptado |
+| [0030](0030-despliegue-servidor-propio.md) | Despliegue del backend en servidor propio (Docker + Nginx + HTTPS, cabeceras de proxy opt-in, sin cron externo) | Aceptado |
