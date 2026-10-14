@@ -3938,3 +3938,23 @@
   **no** está integrado en el grafo (el destino `detail` es placeholder); integración
   pendiente.
 - Decisión durable: **ADR 0031** (navegación + ViewModel/`StateFlow`).
+
+### Session 079
+
+- Fecha: 2026-10-14
+- Objetivo: integrar el **detalle real** en la navegación (`FT00034-PT1`) para que el
+  clic del feed abra la pantalla de FT00033 (en vez del placeholder).
+- Completado (`FT00034-PT1` → `accepted`):
+  - **Implementer** (worktree `ft00034pt1`, vía `general`): `AppNavHost.kt` monta
+    `DetailRoute` (con `DetailStateHolder(id, GetPublicationDetail(InMemoryDetailRepository()))`
+    bajo `remember(id)` y `onBack = popBackStack`); eliminado `DetailPlaceholderScreen.kt`
+    y las claves i18n `detail_placeholder_*`. Capturas antes/después.
+  - **Validator** (`general`): veredicto **`accept`** (gate con cliente: `:composeApp:jvmTest`
+    53/0; `assembleDebug`; Wasm; `test`; `detekt`+`:cpdCheck`; `build -PskipClient`;
+    capturas abiertas; sin referencias stale).
+  - Persistida: `ARCHITECTURE.md` (detalle ya integrado), `docs/feature-ids.md`
+    (registro `FT00034-PT1`), este `PROGRESS.md`. PR **#38**.
+- Estado: **FT00032–FT00035 `accepted` y en `main`; FT00034-PT1 en PR #38**; #35
+  (FT00041 despliegue) queda abierto a petición del dueño (lo mergeará al final).
+- Siguiente: **FT00036 `ui-busqueda-filtros`** y **FT00037 `ui-chat`** (serializadas
+  por compartir el grafo de navegación).
