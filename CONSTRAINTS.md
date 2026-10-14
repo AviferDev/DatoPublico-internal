@@ -808,6 +808,20 @@
   viven en `feature/feed/domain`; las features nuevas los **reutilizan**
   importándolos desde ahí (la extracción a un `core/model` neutral está **diferida**;
   ver `docs/adr/0028`).
+- **MUST**: el cliente consume la API por el **cliente HTTP común** de
+  `core/network/` (`ktor-client` con motores por plataforma, `HttpTimeout`
+  explícito y errores **tipados** como valores; `CancellationException` se
+  relanza). La **URL base** y la fecha del día se resuelven por plataforma con
+  `expect/actual`; **nunca** un `http://…` fijo en `commonMain`. Decisión durable
+  en `docs/adr/0029`.
+- **MUST**: `:composeApp` **no** depende de `:shared` (se mantiene el gate
+  SDK-free); el contrato se refleja con **DTOs de wire propios** (capa
+  anti-corrupción, sufijo `Dto` y `@SerialName`) y un mapeo puro a los modelos de
+  dominio del cliente. Decisión durable en `docs/adr/0029`.
+- **MUST**: la **cache offline** es un puerto (`FeedCache`) con implementación en
+  memoria y **sin datos personales**; al fallar la red se sirve el último contenido
+  cacheado o se muestra el estado de error. La persistencia entre arranques no es
+  un requisito (deuda futura). Decisión durable en `docs/adr/0029`.
 
 ## Build y repositorios
 

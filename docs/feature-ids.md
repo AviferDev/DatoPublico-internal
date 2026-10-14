@@ -50,7 +50,7 @@
 | FT00032 | ui-feed | UI del feed con estados y dirección visual | cliente-cmp | accepted |
 | FT00033 | ui-detalle | Pantalla de detalle con resumen y fuente | cliente-cmp | accepted |
 | FT00034 | ui-navegacion-estado | Navegación y estado compartido | cliente-cmp | not_started |
-| FT00035 | ui-cliente-http-cache | Cliente HTTP común y cache offline | cliente-cmp | not_started |
+| FT00035 | ui-cliente-http-cache | Cliente HTTP común y cache offline | cliente-cmp | accepted |
 | FT00036 | ui-busqueda-filtros | UI de búsqueda con filtros | cliente-cmp | not_started |
 | FT00037 | ui-chat | UI de chat RAG | cliente-cmp | not_started |
 | FT00038 | dist-android | Empaquetado Android y preparación para Google Play | distribucion | not_started |

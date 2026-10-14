@@ -3886,3 +3886,28 @@
   UI del cliente CMP hasta antes de Distribución; FT00041 se añadió a petición
   expresa para el despliegue del VPS.
 - Decisión durable: **ADR 0030** (despliegue en servidor propio).
+
+### Session 077
+
+- Fecha: 2026-10-14
+- Objetivo: cerrar `ui-cliente-http-cache` (FT00035).
+- Completado (FT00035 → `accepted`):
+  - **Implementer** (worktree `ft00035`, vía `general`): cliente HTTP común
+    (`core/network/`, `ktor-client` con motores por source set, URL base y fecha por
+    `expect/actual`, `HttpTimeout`, errores tipados) + DTOs de wire del cliente
+    (anti-corrupción) + mapeo puro + cache offline en memoria; wiring mínimo en
+    `App()` (sin reestructurar UI/estado). Android con `INTERNET` +
+    `network_security_config` limitado.
+  - **Validator** (`general`): veredicto **`accept`** (gate con cliente verde:
+    `:composeApp:jvmTest` 33/0 con `MockEngine`; `assembleDebug`; Wasm; iOS;
+    `build -PskipClient`/`test`/`detekt`+`:cpdCheck`; `build` 211 tareas). Medium:
+    docs durables (resueltas) y conflicto de rebase en `docs/desarrollo-local.md`
+    (resuelto conservando ambas secciones); Low: `yarn.lock` (revertido).
+  - Persistida la aceptación: `feature_list.json` FT00035 → **`accepted`**;
+    `docs/feature-ids.md`; ADR **0029** + índice; `ARCHITECTURE.md` (§`:composeApp`),
+    `CONSTRAINTS.md` (§«Cliente»); `docs/validations/ui-cliente-http-cache.md`; este
+    `PROGRESS.md`. PR abierto.
+- Estado: **FT00035 `accepted`** (PR). **FT00034** sigue en validación (gate largo).
+  **FT00036/FT00037** esperan FT00034 en `main` para implementarse. Stop antes de
+  Distribución (FT00038–40).
+- Decisión durable: **ADR 0029** (cliente HTTP común + cache offline).

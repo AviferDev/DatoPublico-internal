@@ -925,12 +925,15 @@
     "depends_on": [
       "ui-feed"
     ],
-    "status": "not_started",
+    "status": "accepted",
     "verification": [
       "Con la red caída, el contenido cacheado sigue visible."
     ],
-    "evidence": [],
-    "notes": "Fuente: docs/roadmap.md 0.6-T04, docs/technical-discovery.md (ktor-client)."
+    "evidence": [
+      "FT00035 (2026-10-14, rama feat/ft00035-ui-cliente-http-cache, implementer + autoverificación): **cliente HTTP común y cache offline** en `:composeApp`, sin tocar `:shared`/`:backend`/CI/`init.sh`. `core/network/`: `ApiConfig` (inyectable), `Platform` (`expect`) + 4 `actual` (Android `10.0.2.2`; iOS/JVM/Wasm `localhost`; fecha ISO local sin `java.time`), `ApiResult`/`ApiFailure` (errores tipados), `ClientApiErrorDto`, `HttpClientFactory` (`ktor-client` con motores por source set okhttp/cio/darwin/js, `ContentNegotiation`, `HttpTimeout`, `expectSuccess=false`). `feature/feed/data/remote/`: DTOs de wire del cliente (capa anti-corrupción, `@SerialName`) + `FeedDtoMapper` puro + `FeedApi` (`GET /v1/feed?fecha=…`). `feature/feed/data/cache/`: `FeedCache` + `InMemoryFeedCache`. `HttpFeedRepository` (éxito → mapea+cachea; fallo → cache o `Failure`). Wiring mínimo en `App()` (sin reestructurar UI/estado; FT00034). Android: permiso `INTERNET` + `network_security_config` solo a `10.0.2.2`/`localhost`. Gate **con cliente** verde: `:composeApp:jvmTest` **33 tests, 0 fallos** (18 nuevos con `MockEngine`, sin red); `assembleDebug`; `wasmJsBrowserDistribution`; `linkDebugFrameworkIosSimulatorArm64`; `build -PskipClient`; `test`; `detekt`+`:cpdCheck`; `build --no-daemon` 211 tareas. `:composeApp` **no** depende de `:shared` (gate SDK-free intacto). Decisión durable en ADR 0029.",
+      "Aceptación independiente (`feature-validator`, 2026-10-14): veredicto **`accept`**. Reejecutó el gate real (`:composeApp:jvmTest` 33/0; `assembleDebug`; Wasm; iOS framework; `build -PskipClient`; `test`; `detekt`+`:cpdCheck`; `build --no-daemon` 211 tareas) y verificó: **0** `http://` en `commonMain`; DTOs con `@SerialName` y tokens 1:1 con `:shared`; mapeo puro; cache (éxito/fallo/día vacío); errores tipados y `CancellationException` relanzada; `HttpTimeout`; tests con `MockEngine`; sin datos personales; estilo MUST; sin tocar `:shared`/`:backend`/CI/`init.sh`. Sin hallazgos High; **Medium** (docs durables del harness, resueltas aquí; conflicto de rebase en `docs/desarrollo-local.md`, resuelto) y **Low** (revertido el ruido en `kotlin-js-store/yarn.lock`; `js(\"new Date()\")` en Wasm y `ClientApiErrorDto.code: String?` aceptados). Sin hallazgos de seguridad."
+    ],
+    "notes": "Fuente: docs/roadmap.md 0.6-T04, docs/technical-discovery.md (ktor-client). Cliente HTTP común + cache offline en memoria; DTOs de cliente como capa anti-corrupción (no se cablea `:shared`, para no romper el gate SDK-free). ADR 0029. Deuda: cache no persistente y feed real vacío hasta cablear el pipeline de resumen."
   },
   {
     "id": "ui-busqueda-filtros",

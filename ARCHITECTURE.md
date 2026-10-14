@@ -335,11 +335,15 @@
   `GetPublicationDetail`, `DetailRepository`+`InMemoryDetailRepository`,
   `DetailUiState`/`DetailStateHolder`/`DetailRoute`/`DetailScreen`) y los
   componentes `AiNotice`/`OfficialSourceLink`/`SectionBlock`; el detalle se
-  entrega como **contrato** (`DetailRoute`, sin cablear la navegación). Sigue
-  siendo **UI + estado local**: **no** hay red ni `ktor-client`, **no** se cablea
-  `:shared` (el mapeo `PublicacionDto → Publication` es FT00035), **no** hay
-  `ViewModel`/`StateFlow`/navegación (FT00034) ni búsqueda/chat
-  (FT00036/FT00037). Decisiones durables en `docs/adr/0027` y `docs/adr/0028`.
+  entrega como **contrato** (`DetailRoute`, sin cablear la navegación). Desde
+  FT00035 el **feed real** lo sirve un **cliente HTTP común** (`core/network/`,
+  `ktor-client` con motores por plataforma, URL base y fecha por `expect/actual`,
+  `HttpTimeout` y errores tipados) y `feature/feed/data/` añade **DTOs de wire del
+  cliente** (capa anti-corrupción), su **mapeo al dominio** y una **cache offline en
+  memoria**. `:composeApp` **sigue sin cablear `:shared`** (para no romper el gate
+  SDK-free) y **no** hay `ViewModel`/`StateFlow`/navegación (FT00034) ni
+  búsqueda/chat (FT00036/FT00037). Decisiones durables en `docs/adr/0027`,
+  `docs/adr/0028` y `docs/adr/0029`.
 
 ## Build y gate
 
