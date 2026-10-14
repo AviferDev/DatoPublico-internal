@@ -66,7 +66,8 @@
 | FT00047 | english-identifiers-rename | Renombrado de identificadores a inglés | calidad | in_progress |
 | FT00048 | cliente-http-detalle | Cliente HTTP del detalle de publicación | cliente-cmp | in_progress |
 | FT00049 | operacion-generacion-resumenes | Generación one-shot de resúmenes ciudadanos y sesión de OpenCode | operacion | in_progress |
+| FT00050 | dev-up-local | Script de arranque del entorno local (dev-up) | operacion | in_progress |
 
 ## Siguiente FT libre
 
-**FT00050**
+**FT00051**

@@ -1239,5 +1239,25 @@
     "evidence": [
       "PR #42 (rama `feat/ft00049-operacion-generacion-resumenes`, 2026-10-14): envía `x-opencode-session` (id estable por proceso; `OPENCODE_SESSION_ID`) y un `User-Agent` propio; añade el CLI `:backend:generateSummaries` que compone indexado E5 + OpenCode + guardrails + disposición (publicar/encolar/descartar), reejecutable. Ejecutado contra el backend local: reparto `PUBLISHED`/`QUEUED`/`INVALID`/`DISCARDED` coherente y publicados visibles en el feed."
     ]
+  },
+  {
+    "id": "dev-up-local",
+    "ft_id": "FT00050",
+    "area": "operacion",
+    "title": "Script de arranque del entorno local (dev-up)",
+    "user_visible_behavior": "Un único `./scripts/dev-up.sh` prepara el entorno local: baja stacks Compose hermanos, levanta PostgreSQL/pgvector, aplica migraciones Flyway y (re)inicia el backend; habilita búsqueda/chat si está el modelo E5. El cliente (app/web) se arranca a mano.",
+    "depends_on": [
+      "publicacion-persistencia",
+      "api-feed-diario"
+    ],
+    "status": "in_progress",
+    "verification": [
+      "`bash -n scripts/dev-up.sh` sin errores.",
+      "`./scripts/dev-up.sh` deja PostgreSQL `Healthy`, aplica Flyway y arranca el backend (espera a `/health`).",
+      "No toca stacks de otros proyectos Compose (p. ej. `boe-rag`)."
+    ],
+    "evidence": [
+      "PR #43 (rama `feat/ft00050-dev-up-local`, 2026-10-14): añade `scripts/dev-up.sh` adaptado del `dev-up.sh` de Vuelantis. Probado en local: Postgres arriba y `Healthy`, migraciones V1–V5 (no-op) y backend respondiendo `/health`, `/v1/feed` y `/v1/buscar`; no tocó el stack ajeno `boe-rag`."
+    ]
   }
 ]

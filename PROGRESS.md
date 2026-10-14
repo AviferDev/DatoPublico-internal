@@ -4036,3 +4036,20 @@
   del dueño; el cambio de `Platform.android.kt` (`localhost` + `adb reverse`) sigue
   **sin commitear** en la rama de desarrollo; los guardrails envían a revisión una
   fracción alta de resúmenes (feed visible = solo `publicado`).
+
+### Session 083
+
+- Fecha: 2026-10-14
+- Objetivo: tooling de arranque local a petición del dueño.
+- Completado:
+  - **FT00050** `dev-up-local` → PR **#43** (`scripts/dev-up.sh`): baja stacks Compose
+    hermanos (worktrees), levanta Postgres/pgvector, aplica Flyway y (re)inicia el
+    backend esperando a `/health`; habilita búsqueda/chat si está el modelo E5.
+  - **FT00048** (`cliente-http-detalle`, PR #41) y **FT00049**
+    (`operacion-generacion-resumenes`, PR #42): **fusionadas en `main`** por el dueño.
+- Evidencia: `bash -n` + ejecución real (Postgres `Healthy`, migraciones no-op,
+  backend sirviendo `/health`, `/v1/feed` y `/v1/buscar`; web Wasm servida en
+  `localhost:9000` y detalle real resolviendo `GET /v1/publicacion/{id}`).
+- Pendiente: PR #43 a revisión. Observado: en la **web (Wasm)** solo se pinta el
+  primer destacado del feed y no la lista de publicaciones (render, no backend: la
+  API devuelve 20 publicaciones + 3 destacados). Sin diagnosticar.
