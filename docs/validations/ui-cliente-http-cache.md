@@ -41,7 +41,7 @@
   `feature_list.json`.
 - **Medium (resuelto):** conflicto de rebase en `docs/desarrollo-local.md` (FT00033
   vs FT00035) — conservadas ambas secciones.
-- **Low (resuelto):** `kotlin-js-store/yarn.lock` — revertido (ruido no reproducible).
+- **Low (resuelto):** `kotlin-js-store/yarn.lock` — **debe** actualizarse (`kotlinUpgradeYarnLock`): el CI lo exige (`:kotlinStoreYarnLock`) porque `ktor-client-js` añade `ws`. El validator lo había marcado como ruido; era un error.
 - **Low (aceptado):** `js("new Date()")` en Wasm; `ClientApiErrorDto.code: String?`.
 - **Low:** `InMemoryFeedCache` sin sincronización; sin indicador de staleness; espejo
   de DTOs sin test anti-deriva (mitigado por tests con JSON de ejemplo).
