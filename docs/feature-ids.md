@@ -52,7 +52,7 @@
 | FT00034 | ui-navegacion-estado | Navegación y estado compartido | cliente-cmp | accepted |
 | FT00034-PT1 | integracion-detalle-navegacion | Integrar el detalle real (FT00033) en la navegación | cliente-cmp | accepted |
 | FT00035 | ui-cliente-http-cache | Cliente HTTP común y cache offline | cliente-cmp | accepted |
-| FT00036 | ui-busqueda-filtros | UI de búsqueda con filtros | cliente-cmp | not_started |
+| FT00036 | ui-busqueda-filtros | UI de búsqueda con filtros | cliente-cmp | accepted |
 | FT00037 | ui-chat | UI de chat RAG | cliente-cmp | accepted |
 | FT00038 | dist-android | Empaquetado Android y preparación para Google Play | distribucion | not_started |
 | FT00039 | dist-web | Despliegue web (Wasm) y enlaces compartibles | distribucion | not_started |

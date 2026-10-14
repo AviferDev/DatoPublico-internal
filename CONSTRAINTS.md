@@ -835,6 +835,11 @@
   el **aviso de IA**; `sin_fundamento` **no** es un error (sin reintento, citas
   vacías) y la consulta en blanco no llama al proveedor. Decisión durable en
   `docs/adr/0032`.
+- **MUST**: la **UI de búsqueda** filtra por categoría (11 curadas + «Todas») y
+  rango de fechas ISO **inclusivo**; las fechas inválidas se **omiten** (sin crash),
+  la consulta en blanco no llama y el rango invertido da «sin resultados». La
+  entrada a la búsqueda está en el encabezado del feed, visible en **todos** los
+  estados. Decisión durable en `docs/adr/0033`.
 
 ## Build y repositorios
 

@@ -348,10 +348,13 @@
   de FT00033 (`DetailRoute`, integrada por FT00034-PT1). Desde FT00037 añade la capa
   `feature/chat/{domain,data,ui}` (chat RAG con los estados de dominio, citas y
   aviso de IA; `HttpChatRepository` sobre `core/network`), el destino `chat` y una
-  acción en el encabezado del feed. `:composeApp` **sigue sin cablear `:shared`**
-  (para no romper el gate SDK-free) y **no** hay búsqueda (FT00036). Decisiones
-  durables en `docs/adr/0027`, `docs/adr/0028`, `docs/adr/0029`, `docs/adr/0031` y
-  `docs/adr/0032`.
+  acción en el encabezado del feed. Desde FT00036 añade `feature/search/{domain,data,ui}`
+  (búsqueda con filtros de categoría y rango de fechas; `HttpSearchRepository` sobre
+  `core/network`), el destino `search` y una acción en el encabezado del feed. El
+  encabezado del feed (con las acciones de chat y búsqueda) es visible en **todos**
+  los estados. `:composeApp` **sigue sin cablear `:shared`** (para no romper el gate
+  SDK-free). Decisiones durables en `docs/adr/0027`, `docs/adr/0028`, `docs/adr/0029`,
+  `docs/adr/0031`, `docs/adr/0032` y `docs/adr/0033`.
 
 ## Build y gate
 

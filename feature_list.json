@@ -948,12 +948,15 @@
       "api-busqueda",
       "ui-navegacion-estado"
     ],
-    "status": "not_started",
+    "status": "accepted",
     "verification": [
       "Una búsqueda con texto y filtros muestra resultados y el estado «sin resultados» cuando corresponde."
     ],
-    "evidence": [],
-    "notes": "Fuente: docs/roadmap.md 0.9-T01."
+    "evidence": [
+      "FT00036 (2026-10-14, rama feat/ft00036-ui-busqueda-filtros, implementer + autoverificación): **UI de búsqueda con filtros** en `:composeApp`. Capa `feature/search/{domain,data,ui}`: `SearchFilters`/`SearchResults`/`SearchLoadResult` tipado, `isIsoDate` puro (sin `java.time`), `SearchPublications` (consulta en blanco no llama), puerto `SearchRepository`, `InMemorySearchRepository` (previews/tests), **`HttpSearchRepository` + `SearchApi`** sobre `core/network` (`GET /v1/buscar`, DTO `@SerialName`, reutiliza `FeedPublicationDto`/mapeo y el token de categoría de `FeedCategoryDto`) inyectado en `App()`; `SearchViewModel` (`StateFlow`, UDF), `SearchRoute`/`SearchScreen`/`SearchView`s/`SearchFilterBar`. Filtros de **categoría** (11 + «Todas») y **rango de fechas ISO inclusivo**; fechas inválidas se omiten (sin crash); estados inicial/carga/resultados/**sin resultados**/error+reintento. Navegación aditiva: `AppRoutes.SEARCH`, destino `search` y acción (icono) en el **encabezado del feed visible en todos los estados**. `@Preview` en toda función `@Composable`; i18n; Material Icons; colores del tema. Gate **con cliente** verde: `:composeApp:jvmTest` **105 tests, 0 fallos** (26 de búsqueda, con `MockEngine`); `assembleDebug`; `wasmJsBrowserDistribution`; iOS framework; `test`; `detekt`+`:cpdCheck`; `build -PskipClient`. **Capturas** `antes-busqueda`/`despues-busqueda` en `docs/pr/ft00036-ui-busqueda-filtros/`. Sin tocar `:shared`/`:backend`/CI/`init.sh`. Ajustes/desviaciones: HTTP real (orquestador); refactor de `core/network/ApiResult.kt`+`FeedApi.kt` (evitar CPD); `CategoryLabel.labelResource()`; rebase sobre FT00037. ADR 0033.",
+      "Aceptación independiente (`feature-validator`, 2026-10-14): veredicto **`accept`** (tras un `revise`). Reejecutó el gate real (`:composeApp:jvmTest` 105/0; `assembleDebug`; Wasm; iOS; `detekt`+`:cpdCheck`) y verificó filtros, estados, `HttpSearchRepository` sobre `core/network`, navegación aditiva, `@Preview`, i18n, Material Icons, colores del tema, estilo MUST y capturas. **Cerrado**: el acceso a búsqueda ahora está en el encabezado del feed visible en **todos** los estados (era el hallazgo High). Rebasa sobre `main` con FT00037 sin romper chat ni detalle. Sin hallazgos High; sin hallazgos de seguridad."
+    ],
+    "notes": "Fuente: docs/roadmap.md 0.9-T01. Búsqueda con filtros de categoría y fecha; conectada a la API real (`/v1/buscar`) sobre `core/network` (ajuste del orquestador). El filtro de «ámbito» del roadmap se difiere (el endpoint no lo expone). ADR 0033."
   },
   {
     "id": "ui-chat",

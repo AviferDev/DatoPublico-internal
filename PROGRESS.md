@@ -3982,3 +3982,29 @@
   **FT00036** pendiente de revalidación. #35 (despliegue) queda abierto a petición
   del dueño.
 - Decisión durable: **ADR 0032** (UI del chat RAG).
+
+### Session 081
+
+- Fecha: 2026-10-14
+- Objetivo: cerrar `ui-busqueda-filtros` (FT00036), la última feature de la **UI del
+  cliente CMP**.
+- Completado (FT00036 → `accepted`):
+  - **Implementer** (worktree `ft00036`, vía `general`): `feature/search/` con
+    filtros de categoría y rango de fechas, estados y **`HttpSearchRepository`**
+    sobre `core/network` (ajuste del orquestador); navegación aditiva (destino
+    `search` + acción en el encabezado del feed). Reutilización: `ApiResult.kt`
+    común + `FeedApi` refactorizado; `CategoryLabel.labelResource()`.
+  - **Validator** (`general`): primer veredicto `revise` (acceso a búsqueda oculto
+    con el feed vacío/error). Se **rebasó sobre `main`** (ya con FT00037, que movió
+    el encabezado fuera de la rama de estado) resolviendo conflictos en 8 ficheros
+    (App.kt/AppNavHost/AppRoutes/FeedRoute/FeedScreen/strings.xml/AppRoutesTest/docs)
+    y unificando el encabezado con **chat + búsqueda**. Revalidación: **`accept`**
+    (`:composeApp:jvmTest` **105 tests, 0 fallos**; `detekt`+`:cpdCheck`;
+    `assembleDebug`; Wasm; iOS). PR abierto.
+  - Persistida: `feature_list.json` FT00036 → **`accepted`**; `docs/feature-ids.md`;
+    ADR **0033** + índice; `ARCHITECTURE.md`, `CONSTRAINTS.md`;
+    `docs/validations/ui-busqueda-filtros.md`; este `PROGRESS.md`.
+- Estado: **UI del cliente CMP completa** (FT00032–FT00037 + FT00034-PT1), todas
+  `accepted`; FT00036 en PR. #35 (FT00041 despliegue) sigue abierto a petición del
+  dueño.
+- Decisión durable: **ADR 0033** (UI de búsqueda).
