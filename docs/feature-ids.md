@@ -55,7 +55,7 @@
 | FT00036 | ui-busqueda-filtros | UI de búsqueda con filtros | cliente-cmp | accepted |
 | FT00037 | ui-chat | UI de chat RAG | cliente-cmp | accepted |
 | FT00038 | dist-android | Empaquetado Android y preparación para Google Play | distribucion | not_started |
-| FT00039 | dist-web | Despliegue web (Wasm) y enlaces compartibles | distribucion | not_started |
+| FT00039 | dist-web | Despliegue web (Wasm) y enlaces compartibles | distribucion | in_progress |
 | FT00040 | dist-ios | App iOS distribuible vía TestFlight | distribucion | not_started |
 | FT00041 | deploy-backend | Despliegue del backend en servidor propio | operacion | accepted |
 | FT00042 | observabilidad-y-backups | Observabilidad y backups de producción | operacion | not_started |
@@ -78,6 +78,8 @@
 
 | PT | Feature | Alcance | Estado |
 | --- | --- | --- | --- |
+| FT00039-PT1 | dist-web | Build Wasm de producción con URL de API parametrizable (`-PapiBaseUrl`) + SEO del shell + servido estático | not_started |
+| FT00039-PT2 | dist-web | Puente de URL Web (History API) para enlaces compartibles de detalle (ADR) | not_started |
 | FT00052-PT1 | release-actions | Backend: imagen a GHCR + despliegue por SSH | accepted |
 | FT00052-PT2 | release-actions | Web: build Wasm de producción + publicación en el Nginx del servidor | not_started |
 | FT00052-PT3 | release-actions | Android: firma release + AAB a Google Play (internal) | not_started |

@@ -1006,13 +1006,25 @@
       "ui-detalle",
       "ui-navegacion-estado"
     ],
-    "status": "not_started",
+    "status": "in_progress",
     "verification": [
       "La build Web se sirve estáticamente y carga el feed por URL.",
       "Una URL de detalle es compartible y muestra la norma correspondiente."
     ],
     "evidence": [],
-    "notes": "Fuente: docs/roadmap.md 0.7-T02, 0.9-T03."
+    "notes": "Fuente: docs/roadmap.md 0.7-T02, 0.9-T03.",
+    "parts": [
+      {
+        "id": "FT00039-PT1",
+        "scope": "Build Wasm de producción con URL de API parametrizable (propiedad Gradle `apiBaseUrl` -> constante generada solo en `wasmJsMain`), metadatos SEO del shell y servido estático documentado. Camino crítico de FT00052-PT2.",
+        "status": "not_started"
+      },
+      {
+        "id": "FT00039-PT2",
+        "scope": "Puente de URL Web (History API) sobre navigation-compose para enlaces compartibles de detalle (expect/actual + ADR).",
+        "status": "not_started"
+      }
+    ]
   },
   {
     "id": "dist-ios",
