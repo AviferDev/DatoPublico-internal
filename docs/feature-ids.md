@@ -69,10 +69,11 @@
 | FT00050 | dev-up-local | Script de arranque del entorno local (dev-up) | operacion | in_progress |
 | FT00051 | web-full-viewport | Viewport completo en la Web (Wasm) | cliente-cmp | accepted |
 | FT00052 | release-actions | CI/CD de publicación con GitHub Actions (backend y apps) | operacion | in_progress |
+| FT00053 | ui-design-refresh | Alineación visual de las 4 pantallas con el diseño | cliente-cmp | passing |
 
 ## Siguiente FT libre
 
-**FT00053**
+**FT00054**
 
 ## Partes
 

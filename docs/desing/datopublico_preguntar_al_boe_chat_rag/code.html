@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+
+<html lang="es"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_tab" name="shell-type"/><title>DatoPublico</title><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{width:100vw;margin:0;padding:0;}body{overscroll-behavior:none;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "on-secondary-fixed": "#00201d", "surface-container-low": "#f1f3ff", "tertiary-fixed-dim": "#ffb95f", "on-primary-fixed": "#001b3e", "on-primary-fixed-variant": "#0e4688", "surface-container-high": "#e1e8fd", "primary-fixed-dim": "#a9c7ff", "surface-dim": "#d3daef", "secondary-fixed": "#9cf2e8", "secondary": "#006a63", "on-secondary-container": "#006f67", "surface-container-lowest": "#ffffff", "on-primary": "#ffffff", "tertiary-container": "#6e4400", "on-secondary": "#ffffff", "inverse-surface": "#293040", "outline-variant": "#c3c6d2", "surface": "#f9f9ff", "on-error": "#ffffff", "inverse-on-surface": "#edf0ff", "surface-tint": "#305ea1", "on-surface": "#141b2b", "on-tertiary-fixed": "#2a1700", "secondary-fixed-dim": "#80d5cb", "inverse-primary": "#a9c7ff", "surface-container": "#e9edff", "tertiary": "#4f3000", "on-tertiary": "#ffffff", "tertiary-fixed": "#ffddb8", "on-tertiary-fixed-variant": "#653e00", "surface-container-highest": "#dce2f7", "primary": "#00366f", "on-surface-variant": "#434750", "background": "#f9f9ff", "on-error-container": "#93000a", "primary-fixed": "#d6e3ff", "on-tertiary-container": "#ffae3c", "surface-bright": "#f9f9ff", "outline": "#737782", "primary-container": "#1a4d8f", "on-background": "#141b2b", "on-secondary-fixed-variant": "#00504a", "error-container": "#ffdad6", "error": "#ba1a1a", "surface-variant": "#dce2f7", "secondary-container": "#99efe5", "on-primary-container": "#9dc0ff" }, "borderRadius": { "DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem" }, "spacing": { "margin-lg": "2.5rem", "gutter-lg": "1.5rem", "space-lg": "1.5rem", "margin": "1rem", "gutter": "1rem", "space-xl": "2rem", "space-xs": "0.25rem", "space-sm": "0.5rem", "space-md": "1rem", "margin-md": "1.5rem" }, "fontFamily": { "label-sm": ["Inter"], "headline-lg-mobile": ["Inter"], "body-lg": ["Inter"], "headline-lg": ["Inter"], "body-md": ["Inter"], "title-lg": ["Inter"], "label-md": ["Inter"], "title-md": ["Inter"] }, "fontSize": { "label-sm": ["11px", { "lineHeight": "14px", "letterSpacing": "0.03em", "fontWeight": "500" }], "headline-lg-mobile": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700" }], "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }], "headline-lg": ["28px", { "lineHeight": "36px", "letterSpacing": "-0.01em", "fontWeight": "700" }], "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }], "title-lg": ["22px", { "lineHeight": "28px", "letterSpacing": "-0.005em", "fontWeight": "600" }], "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "600" }], "title-md": ["18px", { "lineHeight": "24px", "fontWeight": "600" }] } } } };</script><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head><body class="bg-surface text-on-surface font-body-md text-body-md antialiased flex flex-col min-h-screen selection:bg-primary-fixed selection:text-on-primary-fixed"><header class="fixed top-0 w-full z-50 pt-safe bg-surface-container-lowest/95 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-16 px-margin flex items-center justify-between"><div class="flex items-center gap-space-sm"><img alt="DatoPublico Logo" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1UuqcHM1MT7F3FsomAu-9khlYH4uAXEhmaBa_hw0xoLn3AV8sZWrHTavs6OyaBRrvRBOUR1unR_AxMp6_r5VjL8RN9jdwW6kZSQfOEHmLYsUDDyck_zPCygesraZgpSOzHV781fS3-8uoxBjkekKmx6nTCz3q3xJiFdWxInvi_v8AFG7Ug-ZP-vqb-KaMr98wKruUSam-Ih32Vl6yuK4euMPUHygf3maG7CJcclbQMyvcd9RRAgoRLEHg"/><div class="flex flex-col"><span class="font-title-md text-title-md font-bold text-primary tracking-tight leading-none">DatoPublico</span><span class="font-label-sm text-label-sm text-on-surface-variant font-medium leading-tight">Portal Cívico BOE</span></div></div><div class="flex items-center gap-space-xs"><a aria-label="Preguntar al BOE" class="h-11 px-space-sm rounded-full flex items-center gap-space-xs text-primary bg-primary-fixed/50 hover:bg-primary-fixed transition-colors" data-path="chat" href="#"><span class="material-symbols-outlined text-[20px]">smart_toy</span><span class="font-label-md text-label-md font-semibold hidden xs:inline">Preguntar</span></a><a aria-label="Buscar en el BOE" class="w-11 h-11 flex items-center justify-center rounded-full text-on-surface-variant hover:text-primary hover:bg-surface-container transition-colors" data-path="search" href="#"><span class="material-symbols-outlined text-[22px]">search</span></a><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center ml-space-xs flex-shrink-0"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="flex-1 flex flex-col relative w-full pt-16 bg-surface"><div class="flex flex-col w-full pb-24">
+<!-- Top Navigation & Header Bar -->
+<div class="px-margin pt-space-sm pb-space-md">
+<a class="inline-flex items-center gap-space-xs text-primary-container hover:text-primary transition-colors py-1 group" data-path="feed" href="#">
+<span class="material-symbols-outlined text-[18px] group-hover:-translate-x-0.5 transition-transform">arrow_back</span>
+<span class="font-label-md text-label-md font-semibold">Volver al Boletín</span>
+</a>
+<div class="mt-space-xs flex flex-col gap-0.5">
+<div class="flex items-center gap-space-xs">
+<h1 class="font-title-lg text-title-lg text-primary tracking-tight font-bold">Preguntar al BOE</h1>
+<span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-secondary/10 text-secondary font-label-sm text-label-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span>
+          RAG Activo
+        </span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant">
+        Verificación y consultas con fuentes oficiales del Estado
+      </p>
+</div>
+</div>
+<!-- Main Content Column -->
+<div class="px-margin flex flex-col gap-space-lg">
+<!-- 2. ChatQuestionField -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-[0_2px_8px_rgba(20,27,43,0.04)] relative">
+<label class="block font-label-md text-label-md text-on-surface-variant font-medium mb-space-xs" for="chat-prompt-input">
+        Escribe tu pregunta ciudadana sobre cualquier norma o convocatoria:
+      </label>
+<div class="relative bg-surface-container-low rounded-xl p-space-sm focus-within:bg-surface-container-lowest focus-within:shadow-[0_0_0_2px_rgba(0,54,111,0.2)] transition-all">
+<textarea class="w-full bg-transparent resize-none outline-none font-body-md text-body-md text-on-surface placeholder:text-outline" id="chat-prompt-input" maxlength="1000" placeholder="Escribe aquí tu consulta..." rows="3">¿Cuál es el plazo de solicitud y cuántas plazas hay en la convocatoria de administrativos de Función Pública?</textarea>
+<div class="flex items-center justify-between pt-space-xs mt-space-xs border-t-0">
+<div class="flex items-center gap-space-xs">
+<span class="font-label-sm text-label-sm text-outline font-medium tracking-wide" id="char-counter">
+              118 / 1.000
+            </span>
+<span class="text-outline-variant font-label-sm">•</span>
+<button class="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors flex items-center gap-0.5" id="clear-btn" type="button">
+<span class="material-symbols-outlined text-[13px]">refresh</span>
+              Limpiar
+            </button>
+</div>
+<button aria-label="Enviar pregunta al BOE" class="h-9 px-space-md rounded-full bg-primary hover:bg-primary-container text-on-primary font-label-md text-label-md flex items-center gap-space-xs shadow-sm hover:shadow active:scale-95 transition-all" id="submit-question" type="button">
+<span>Preguntar</span>
+<span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+<!-- 3. ChatResponseState: Content -->
+<div class="flex flex-col gap-space-md">
+<!-- User Query Bubble -->
+<div class="flex justify-end pl-8">
+<div class="bg-primary-fixed text-on-primary-fixed rounded-xl rounded-tr-none px-space-md py-space-sm max-w-[92%] shadow-[0_1px_4px_rgba(0,0,0,0.04)]">
+<div class="flex items-center gap-1.5 mb-1 opacity-80">
+<span class="material-symbols-outlined text-[14px]">account_circle</span>
+<span class="font-label-sm text-label-sm font-semibold">Tu consulta</span>
+</div>
+<p class="font-body-md text-body-md leading-relaxed">
+            ¿Cuál es el plazo de solicitud y cuántas plazas hay en la convocatoria de administrativos de Función Pública?
+          </p>
+</div>
+</div>
+<!-- Verified Assistant Response Card (ChatAnswerCard) -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-[0_2px_12px_rgba(20,27,43,0.05)] relative overflow-hidden">
+<!-- Top Status Pill -->
+<div class="flex items-center justify-between flex-wrap gap-space-xs mb-space-md pb-space-sm">
+<div class="inline-flex items-center gap-1.5 px-space-sm py-1 rounded-full bg-surface-container-high text-primary font-label-md text-label-md font-semibold">
+<span class="material-symbols-outlined text-[16px] text-secondary" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span>Respondida con fuente oficial</span>
+</div>
+<div class="flex items-center gap-1 text-on-surface-variant font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[14px] text-outline">schedule</span>
+<span>Hace 1 min</span>
+</div>
+</div>
+<!-- Clarity Answer Text -->
+<div class="space-y-space-sm">
+<div class="flex items-start gap-space-xs text-primary font-label-md text-label-md uppercase tracking-wider font-bold">
+<span class="material-symbols-outlined text-[18px]">verified</span>
+<span>Síntesis en lenguaje claro</span>
+</div>
+<p class="font-body-lg text-body-lg text-on-surface leading-relaxed">
+            La convocatoria ofrece <strong class="font-semibold text-primary">1.250 plazas</strong> de acceso libre para el Cuerpo General Administrativo de la Administración del Estado. El plazo para presentar solicitudes es de <strong class="font-semibold text-primary">20 días hábiles</strong> a contar desde el 14 de octubre de 2026 (fecha límite estimada: <strong class="font-semibold text-primary">30 de octubre de 2026</strong>).
+          </p>
+</div>
+<!-- Quick Summary Key-Data Strips -->
+<div class="mt-space-md grid grid-cols-2 gap-space-xs">
+<div class="bg-surface-container-low rounded-lg p-space-sm">
+<span class="block font-label-sm text-label-sm text-on-surface-variant">Total Plazas Libres</span>
+<span class="font-title-md text-title-md font-bold text-primary">1.250</span>
+</div>
+<div class="bg-tertiary-fixed/30 rounded-lg p-space-sm">
+<span class="block font-label-sm text-label-sm text-tertiary">Plazo Administrativo</span>
+<span class="font-title-md text-title-md font-bold text-tertiary-container flex items-center gap-1">
+<span class="material-symbols-outlined text-[18px]">timer</span>
+              20 días háb.
+            </span>
+</div>
+</div>
+<!-- 4. ChatCitations Section -->
+<div class="mt-space-lg pt-space-md">
+<div class="flex items-center justify-between mb-space-xs">
+<h2 class="font-label-md text-label-md text-primary font-bold flex items-center gap-1.5 uppercase tracking-wide">
+<span class="material-symbols-outlined text-[16px] text-primary">menu_book</span>
+              Citas y fuentes oficiales del BOE (1)
+            </h2>
+<span class="font-label-sm text-label-sm text-on-surface-variant font-medium">Validado</span>
+</div>
+<!-- Citation Card -->
+<a class="group block bg-surface-container-low hover:bg-surface-container rounded-lg p-space-sm transition-all" href="https://www.boe.es/diario_boe/txt.php?id=BOE-A-2026-21002" rel="noopener noreferrer" target="_blank">
+<div class="flex items-start gap-space-sm">
+<div class="w-8 h-8 rounded-lg bg-primary-fixed flex items-center justify-center flex-shrink-0 text-primary mt-0.5">
+<span class="material-symbols-outlined text-[18px]">description</span>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-center gap-1.5 flex-wrap">
+<span class="inline-block px-1.5 py-0.2 rounded bg-surface-container-highest text-primary font-label-sm text-label-sm font-semibold">
+                    BOE-A-2026-21002
+                  </span>
+<span class="font-label-sm text-label-sm text-outline">Sección II.B</span>
+</div>
+<p class="font-label-md text-label-md text-on-surface font-semibold mt-1 group-hover:text-primary transition-colors line-clamp-2">
+                  Resolución de 9 de octubre de 2026, de la Secretaría de Estado de Función Pública.
+                </p>
+<div class="mt-space-xs flex items-center gap-1 text-primary group-hover:underline text-label-sm font-label-sm">
+<span class="truncate">https://www.boe.es/diario_boe/txt.php?id=BOE-A-2026-21002</span>
+<span class="material-symbols-outlined text-[14px] flex-shrink-0">open_in_new</span>
+</div>
+</div>
+</div>
+</a>
+</div>
+<!-- 5. AiNotice Component -->
+<div class="mt-space-md bg-surface-container rounded-lg p-space-sm flex items-start gap-space-sm">
+<div class="w-5 h-5 rounded-full bg-primary-container text-on-primary flex items-center justify-center flex-shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-[14px]">info</span>
+</div>
+<div class="flex-1">
+<p class="font-body-md text-body-md text-on-surface leading-snug">
+              Respuesta generada con inteligencia artificial a partir del BOE. Comprueba siempre la fuente oficial vinculada.
+            </p>
+</div>
+</div>
+<!-- Utility feedback action buttons -->
+<div class="mt-space-md pt-space-xs flex items-center justify-between text-outline">
+<span class="font-label-sm text-label-sm text-on-surface-variant">¿Fue útil esta respuesta?</span>
+<div class="flex items-center gap-space-xs">
+<button aria-label="Respuesta útil" class="p-1 rounded hover:bg-surface-container-high text-on-surface-variant hover:text-primary transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px]">thumb_up</span>
+</button>
+<button aria-label="Respuesta poco clara" class="p-1 rounded hover:bg-surface-container-high text-on-surface-variant hover:text-primary transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px]">thumb_down</span>
+</button>
+<button aria-label="Copiar texto" class="p-1 rounded hover:bg-surface-container-high text-on-surface-variant hover:text-primary transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px]">content_copy</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- 6. Ephemeral Privacy Footnote Notice -->
+<div class="bg-surface-container-low/70 rounded-xl p-space-md flex items-start gap-space-sm shadow-none">
+<span class="material-symbols-outlined text-secondary text-[20px] flex-shrink-0 mt-0.5">lock_clock</span>
+<p class="font-body-md text-body-md text-on-surface-variant">
+        El chat no almacena historial ni datos personales. Cada consulta es efímera e independiente.
+      </p>
+</div>
+<!-- Suggested Quick Citizen Questions -->
+<div class="flex flex-col gap-space-xs">
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-outline font-semibold px-1">
+        Consultas frecuentes en el BOE de hoy
+      </span>
+<div class="flex flex-col gap-1.5">
+<button class="suggested-chip text-left px-space-md py-space-sm bg-surface-container-lowest hover:bg-surface-container text-on-surface rounded-lg transition-colors font-body-md text-body-md flex items-center justify-between group" type="button">
+<span class="truncate">¿Se han publicado ayudas o subvenciones para placas solares?</span>
+<span class="material-symbols-outlined text-[18px] text-outline group-hover:text-primary group-hover:translate-x-0.5 transition-all">chevron_right</span>
+</button>
+<button class="suggested-chip text-left px-space-md py-space-sm bg-surface-container-lowest hover:bg-surface-container text-on-surface rounded-lg transition-colors font-body-md text-body-md flex items-center justify-between group" type="button">
+<span class="truncate">¿Qué modificaciones introduce el nuevo Real Decreto de becas?</span>
+<span class="material-symbols-outlined text-[18px] text-outline group-hover:text-primary group-hover:translate-x-0.5 transition-all">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<script>
+  (function() {
+    const textarea = document.getElementById('chat-prompt-input');
+    const counter = document.getElementById('char-counter');
+    const clearBtn = document.getElementById('clear-btn');
+    const chips = document.querySelectorAll('.suggested-chip');
+
+    function updateCount() {
+      if (!textarea || !counter) return;
+      const count = textarea.value.length;
+      counter.textContent = `${count} / 1.000`;
+    }
+
+    if (textarea) {
+      textarea.addEventListener('input', updateCount);
+    }
+
+    if (clearBtn && textarea) {
+      clearBtn.addEventListener('click', () => {
+        textarea.value = '';
+        textarea.focus();
+        updateCount();
+      });
+    }
+
+    chips.forEach(chip => {
+      chip.addEventListener('click', () => {
+        if (!textarea) return;
+        const textSpan = chip.querySelector('span');
+        if (textSpan) {
+          textarea.value = textSpan.textContent.trim();
+          updateCount();
+          textarea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          textarea.focus();
+        }
+      });
+    });
+  })();
+</script></main><nav class="fixed bottom-0 w-full z-50 pb-safe bg-surface-container-lowest/95 backdrop-blur-xl shadow-[0_-2px_12px_rgba(0,0,0,0.04)]" data-active-classes="text-primary font-semibold"><div class="flex justify-around items-center h-16 px-margin max-w-lg mx-auto"><a class="flex flex-col items-center justify-center flex-1 h-14 gap-space-xs text-on-surface-variant hover:text-on-surface transition-colors" data-path="feed" href="#"><span class="material-symbols-outlined text-[22px]">newspaper</span><span class="font-label-sm text-label-sm">Boletín</span></a><a class="flex flex-col items-center justify-center flex-1 h-14 gap-space-xs text-on-surface-variant hover:text-on-surface transition-colors" data-path="search" href="#"><span class="material-symbols-outlined text-[22px]">manage_search</span><span class="font-label-sm text-label-sm">Búsqueda</span></a><a aria-current="page" class="flex flex-col items-center justify-center flex-1 h-14 gap-space-xs transition-colors text-primary font-semibold" data-path="chat" href="#"><span class="material-symbols-outlined text-[22px]">forum</span><span class="font-label-sm text-label-sm">RAG Chat</span></a></div></nav></body></html>

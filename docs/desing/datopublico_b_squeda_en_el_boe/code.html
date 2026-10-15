@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+
+<html lang="es"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_tab" name="shell-type"/><title>DatoPublico</title><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{width:100vw;margin:0;padding:0;}body{overscroll-behavior:none;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "on-secondary-fixed": "#00201d", "surface-container-low": "#f1f3ff", "tertiary-fixed-dim": "#ffb95f", "on-primary-fixed": "#001b3e", "on-primary-fixed-variant": "#0e4688", "surface-container-high": "#e1e8fd", "primary-fixed-dim": "#a9c7ff", "surface-dim": "#d3daef", "secondary-fixed": "#9cf2e8", "secondary": "#006a63", "on-secondary-container": "#006f67", "surface-container-lowest": "#ffffff", "on-primary": "#ffffff", "tertiary-container": "#6e4400", "on-secondary": "#ffffff", "inverse-surface": "#293040", "outline-variant": "#c3c6d2", "surface": "#f9f9ff", "on-error": "#ffffff", "inverse-on-surface": "#edf0ff", "surface-tint": "#305ea1", "on-surface": "#141b2b", "on-tertiary-fixed": "#2a1700", "secondary-fixed-dim": "#80d5cb", "inverse-primary": "#a9c7ff", "surface-container": "#e9edff", "tertiary": "#4f3000", "on-tertiary": "#ffffff", "tertiary-fixed": "#ffddb8", "on-tertiary-fixed-variant": "#653e00", "surface-container-highest": "#dce2f7", "primary": "#00366f", "on-surface-variant": "#434750", "background": "#f9f9ff", "on-error-container": "#93000a", "primary-fixed": "#d6e3ff", "on-tertiary-container": "#ffae3c", "surface-bright": "#f9f9ff", "outline": "#737782", "primary-container": "#1a4d8f", "on-background": "#141b2b", "on-secondary-fixed-variant": "#00504a", "error-container": "#ffdad6", "error": "#ba1a1a", "surface-variant": "#dce2f7", "secondary-container": "#99efe5", "on-primary-container": "#9dc0ff" }, "borderRadius": { "DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem" }, "spacing": { "margin-lg": "2.5rem", "gutter-lg": "1.5rem", "space-lg": "1.5rem", "margin": "1rem", "gutter": "1rem", "space-xl": "2rem", "space-xs": "0.25rem", "space-sm": "0.5rem", "space-md": "1rem", "margin-md": "1.5rem" }, "fontFamily": { "label-sm": ["Inter"], "headline-lg-mobile": ["Inter"], "body-lg": ["Inter"], "headline-lg": ["Inter"], "body-md": ["Inter"], "title-lg": ["Inter"], "label-md": ["Inter"], "title-md": ["Inter"] }, "fontSize": { "label-sm": ["11px", { "lineHeight": "14px", "letterSpacing": "0.03em", "fontWeight": "500" }], "headline-lg-mobile": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700" }], "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }], "headline-lg": ["28px", { "lineHeight": "36px", "letterSpacing": "-0.01em", "fontWeight": "700" }], "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }], "title-lg": ["22px", { "lineHeight": "28px", "letterSpacing": "-0.005em", "fontWeight": "600" }], "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "600" }], "title-md": ["18px", { "lineHeight": "24px", "fontWeight": "600" }] } } } };</script><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head><body class="bg-surface text-on-surface font-body-md text-body-md antialiased flex flex-col min-h-screen selection:bg-primary-fixed selection:text-on-primary-fixed"><header class="fixed top-0 w-full z-50 pt-safe bg-surface-container-lowest/95 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-16 px-margin flex items-center justify-between"><div class="flex items-center gap-space-sm"><img alt="DatoPublico Logo" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1UuqcHM1MT7F3FsomAu-9khlYH4uAXEhmaBa_hw0xoLn3AV8sZWrHTavs6OyaBRrvRBOUR1unR_AxMp6_r5VjL8RN9jdwW6kZSQfOEHmLYsUDDyck_zPCygesraZgpSOzHV781fS3-8uoxBjkekKmx6nTCz3q3xJiFdWxInvi_v8AFG7Ug-ZP-vqb-KaMr98wKruUSam-Ih32Vl6yuK4euMPUHygf3maG7CJcclbQMyvcd9RRAgoRLEHg"/><div class="flex flex-col"><span class="font-title-md text-title-md font-bold text-primary tracking-tight leading-none">DatoPublico</span><span class="font-label-sm text-label-sm text-on-surface-variant font-medium leading-tight">Portal Cívico BOE</span></div></div><div class="flex items-center gap-space-xs"><a aria-label="Preguntar al BOE" class="h-11 px-space-sm rounded-full flex items-center gap-space-xs text-primary bg-primary-fixed/50 hover:bg-primary-fixed transition-colors" data-path="chat" href="#"><span class="material-symbols-outlined text-[20px]">smart_toy</span><span class="font-label-md text-label-md font-semibold hidden xs:inline">Preguntar</span></a><a aria-label="Buscar en el BOE" class="w-11 h-11 flex items-center justify-center rounded-full text-on-surface-variant hover:text-primary hover:bg-surface-container transition-colors" data-path="search" href="#"><span class="material-symbols-outlined text-[22px]">search</span></a><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center ml-space-xs flex-shrink-0"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="flex-1 flex flex-col relative w-full pt-16 bg-surface"><div class="flex flex-col w-full pb-24">
+<!-- Top Section / Navigation & Header -->
+<section class="px-margin pt-space-md pb-space-sm flex flex-col gap-space-xs">
+<div class="flex items-center gap-space-xs">
+<a class="inline-flex items-center gap-1 text-primary hover:text-primary-container transition-colors py-1 px-1 -ml-1 rounded active:bg-surface-container" data-path="feed" href="#">
+<span class="material-symbols-outlined text-[20px]">arrow_back</span>
+<span class="font-label-md text-label-md">Volver</span>
+</a>
+<span class="text-outline-variant font-label-sm text-label-sm">•</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Búsqueda avanzada oficial</span>
+</div>
+<div class="flex items-baseline justify-between mt-space-xs">
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile text-primary tracking-tight">Buscar en el BOE</h1>
+<span class="font-label-sm text-label-sm px-space-xs py-0.5 rounded bg-surface-container-high text-on-surface-variant">BOE-API v2.4</span>
+</div>
+</section>
+<!-- Search Filter Composite Panel -->
+<section class="px-margin mb-space-md">
+<div class="bg-surface-container-lowest rounded-xl shadow-sm p-space-md flex flex-col gap-space-md">
+<!-- Interactive Query Input -->
+<div class="flex flex-col gap-space-xs">
+<label class="font-label-md text-label-md text-on-surface-variant flex items-center justify-between" for="search-input">
+<span>Término o palabra clave</span>
+<span class="text-outline font-label-sm text-label-sm">Coincidencia literal</span>
+</label>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3 text-primary text-[20px] pointer-events-none">search</span>
+<input class="w-full h-11 pl-10 pr-10 bg-surface-container-low rounded-lg font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:bg-surface-container transition-all" id="search-input" placeholder="Escribe un término (ej. becas, vivienda, oposiciones...)" type="search" value="becas para jóvenes"/>
+<button aria-label="Borrar texto" class="absolute right-2.5 w-7 h-7 flex items-center justify-center rounded-full text-outline hover:text-on-surface active:bg-surface-container-high transition-colors" onclick="const input = document.getElementById('search-input'); input.value=''; input.focus();" type="button">
+<span class="material-symbols-outlined text-[16px]">close</span>
+</button>
+</div>
+</div>
+<!-- Categories Scroll Strip -->
+<div class="flex flex-col gap-space-xs">
+<span class="font-label-md text-label-md text-on-surface-variant">Categorías temáticas</span>
+<div class="flex items-center gap-space-xs overflow-x-auto no-scrollbar py-0.5 -mx-1 px-1">
+<button class="whitespace-nowrap px-space-sm py-1.5 rounded-full font-label-md text-label-md bg-surface-container text-on-surface-variant hover:bg-surface-container-high active:scale-95 transition-all" type="button">
+            Todas
+          </button>
+<button class="whitespace-nowrap px-space-sm py-1.5 rounded-full font-label-md text-label-md bg-primary-container text-on-primary flex items-center gap-1 shadow-sm" type="button">
+<span class="material-symbols-outlined text-[14px]">check</span>
+            Becas y subvenciones
+          </button>
+<button class="whitespace-nowrap px-space-sm py-1.5 rounded-full font-label-md text-label-md bg-surface-container text-on-surface-variant hover:bg-surface-container-high active:scale-95 transition-all" type="button">
+            Normas y legislación
+          </button>
+<button class="whitespace-nowrap px-space-sm py-1.5 rounded-full font-label-md text-label-md bg-surface-container text-on-surface-variant hover:bg-surface-container-high active:scale-95 transition-all" type="button">
+            Oposiciones y empleo público
+          </button>
+<button class="whitespace-nowrap px-space-sm py-1.5 rounded-full font-label-md text-label-md bg-surface-container text-on-surface-variant hover:bg-surface-container-high active:scale-95 transition-all" type="button">
+            Medio ambiente
+          </button>
+<button class="whitespace-nowrap px-space-sm py-1.5 rounded-full font-label-md text-label-md bg-surface-container text-on-surface-variant hover:bg-surface-container-high active:scale-95 transition-all" type="button">
+            Educación y planes de estudio
+          </button>
+</div>
+</div>
+<!-- Date Range (ISO 8601) -->
+<div class="flex flex-col gap-space-xs">
+<span class="font-label-md text-label-md text-on-surface-variant">Rango de publicación</span>
+<div class="grid grid-cols-2 gap-space-sm">
+<div class="flex flex-col gap-1">
+<label class="font-label-sm text-label-sm text-outline" for="date-from">Desde</label>
+<div class="relative flex items-center">
+<input class="w-full h-10 px-space-sm bg-surface-container-low rounded-lg font-body-md text-body-md text-on-surface focus:outline-none focus:bg-surface-container transition-colors" id="date-from" inputmode="numeric" placeholder="aaaa-mm-dd" type="text" value="2026-10-01"/>
+<span class="material-symbols-outlined absolute right-2 text-outline text-[18px] pointer-events-none">calendar_today</span>
+</div>
+</div>
+<div class="flex flex-col gap-1">
+<label class="font-label-sm text-label-sm text-outline" for="date-to">Hasta</label>
+<div class="relative flex items-center">
+<input class="w-full h-10 px-space-sm bg-surface-container-low rounded-lg font-body-md text-body-md text-on-surface focus:outline-none focus:bg-surface-container transition-colors" id="date-to" inputmode="numeric" placeholder="aaaa-mm-dd" type="text" value="2026-10-13"/>
+<span class="material-symbols-outlined absolute right-2 text-outline text-[18px] pointer-events-none">event</span>
+</div>
+</div>
+</div>
+<p class="font-label-sm text-label-sm text-outline flex items-center gap-1 mt-0.5">
+<span class="material-symbols-outlined text-[13px]">info</span>
+          Formato ISO requerido: aaaa-mm-dd (Ventana actual: 13 días)
+        </p>
+</div>
+<!-- Action Buttons Row -->
+<div class="flex items-center gap-space-sm pt-space-xs">
+<button class="flex-1 h-11 bg-primary text-on-primary rounded-lg font-label-md text-label-md flex items-center justify-center gap-2 hover:bg-primary-container active:scale-[0.99] transition-all shadow-sm" type="button">
+<span class="material-symbols-outlined text-[18px]">search</span>
+<span>Buscar</span>
+</button>
+<button class="h-11 px-space-md bg-surface-container text-on-surface-variant rounded-lg font-label-md text-label-md hover:bg-surface-container-high active:scale-[0.99] transition-all flex items-center justify-center gap-1" onclick="document.getElementById('search-input').value=''; document.getElementById('date-from').value=''; document.getElementById('date-to').value='';" type="button">
+<span class="material-symbols-outlined text-[18px]">restart_alt</span>
+<span>Limpiar filtros</span>
+</button>
+</div>
+</div>
+</section>
+<!-- Editorial & Result Summary Strip -->
+<section class="px-margin mb-space-sm flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-secondary"></span>
+<p class="font-label-md text-label-md text-on-surface-variant font-medium">
+<strong class="text-on-surface font-semibold">3 publicaciones encontradas</strong> para <span class="italic text-primary font-medium">«becas para jóvenes»</span>
+</p>
+</div>
+<div class="flex items-center gap-1 text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px]">swap_vert</span>
+<span class="font-label-sm text-label-sm">Recientes</span>
+</div>
+</section>
+<!-- Results Content Area (List of PublicationCards) -->
+<section class="px-margin flex flex-col gap-space-md">
+<!-- Tarjeta 1 -->
+<article class="bg-surface-container-lowest rounded-xl shadow-sm p-space-md flex flex-col gap-space-sm transition-all hover:shadow-md">
+<!-- Identifiers & Metadata Row -->
+<div class="flex items-center justify-between gap-space-xs">
+<div class="flex items-center gap-1.5 flex-wrap">
+<span class="font-label-sm text-label-sm font-semibold tracking-wider text-primary px-1.5 py-0.5 rounded bg-primary-fixed/60">
+            BOE-B-2026-34891
+          </span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Sec. V-B</span>
+</div>
+<time class="font-label-sm text-label-sm text-outline flex items-center gap-1" datetime="2026-10-08">
+<span class="material-symbols-outlined text-[14px]">calendar_today</span>
+          08/10/2026
+        </time>
+</div>
+<!-- Department / Issuer -->
+<div class="flex items-center gap-1.5 text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px] text-secondary">account_balance</span>
+<span class="font-label-md text-label-md font-semibold text-secondary">Ministerio de Educación, Formación Profesional y Deportes</span>
+</div>
+<!-- Title -->
+<h2 class="font-title-md text-title-md text-on-surface leading-tight hover:text-primary transition-colors cursor-pointer">
+        Extracto de la Resolución de 8 de octubre de 2026, de la Secretaría de Estado de Educación, por la que se convocan ayudas al estudio y becas salario
+      </h2>
+<!-- Synthesized Excerpt -->
+<div class="bg-surface-container-low rounded-lg p-space-sm">
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+          Concesión de 500 becas destinadas a jóvenes matriculados en programas oficiales de formación técnica y superior.
+        </p>
+</div>
+<!-- Footer Tags and Actions -->
+<div class="pt-space-xs flex flex-wrap items-center justify-between gap-space-sm">
+<div class="flex flex-wrap items-center gap-space-xs">
+<!-- Category Pill -->
+<span class="inline-flex items-center gap-1 px-space-sm py-1 rounded-md bg-surface-container font-label-md text-label-md text-primary">
+<span class="material-symbols-outlined text-[14px]">school</span>
+            Becas y subvenciones
+          </span>
+<!-- Deadline Badge (Urgent / Tertiary Palette) -->
+<span class="inline-flex items-center gap-1 px-space-sm py-1 rounded-md bg-tertiary-fixed font-label-md text-label-md text-on-tertiary-fixed font-semibold">
+<span class="material-symbols-outlined text-[14px] text-tertiary">schedule</span>
+            Plazo: 15/11/2026
+          </span>
+</div>
+<a class="inline-flex items-center gap-1 font-label-md text-label-md text-primary hover:underline group" href="#">
+<span>Ver documento</span>
+<span class="material-symbols-outlined text-[16px] group-hover:translate-x-0.5 transition-transform">open_in_new</span>
+</a>
+</div>
+</article>
+<!-- Tarjeta 2 -->
+<article class="bg-surface-container-lowest rounded-xl shadow-sm p-space-md flex flex-col gap-space-sm transition-all hover:shadow-md">
+<!-- Identifiers & Metadata Row -->
+<div class="flex items-center justify-between gap-space-xs">
+<div class="flex items-center gap-1.5 flex-wrap">
+<span class="font-label-sm text-label-sm font-semibold tracking-wider text-primary px-1.5 py-0.5 rounded bg-primary-fixed/60">
+            BOE-B-2026-34210
+          </span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Sec. III</span>
+</div>
+<time class="font-label-sm text-label-sm text-outline flex items-center gap-1" datetime="2026-10-03">
+<span class="material-symbols-outlined text-[14px]">calendar_today</span>
+          03/10/2026
+        </time>
+</div>
+<!-- Department / Issuer -->
+<div class="flex items-center gap-1.5 text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px] text-secondary">domain</span>
+<span class="font-label-md text-label-md font-semibold text-secondary">Instituto de la Juventud (INJUVE)</span>
+</div>
+<!-- Title -->
+<h2 class="font-title-md text-title-md text-on-surface leading-tight hover:text-primary transition-colors cursor-pointer">
+        Resolución de 3 de octubre de 2026, del Instituto de la Juventud, por la que se convocan subvenciones para proyectos de emprendimiento juvenil
+      </h2>
+<!-- Synthesized Excerpt -->
+<div class="bg-surface-container-low rounded-lg p-space-sm">
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+          Ayudas directas a fondo perdido de hasta 6.000 € para personas físicas menores de 35 años que inicien actividad innovadora en municipios rurales.
+        </p>
+</div>
+<!-- Footer Tags and Actions -->
+<div class="pt-space-xs flex flex-wrap items-center justify-between gap-space-sm">
+<div class="flex flex-wrap items-center gap-space-xs">
+<span class="inline-flex items-center gap-1 px-space-sm py-1 rounded-md bg-surface-container font-label-md text-label-md text-primary">
+<span class="material-symbols-outlined text-[14px]">rocket_launch</span>
+            Becas y subvenciones
+          </span>
+<span class="inline-flex items-center gap-1 px-space-sm py-1 rounded-md bg-tertiary-fixed font-label-md text-label-md text-on-tertiary-fixed font-semibold">
+<span class="material-symbols-outlined text-[14px] text-tertiary">schedule</span>
+            Plazo: 05/11/2026
+          </span>
+</div>
+<a class="inline-flex items-center gap-1 font-label-md text-label-md text-primary hover:underline group" href="#">
+<span>Ver documento</span>
+<span class="material-symbols-outlined text-[16px] group-hover:translate-x-0.5 transition-transform">open_in_new</span>
+</a>
+</div>
+</article>
+<!-- Tarjeta 3 -->
+<article class="bg-surface-container-lowest rounded-xl shadow-sm p-space-md flex flex-col gap-space-sm transition-all hover:shadow-md">
+<!-- Identifiers & Metadata Row -->
+<div class="flex items-center justify-between gap-space-xs">
+<div class="flex items-center gap-1.5 flex-wrap">
+<span class="font-label-sm text-label-sm font-semibold tracking-wider text-primary px-1.5 py-0.5 rounded bg-primary-fixed/60">
+            BOE-A-2026-33980
+          </span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Sec. I</span>
+</div>
+<time class="font-label-sm text-label-sm text-outline flex items-center gap-1" datetime="2026-09-28">
+<span class="material-symbols-outlined text-[14px]">calendar_today</span>
+          28/09/2026
+        </time>
+</div>
+<!-- Department / Issuer -->
+<div class="flex items-center gap-1.5 text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px] text-secondary">commute</span>
+<span class="font-label-md text-label-md font-semibold text-secondary">Ministerio de Transportes y Movilidad Sostenible</span>
+</div>
+<!-- Title -->
+<h2 class="font-title-md text-title-md text-on-surface leading-tight hover:text-primary transition-colors cursor-pointer">
+        Orden de 28 de septiembre de 2026 sobre ayudas complementarias de transporte universitario para jóvenes en zonas despobladas
+      </h2>
+<!-- Synthesized Excerpt -->
+<div class="bg-surface-container-low rounded-lg p-space-sm">
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+          Bono nominativo de desplazamiento interurbano y ferroviario para estudiantes de educación superior con residencia legal en municipios de menos de 10.000 habitantes.
+        </p>
+</div>
+<!-- Footer Tags and Actions -->
+<div class="pt-space-xs flex flex-wrap items-center justify-between gap-space-sm">
+<div class="flex flex-wrap items-center gap-space-xs">
+<span class="inline-flex items-center gap-1 px-space-sm py-1 rounded-md bg-surface-container font-label-md text-label-md text-primary">
+<span class="material-symbols-outlined text-[14px]">directions_bus</span>
+            Becas y subvenciones
+          </span>
+<span class="inline-flex items-center gap-1 px-space-sm py-1 rounded-md bg-tertiary-fixed font-label-md text-label-md text-on-tertiary-fixed font-semibold">
+<span class="material-symbols-outlined text-[14px] text-tertiary">schedule</span>
+            Plazo: 25/10/2026
+          </span>
+</div>
+<a class="inline-flex items-center gap-1 font-label-md text-label-md text-primary hover:underline group" href="#">
+<span>Ver documento</span>
+<span class="material-symbols-outlined text-[16px] group-hover:translate-x-0.5 transition-transform">open_in_new</span>
+</a>
+</div>
+</article>
+</section>
+<!-- Public Trust & Official Provenance Callout -->
+<section class="px-margin mt-space-lg mb-space-sm">
+<div class="bg-surface-container-low rounded-xl p-space-md flex items-start gap-space-sm">
+<div class="w-8 h-8 rounded-full bg-primary-fixed flex items-center justify-center flex-shrink-0 text-primary">
+<span class="material-symbols-outlined text-[20px]">verified</span>
+</div>
+<div class="flex flex-col gap-0.5">
+<p class="font-label-md text-label-md font-semibold text-primary">Garantía de Fe Pública y Autenticidad</p>
+<p class="font-body-md text-body-md text-on-surface-variant">
+          Los extractos presentados provienen del Sistema de Difusión Electrónica del BOE (Agencia Estatal Boletín Oficial del Estado). Para trámites formales, consulte el texto íntegro en PDF con Código Seguro de Verificación (CSV).
+        </p>
+</div>
+</div>
+</section>
+<!-- Micro-interaction script for Category chip toggle -->
+<script>
+    document.querySelectorAll('.no-scrollbar button').forEach(button => {
+      button.addEventListener('click', function() {
+        document.querySelectorAll('.no-scrollbar button').forEach(b => {
+          b.className = 'whitespace-nowrap px-space-sm py-1.5 rounded-full font-label-md text-label-md bg-surface-container text-on-surface-variant hover:bg-surface-container-high active:scale-95 transition-all';
+          const icon = b.querySelector('.material-symbols-outlined');
+          if (icon && icon.textContent === 'check') icon.remove();
+        });
+        this.className = 'whitespace-nowrap px-space-sm py-1.5 rounded-full font-label-md text-label-md bg-primary-container text-on-primary flex items-center gap-1 shadow-sm';
+        const checkIcon = document.createElement('span');
+        checkIcon.className = 'material-symbols-outlined text-[14px]';
+        checkIcon.textContent = 'check';
+        this.prepend(checkIcon);
+      });
+    });
+  </script>
+</div></main><nav class="fixed bottom-0 w-full z-50 pb-safe bg-surface-container-lowest/95 backdrop-blur-xl shadow-[0_-2px_12px_rgba(0,0,0,0.04)]" data-active-classes="text-primary font-semibold"><div class="flex justify-around items-center h-16 px-margin max-w-lg mx-auto"><a class="flex flex-col items-center justify-center flex-1 h-14 gap-space-xs text-on-surface-variant hover:text-on-surface transition-colors" data-path="feed" href="#"><span class="material-symbols-outlined text-[22px]">newspaper</span><span class="font-label-sm text-label-sm">Boletín</span></a><a aria-current="page" class="flex flex-col items-center justify-center flex-1 h-14 gap-space-xs transition-colors text-primary font-semibold" data-path="search" href="#"><span class="material-symbols-outlined text-[22px]">manage_search</span><span class="font-label-sm text-label-sm">Búsqueda</span></a><a class="flex flex-col items-center justify-center flex-1 h-14 gap-space-xs text-on-surface-variant hover:text-on-surface transition-colors" data-path="chat" href="#"><span class="material-symbols-outlined text-[22px]">forum</span><span class="font-label-sm text-label-sm">RAG Chat</span></a></div></nav></body></html>

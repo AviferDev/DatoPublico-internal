@@ -5,16 +5,19 @@ designAssets:
   sourceOfTruth: []
   generatedConcepts: []
 colors:
-  primary: "#1A4D8F"
-  secondary: "#0F766E"
+  # Paleta Material 3 del rediseño (FT00053). Es la fuente de verdad del cliente;
+  # los mockups viven en `docs/desing/` y el tema del cliente mapea estos tokens
+  # en `design/theme/DatoPublicoTheme.kt`.
+  primary: "#00366F"
+  secondary: "#006A63"
   accent: "#F59E0B"
-  background: "#F7F9FC"
+  background: "#F9F9FF"
   surface: "#FFFFFF"
-  text: "#1F2937"
+  text: "#141B2B"
 typography:
   h1:
     fontFamily: "Inter, system-ui, sans-serif"
-    fontSize: "32px"
+    fontSize: "28px"
     fontWeight: "700"
   body:
     fontFamily: "Inter, system-ui, sans-serif"

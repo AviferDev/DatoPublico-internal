@@ -4220,4 +4220,51 @@
 - Siguiente: validación independiente de `FT00039-PT1`; después `FT00052-PT2`
   (Web) y `FT00039-PT2` (enlaces compartibles).
 
+### Session 087
+
+- Fecha: 2026-10-15
+- Objetivo: **`FT00053`** (`ui-design-refresh`): adaptar las **4 pantallas**
+  existentes del cliente (feed, búsqueda, detalle y chat RAG) a los mockups de
+  `.harness/docs/desing/` y a la paleta Material 3 de
+  `.harness/docs/desing/datopublico/DESIGN.md`, con **chasis** común. Reparto
+  **en paralelo** sin pisarse (solo UI + textos).
+- Rama de producto: `feat/ft00053-ui-design-refresh` (claim desde `origin/main`
+  `46adca8`).
+- Completado:
+  - **Base compartida** (secuencial, orquestador): tema con la paleta M3 del
+    mockup; componentes (`CategoryLabel` pastel, `PublicationBadges`,
+    `PublicationCard` con id+fecha+badges+título+resumen+enlace, `AiNotice` con
+    título opcional, `SectionBlock` con barra de acento, `OfficialSourceLink`
+    botón principal, `OfficialSourceUrl` nuevo con copiar);
+    `app/AppChrome.kt` **nuevo** (barra superior de marca + «Preguntar al BOE» +
+    buscar, barra superior de atrás del detalle y barra inferior
+    Boletín/Búsqueda/RAG Chat) y `app/AppNavHost.kt` (chasis envolviendo el grafo,
+    pestaña activa resaltada); `strings.xml` con todas las cadenas nuevas.
+  - **4 pantallas en paralelo**: feed (`FeedScreen`/`HighlightsSection`/
+    `FeedRoute`; se elimina `onSearchClick` de la pantalla: la búsqueda la aporta
+    el chasis), búsqueda (`SearchScreen`/`SearchFilterBar`/`SearchViews`), detalle
+    (`DetailScreen`/`DetailContent`; sub-barra de contenido y guarda
+    `showsAiNotice` conservada) y chat (`ChatScreen`/`ChatAnswerCard`/
+    `ChatCitations`/`ChatQuestionField`; contador de caracteres, limpiar,
+    citas y consultas sugeridas funcionales).
+  - **Fuera de alcance**: backend/dominio/datos intactos; sin datos inventados
+    (organismo, imagen, «quedan N días»); sin controles muertos (favoritos,
+    guardar, compartir, feedback, avatar); sin empaquetar Inter.
+  - Se limpiaron los avisos de iconos deprecados usando las variantes
+    `AutoMirrored`; `TooManyFunctions` acotado con `@file:Suppress` donde el
+    mockup obliga a más de 15 composables por fichero.
+- Verificación ejecutada (desde `..`, JDK 21 JBR):
+  - `:composeApp:compileKotlinWasmJs` + `:composeApp:jvmTest` + `:composeApp:detekt`
+    (+ `:cpdCheck`) → BUILD SUCCESSFUL.
+  - `:composeApp:wasmJsBrowserDistribution` → BUILD SUCCESSFUL; el distribuible
+    servido en local cargó (200 de `index.html`, `composeApp.js` y ambos `.wasm`).
+- No verificado (documentado): **capturas antes/después** — entorno **headless**
+  (el navegador del harness no tiene ventana visible; `browser.screenshot` falla).
+  Justificado en `docs/pr/feat-ft00053-ui-design-refresh/README.md`.
+- Ficheros: 23 de producto en `:composeApp` (21 modificados + `app/AppChrome.kt`,
+  `design/components/OfficialSourceUrl.kt`); harness: `DESIGN.md`,
+  `feature_list.json`, `docs/feature-ids.md`, `docs/specs/ui-design-refresh.md`,
+  `docs/pr/feat-ft00053-ui-design-refresh/README.md`, `PROGRESS.md`.
+- Siguiente: validación independiente de `FT00053`; capturas manuales del dueño.
+
 
