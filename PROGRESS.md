@@ -4256,6 +4256,8 @@
 - Verificación ejecutada (desde `..`, JDK 21 JBR):
   - `:composeApp:compileKotlinWasmJs` + `:composeApp:jvmTest` + `:composeApp:detekt`
     (+ `:cpdCheck`) → BUILD SUCCESSFUL.
+  - `.harness/init.sh --with-client` → **Gate OK** (exit 0; `build` con 211 tareas:
+    Android + Wasm + tests + lint, y `detekt` + `:cpdCheck`).
   - `:composeApp:wasmJsBrowserDistribution` → BUILD SUCCESSFUL; el distribuible
     servido en local cargó (200 de `index.html`, `composeApp.js` y ambos `.wasm`).
 - No verificado (documentado): **capturas antes/después** — entorno **headless**
