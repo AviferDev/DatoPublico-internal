@@ -814,6 +814,17 @@
   relanza). La **URL base** y la fecha del día se resuelven por plataforma con
   `expect/actual`; **nunca** un `http://…` fijo en `commonMain`. Decisión durable
   en `docs/adr/0029`.
+- **MUST**: la **URL base de la API de la Web** se inyecta **solo** en build time
+  con la propiedad Gradle `apiBaseUrl` (`-PapiBaseUrl=<url>` → constante
+  `API_BASE_URL` generada **únicamente** para `wasmJsMain`; sin la propiedad vale
+  `http://localhost:8080` y Android/iOS/JVM **no** cambian). **Nunca** se
+  hardcodea una URL de producción; una propiedad vacía es **fail-fast**.
+- **MUST**: los **metadatos SEO de la Web** son **estáticos** en
+  `composeApp/src/wasmJsMain/resources/index.html` (título, `description`,
+  `canonical`, `robots`, Open Graph y `theme-color`), sin SSR ni SEO por norma, sin
+  secretos y sin literales de UI de la app; el dominio de
+  `canonical`/`og:url`/`og:image` puede ser un *placeholder* hasta que
+  FT00052-PT2 fije el hosting.
 - **MUST**: `:composeApp` **no** depende de `:shared` (se mantiene el gate
   SDK-free); el contrato se refleja con **DTOs de wire propios** (capa
   anti-corrupción, sufijo `Dto` y `@SerialName`) y un mapeo puro a los modelos de
@@ -858,6 +869,13 @@
   `RepositoriesMode.PREFER_SETTINGS`. El plugin de Kotlin/Wasm las registra a
   nivel de proyecto, así que `FAIL_ON_PROJECT_REPOS` rompería el build. Mantén el
   settings como **fuente única de verdad** de repositorios.
+- **MUST**: el **contrato de la Web de producción** es el artefacto
+  `composeApp/build/dist/wasmJs/productionExecutable/`, construido con
+  `./gradlew :composeApp:wasmJsBrowserDistribution -PapiBaseUrl="$PROD_API_BASE_URL"`
+  (propiedad y ruta **idénticas** para FT00052-PT2). Lo publica FT00052-PT2 y el
+  Nginx lo sirve como **estático** con *fallback* SPA (`try_files … /index.html`)
+  conservando el proxy de `/v1/*`, `/health` y `/openapi.json`. El servido
+  estático es manual/opt-in: el **gate sigue offline** y sin navegador.
 
 ## Decisiones y flujo
 

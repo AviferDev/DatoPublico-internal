@@ -199,6 +199,21 @@
   `OPENCODE_LIVE_TEST` (fail-fast sin clave verificado; escenario 9 real **no
   ejecutado**, sin `OPENCODE_API_KEY`). Decisión durable en **ADR 0020**. Sin
   wiring: endpoint/rate limiting (FT00030/FT00031) y UI (FT00037).
+- **FT00039-PT1 `dist-web` → `passing`** (Session 086; implementada y
+  autoverificada, **pendiente de validación independiente**): **build Web de
+  producción con URL de API parametrizable** + SEO del shell + contrato del
+  servido estático. `composeApp/build.gradle.kts` lee la propiedad Gradle
+  `apiBaseUrl` (default `http://localhost:8080`, barra final recortada, fail-fast
+  si vacía) y la tarea `:composeApp:generateApiBaseUrlConfig` escribe
+  `composeApp/build/generated/apiConfig/wasmJsMain/…/ApiBaseUrlBuildConfig.kt`
+  (`internal const val API_BASE_URL`), enlazada al source set `wasmJsMain`; el
+  `actual` de `Platform.wasmJs.kt` devuelve esa constante (sin `WASM_BASE_URL`).
+  **Android/iOS/JVM sin cambios**. `index.html` con metadatos SEO estáticos
+  (description, canonical, robots, Open Graph, theme-color) y `favicon.svg`
+  nuevo. Contrato de FT00052-PT2 documentado en `docs/desarrollo-local.md`.
+  Gate `init.sh` y `init.sh --with-client` **OK** (`:composeApp` 110/0/0,
+  `:shared` 39/0/0, `:backend` 486/0/0). Feature `dist-web` sigue `in_progress`
+  (PT2 pendiente: enlaces compartibles).
 - Última verificación: 2026-10-10 (Sessions 032–038). **Cambio de alcance 1.0.0 =
   TODO el BOE** (secciones I, II.A, II.B, III, IV, V.A, V.B y V.C; ningún campo ni
   sección se excluye) y nueva norma MUST de **`@SerialName` explícito** en cada
@@ -4134,5 +4149,75 @@
 - Siguiente: implementar `FT00039-PT1` y después `FT00052-PT2`.
 - Pendiente de bookkeeping: `FT00048`, `FT00049` y `FT00050` están fusionadas en `main`
   pero siguen marcadas `in_progress` (revisar/aceptar).
+
+### Session 086
+
+- Fecha: 2026-10-15
+- Objetivo: implementar **`FT00039-PT1`** (`dist-web`): build Web (Wasm) de
+  producción con URL de API parametrizable + SEO del shell + contrato del servido
+  estático (camino crítico de `FT00052-PT2`). **Sin** PT2 (enlaces compartibles).
+- Rama de producto: `feat/ft00039-pt1-web-prod-build` (claim `71322f5`, base
+  `origin/main` `46adca8`, que ya incluye FT00051 y FT00052-PT1).
+- Completado:
+  - `composeApp/build.gradle.kts`: propiedad `apiBaseUrl`
+    (`providers.gradleProperty`, default `http://localhost:8080`, `trim()` + recorte
+    de barra final, **fail-fast** si está vacía) + tarea
+    `:composeApp:generateApiBaseUrlConfig` (grupo `build`, `inputs.property` +
+    `outputs.dir`, escribe `ApiBaseUrlBuildConfig.kt` con
+    `internal const val API_BASE_URL`) + `kotlin.srcDir(generateApiBaseUrlConfig)`
+    en `wasmJsMain` (el `TaskProvider` enlaza la dependencia de tarea).
+  - `Platform.wasmJs.kt`: `platformApiBaseUrl()` devuelve `API_BASE_URL`; fuera la
+    constante privada `WASM_BASE_URL`. `ApiConfig.kt` y los `actual` de
+    Android/iOS/JVM **intactos**.
+  - `composeApp/src/wasmJsMain/resources/index.html`: metadatos SEO del shell
+    (`title`, `description`, `robots`, `canonical`, `theme-color`, Open Graph) +
+    `favicon.svg` nuevo. Placeholder de dominio `https://datopublico.example/`
+    (el mismo que `deploy/.env.production.example`), pendiente de FT00052-PT2.
+  - `docs/desarrollo-local.md`: sección nueva «Web (Wasm): URL de la API y servido
+    estático (FT00039-PT1)» con las reglas de la propiedad, cómo servir el
+    artefacto y el **contrato para FT00052-PT2** (artefacto
+    `composeApp/build/dist/wasmJs/productionExecutable/`, invocación con
+    `-PapiBaseUrl="$PROD_API_BASE_URL"`, Nginx estático + *fallback* SPA
+    conservando `/v1/*`, `/health` y `/openapi.json`). `docs/release.md` **no** se
+    toca (su §Web es de FT00052-PT2, según el spec).
+- Verificación ejecutada (desde `..`, JDK 21 JBR):
+  - `./gradlew :composeApp:wasmJsBrowserDistribution -PapiBaseUrl="https://api.example.test"`
+    → BUILD SUCCESSFUL; constante generada con la URL inyectada y string presente
+    en `productionExecutable/dcf15720b33ed27c1cf1.wasm` (UTF-16LE).
+  - Sin la propiedad → constante y wasm con `http://localhost:8080` (dev intacto).
+    `-PapiBaseUrl=""` → FAILURE «La propiedad `apiBaseUrl` está vacía»;
+    `-PapiBaseUrl="https://api.example.test///"` → recortado; reejecución →
+    `UP-TO-DATE`.
+  - `python3 -m http.server 8123` sobre `productionExecutable/`: `GET /` 200 con los
+    metadatos, `composeApp.js` 200 `text/javascript`, `*.wasm` 200
+    `application/wasm`, `favicon.svg` 200 `image/svg+xml`; ambos `*.wasm` compilan
+    como módulos válidos (`WebAssembly.compile` con el Node 22 del toolchain) y el
+    JS los referencia (artefacto autoconsistente).
+  - Gate: `.harness/init.sh` y `.harness/init.sh --with-client` → **Gate OK**
+    (exit 0); `./gradlew :composeApp:jvmTest :composeApp:wasmJsBrowserDistribution
+    --rerun-tasks` → BUILD SUCCESSFUL (`:composeApp` 110/0/0, `:shared` 39/0/0,
+    `:backend` 486/0/0).
+- No verificado (documentado): el arranque en **navegador** (consola y estado del
+  feed) no se pudo comprobar en este entorno — no hay navegador de escritorio
+  conectado a la sesión ni Chrome/Chromium instalado (`wasmJsBrowserTest` está
+  deshabilitado en el gate por el mismo motivo). Queda para la validación
+  independiente o la verificación manual del dueño (con backend en `:8080`, o en
+  otro puerto vía `-PapiBaseUrl`).
+- Decisión durable: **sin ADR nuevo** en PT1 (el spec reserva el ADR para PT2); el
+  mecanismo queda como superficie durable en `ARCHITECTURE.md` (§Despliegue →
+  «Web (Wasm): build y servido») y `CONSTRAINTS.md` (MUST de URL por build y de SEO
+  estático).
+- Ficheros: `composeApp/build.gradle.kts`,
+  `composeApp/src/wasmJsMain/kotlin/es/aviferdev/datopublico/core/network/Platform.wasmJs.kt`,
+  `composeApp/src/wasmJsMain/resources/index.html`,
+  `composeApp/src/wasmJsMain/resources/favicon.svg` (nuevo),
+  `docs/desarrollo-local.md`; harness: `feature_list.json`, `docs/feature-ids.md`,
+  `ARCHITECTURE.md`, `CONSTRAINTS.md`, `PROGRESS.md`.
+- Entrega: commit `f284178` (5 ficheros) pusheado a
+  `feat/ft00039-pt1-web-prod-build`; **PR #46** hacia `main`
+  (https://github.com/AviferDev/DatoPublico/pull/46). CI «Build and test» en verde
+  (run `38792955614`, head `f284178`).
+- Siguiente: validación independiente de `FT00039-PT1`; después `FT00052-PT2`
+  (Web) y `FT00039-PT2` (enlaces compartibles).
 
 

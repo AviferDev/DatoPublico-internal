@@ -352,9 +352,13 @@
   (búsqueda con filtros de categoría y rango de fechas; `HttpSearchRepository` sobre
   `core/network`), el destino `search` y una acción en el encabezado del feed. El
   encabezado del feed (con las acciones de chat y búsqueda) es visible en **todos**
-  los estados. `:composeApp` **sigue sin cablear `:shared`** (para no romper el gate
-  SDK-free). Decisiones durables en `docs/adr/0027`, `docs/adr/0028`, `docs/adr/0029`,
-  `docs/adr/0031`, `docs/adr/0032` y `docs/adr/0033`.
+  los estados. Desde FT00039-PT1 la **URL base de la API de la Web** se inyecta en
+  **build time** (propiedad Gradle `apiBaseUrl` → constante `API_BASE_URL` generada
+  **solo** en `wasmJsMain`; sin la propiedad vale `http://localhost:8080`) y el shell
+  `index.html` lleva **metadatos SEO estáticos**. `:composeApp` **sigue sin cablear
+  `:shared`** (para no romper el gate SDK-free). Decisiones durables en
+  `docs/adr/0027`, `docs/adr/0028`, `docs/adr/0029`, `docs/adr/0031`,
+  `docs/adr/0032` y `docs/adr/0033`.
 
 ## Build y gate
 
@@ -417,6 +421,30 @@ Decisión durable en `docs/adr/0034`; runbook en `docs/release.md` (producto).
   Secrets/Environments o en el servidor, y el **gate intacto** (`ci.yml` y
   `.harness/init.sh` sin cambios; la verificación local es estática).
 
+
+### Web (Wasm): build y servido
+
+- **URL de la API por build**: la Web resuelve su URL base con la constante
+  `API_BASE_URL` generada por la tarea `:composeApp:generateApiBaseUrlConfig` a
+  partir de la propiedad Gradle `apiBaseUrl` (`-PapiBaseUrl=<url>`); sin la
+  propiedad vale `http://localhost:8080` (desarrollo). La constante se genera
+  **solo** en `wasmJsMain`
+  (`composeApp/build/generated/apiConfig/wasmJsMain/`, no versionada) y se enlaza
+  al source set, así que cualquier compilación de Wasm la regenera. Android, iOS
+  y JVM **no** cambian su URL base.
+- **Artefacto de producción**: `composeApp/build/dist/wasmJs/productionExecutable/`
+  (`index.html` + `composeApp.js` + `*.wasm` + `favicon.svg` +
+  `composeResources/`). El pipeline de **FT00052-PT2** lo publica por `rsync`/SSH
+  y el Nginx lo sirve como **estático** en su *webroot* con *fallback* SPA
+  (`try_files … /index.html`), conservando el proxy de `/v1/*`, `/health` y
+  `/openapi.json` hacia el backend. El `deploy/` de FT00041 hoy **solo** hace
+  proxy.
+- **SEO del shell**: metadatos **estáticos** en `index.html` (título,
+  `description`, `canonical`, `robots`, Open Graph y `theme-color`); el contenido
+  lo pinta el cliente Wasm, así que **no** hay SSR ni SEO por norma (Non-Goal). El
+  dominio de `canonical`/`og:url`/`og:image` es un *placeholder* hasta FT00052-PT2.
+- **El gate sigue offline**: el servido estático es manual/opt-in y no se engancha
+  a `build`/`test`/`detekt`/`init.sh` ni a la CI.
 
 ## Fronteras
 

@@ -78,7 +78,7 @@
 
 | PT | Feature | Alcance | Estado |
 | --- | --- | --- | --- |
-| FT00039-PT1 | dist-web | Build Wasm de producción con URL de API parametrizable (`-PapiBaseUrl`) + SEO del shell + servido estático | not_started |
+| FT00039-PT1 | dist-web | Build Wasm de producción con URL de API parametrizable (`-PapiBaseUrl`) + SEO del shell + servido estático | passing |
 | FT00039-PT2 | dist-web | Puente de URL Web (History API) para enlaces compartibles de detalle (ADR) | not_started |
 | FT00052-PT1 | release-actions | Backend: imagen a GHCR + despliegue por SSH | accepted |
 | FT00052-PT2 | release-actions | Web: build Wasm de producción + publicación en el Nginx del servidor | not_started |
