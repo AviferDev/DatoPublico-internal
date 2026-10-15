@@ -4267,6 +4267,10 @@
   `design/components/OfficialSourceUrl.kt`); harness: `DESIGN.md`,
   `feature_list.json`, `docs/feature-ids.md`, `docs/specs/ui-design-refresh.md`,
   `docs/pr/feat-ft00053-ui-design-refresh/README.md`, `PROGRESS.md`.
+- Entrega: commit `7654c5a` (23 ficheros) pusheado a
+  `feat/ft00053-ui-design-refresh`; **PR #47** hacia `main`
+  (https://github.com/AviferDev/DatoPublico/pull/47). CI «Build and test» en verde
+  (run `38798612289`, 8m28s).
 - Siguiente: validación independiente de `FT00053`; capturas manuales del dueño.
 
 
