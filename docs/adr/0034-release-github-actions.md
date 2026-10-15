@@ -113,8 +113,8 @@ Restricciones que condicionan la decisión:
 - Un tag olvidado **no** despliega: es intencional y queda documentado.
 - Documentación afectada: `docs/release.md` (producto, runbook + inventario de
   secretos), `README.md` (producto), `ARCHITECTURE.md` (superficie de publicación),
-  `CONSTRAINTS.md` (§«Publicación / Release»), `deploy/README.md` (referencia al
-  nuevo camino) y skill `ktor-backend-architecture`.
+  `CONSTRAINTS.md` (§«Publicación / Release») y `deploy/README.md` (referencia al
+  nuevo camino).
 - Verificación: estática local (parseo YAML, `bash -n`, `docker compose config`) +
   gate intacto; la ejecución real con tag requiere servidor y secretos (opt-in,
   evidencia manual).

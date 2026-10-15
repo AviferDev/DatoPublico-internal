@@ -4093,4 +4093,15 @@
   subida a tiendas para PT3/PT4).
 - Siguiente: validación independiente de `FT00052-PT1`; después, `dist-web`
   (FT00039) → `FT00052-PT2`.
+- **Reparación tras validación** (`revise`, 2026-10-15): **High** — el job
+  `backend` del *umbrella* `release.yml` no concedía `packages: write` (un workflow
+  reutilizable solo puede *degradar* los permisos del caller → el disparo manual no
+  habría publicado en GHCR); **Medium** — `docs/feature-ids.md` desalineado;
+  **Low** — ADR 0034 declaraba actualizada una skill sin tocar y faltaba la nota de
+  migración de `BACKEND_IMAGE` en `deploy/README.md`. Corregido en el commit de
+  producto `3e06470` (`permissions` en el umbrella; `feature-ids.md` alineado;
+  `deploy/README.md` con referencia a `docs/release.md` + `BACKEND_IMAGE`/
+  `BACKEND_VERSION`; nota de permisos en `docs/release.md`; ADR ajustado). Reejecutado
+  el gate (`build -PskipClient`+`detekt`), parseo YAML, `bash -n` y
+  `docker compose config -q` → verde. Pendiente: revalidación independiente.
 
