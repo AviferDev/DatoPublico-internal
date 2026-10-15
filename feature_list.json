@@ -1281,13 +1281,14 @@
     "depends_on": [
       "ui-feed"
     ],
-    "status": "in_progress",
+    "status": "accepted",
     "verification": [
       "En el navegador, el feed muestra la lista de publicaciones (no solo un destacado) y ocupa toda la ventana.",
       "El build Wasm (`wasmJsBrowserDistribution`) termina sin errores y el gate (`build`/`test`/`detekt`) sigue verde."
     ],
     "evidence": [
-      "FT00051 (2026-10-15, rama `feat/ft00051-web-full-viewport`): registrada a partir del trabajo en curso observado en la Session 083 (en la Web solo se pintaba el primer destacado del feed). Cambio local en `composeApp/src/wasmJsMain/resources/index.html`: `html, body` al 100 % sin márgenes ni scroll y retirada del `<div id=\"root\">`; hipótesis: el contenedor del viewport colapsaba y la `LazyColumn` no se pintaba. Pendiente de commit/PR, capturas antes/después y verificación en navegador."
+      "FT00051 (2026-10-15, rama `feat/ft00051-web-full-viewport`, commit `954cbe7`, PR #45): fix del viewport de la Web (Wasm). `composeApp/src/wasmJsMain/resources/index.html`: `html, body` al 100 % sin márgenes ni scroll y retirada del `<div id=\"root\">` (sin uso; `ComposeViewport(document.body!!)` en `app/main.kt`). El contenedor colapsaba y la `LazyColumn` del feed no se pintaba (solo el primer destacado). Captura «antes» en `docs/pr/feat-ft00051-web-full-viewport/antes.png`; «después» no capturada (justificada en el PR: navegador headless, canvas WebGL no legible por JS, `screencapture` sin permiso), aprobado por el dueño.",
+      "FT00051 — validación independiente (feature-validator, 2026-10-15): veredicto **`accept`**. Reejecutó `./.harness/init.sh --with-client` (**Gate OK**, incluye `:composeApp`) y `:composeApp:wasmJsBrowserDistribution` (OK); confirmó que nadie referencia `#root` y que el artefacto distribuido refleja el cambio; alcance solo `index.html` (sin tocar `:backend`/`ci.yml`/`init.sh`); captura «después» omitida con justificación aceptada. Hallazgos Low (no bloquean): refrescar esta evidencia, entrada en `PROGRESS.md` y descripción del shell en el spec `dist-web`. → **FT00051 `accepted`**."
     ],
     "notes": "Bugfix de interfaz en la Web (Wasm). Fuente: Session 083 de `PROGRESS.md` (observado, sin diagnosticar; la API devolvía 20 publicaciones + 3 destacados). Capturas antes/después en `docs/pr/feat-ft00051-web-full-viewport/`."
   },

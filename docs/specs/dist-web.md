@@ -174,9 +174,10 @@ cambia píxeles visibles: solo evidencia textual del build/servido.
 - `composeApp/src/wasmJsMain/kotlin/…/app/main.kt` — `main()` con `ComposeViewport(document.body!!)`
   → `App()`. Punto de entrada Web.
 - `composeApp/src/wasmJsMain/resources/index.html` — shell actual: `<html lang="es">`,
-  `<meta viewport>`, `<title>DatoPublico</title>`, `<body>` con `<div id="root">` y
-  `<script src="composeApp.js">`. Se amplía con metadatos SEO (PT1). **FT00051 también toca
-  este fichero** (ver *Risks*).
+  `<meta viewport>`, `<title>DatoPublico</title>`, `<style>` con `html, body` al 100 %
+  (FT00051) y `<script src="composeApp.js">` (el `<div id="root">` se retiró en FT00051:
+  `ComposeViewport` monta en `document.body`). Se amplía con metadatos SEO (PT1). **FT00051
+  ya resuelta** (`accepted`, PR #45).
 - `composeApp/src/commonMain/kotlin/…/app/AppRoutes.kt` — `object AppRoutes` con `FEED`
   (`"feed"`), `DETAIL` (`"detail/{publicationId}"`), `ARG_PUBLICATION_ID`, `CHAT`,
   `SEARCH` y `fun detail(id)` (codificación percent de segmento, pura). Base del mapeo

@@ -4108,3 +4108,31 @@
   `:shared` 39/0 y `:backend` 486/0. **FT00052-PT1 → `accepted`** (feature
   `release-actions` sigue `in_progress`: PT2–PT4 pendientes).
 
+### Session 085
+
+- Fecha: 2026-10-15
+- Objetivo: siguiente feature tras el CI/CD del backend.
+- **FT00051 `web-full-viewport`** (PR **#45**, rama `feat/ft00051-web-full-viewport`):
+  fix del viewport de la Web (Wasm) en `composeApp/src/wasmJsMain/resources/index.html`
+  (`html, body` al 100 % sin márgenes ni scroll; retirada del `<div id="root">` sin
+  uso). Causa: el contenedor colapsaba y la `LazyColumn` del feed no se pintaba (solo
+  el primer destacado). Verificado sirviendo la distribución local contra el backend
+  local con datos (20 pub + 3 destacados, 2026-10-14). Gate `init.sh --with-client`
+  **OK**; `wasmJsBrowserDistribution` OK. Captura «después» omitida con justificación
+  (navegador headless, canvas WebGL no legible por JS, `screencapture` sin permiso),
+  aprobada por el dueño. Validación independiente: **`accept`** → **FT00051 `accepted`**.
+- **FT00039 `dist-web`**: planificado (spec `docs/specs/dist-web.md`) y **dividido en
+  `FT00039-PT1`** (build Wasm de producción con URL de API parametrizable `-PapiBaseUrl`
+  + SEO del shell + servido estático; camino crítico de `FT00052-PT2`) y **`FT00039-PT2`**
+  (puente de URL Web / History API para enlaces compartibles, con ADR). Hallazgos del
+  planner: `navigation-compose` de CMP 1.7.3 no soporta deep links Web; SEO real
+  imposible sin SSR. Feature → `in_progress`.
+- Notas de entorno: para reproducir la Web con datos se levantó Colima + Postgres
+  (`datopublico_pgdata` persistente) y el backend en **8090** (el 8080 lo ocupa el
+  proyecto ajeno `vuelantis`); la URL de API y la fecha se parchearon temporalmente
+  (revertido) para la verificación.
+- Siguiente: implementar `FT00039-PT1` y después `FT00052-PT2`.
+- Pendiente de bookkeeping: `FT00048`, `FT00049` y `FT00050` están fusionadas en `main`
+  pero siguen marcadas `in_progress` (revisar/aceptar).
+
+
