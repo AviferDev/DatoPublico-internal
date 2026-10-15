@@ -91,3 +91,4 @@ Aceptado (<AAAA-MM-DD>). [Quién decide y, si aplica, qué ADR supersede/ajusta.
 | [0031](0031-navegacion-viewmodel-stateflow-cmp.md) | Navegación oficial de Compose Multiplatform y estado por ViewModel/`StateFlow` (UDF) | Aceptado |
 | [0032](0032-ui-chat-rag-cliente.md) | UI del chat RAG en el cliente CMP: estados de dominio, citas inyectadas y HTTP real | Aceptado |
 | [0033](0033-ui-busqueda-filtros-cliente.md) | UI de búsqueda con filtros en el cliente CMP: filtros por categoría/fecha, estados y HTTP real | Aceptado |
+| [0034](0034-release-github-actions.md) | Release y CI/CD con GitHub Actions: GHCR + SSH, versionado por tag semver y disparo manual o por tag | Aceptado |

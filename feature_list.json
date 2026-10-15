@@ -1259,5 +1259,72 @@
     "evidence": [
       "PR #43 (rama `feat/ft00050-dev-up-local`, 2026-10-14): añade `scripts/dev-up.sh` adaptado del `dev-up.sh` de Vuelantis. Probado en local: Postgres arriba y `Healthy`, migraciones V1–V5 (no-op) y backend respondiendo `/health`, `/v1/feed` y `/v1/buscar`; no tocó el stack ajeno `boe-rag`."
     ]
+  },
+  {
+    "id": "web-full-viewport",
+    "ft_id": "FT00051",
+    "area": "cliente-cmp",
+    "title": "Viewport completo en la Web (Wasm)",
+    "user_visible_behavior": "La app Web ocupa toda la ventana (html/body al 100 %, sin márgenes ni scroll) y pinta la lista completa del feed, no solo el primer destacado.",
+    "depends_on": [
+      "ui-feed"
+    ],
+    "status": "in_progress",
+    "verification": [
+      "En el navegador, el feed muestra la lista de publicaciones (no solo un destacado) y ocupa toda la ventana.",
+      "El build Wasm (`wasmJsBrowserDistribution`) termina sin errores y el gate (`build`/`test`/`detekt`) sigue verde."
+    ],
+    "evidence": [
+      "FT00051 (2026-10-15, rama `feat/ft00051-web-full-viewport`): registrada a partir del trabajo en curso observado en la Session 083 (en la Web solo se pintaba el primer destacado del feed). Cambio local en `composeApp/src/wasmJsMain/resources/index.html`: `html, body` al 100 % sin márgenes ni scroll y retirada del `<div id=\"root\">`; hipótesis: el contenedor del viewport colapsaba y la `LazyColumn` no se pintaba. Pendiente de commit/PR, capturas antes/después y verificación en navegador."
+    ],
+    "notes": "Bugfix de interfaz en la Web (Wasm). Fuente: Session 083 de `PROGRESS.md` (observado, sin diagnosticar; la API devolvía 20 publicaciones + 3 destacados). Capturas antes/después en `docs/pr/feat-ft00051-web-full-viewport/`."
+  },
+  {
+    "id": "release-actions",
+    "ft_id": "FT00052",
+    "area": "operacion",
+    "title": "CI/CD de publicación con GitHub Actions (backend y apps)",
+    "user_visible_behavior": "Desde GitHub Actions se publica una versión (por tag o a mano): la imagen del backend se publica en GHCR y el servidor la despliega por SSH (pull + migraciones + reinicio), la Web Wasm se sirve desde el Nginx del servidor propio, y Android/iOS se suben a Google Play (internal) y TestFlight.",
+    "depends_on": [
+      "deploy-backend",
+      "dist-web",
+      "dist-android",
+      "dist-ios"
+    ],
+    "status": "in_progress",
+    "verification": [
+      "Un tag de versión (o `workflow_dispatch`) construye y publica los artefactos de los destinos habilitados sin fallos.",
+      "El backend desplegado responde por HTTPS tras el despliegue y la base persiste.",
+      "La Web publicada sirve el Wasm con la URL de API de producción.",
+      "Android e iOS aparecen en sus pistas internas (Play internal testing / TestFlight).",
+      "Ningún secreto (SSH, keystore, claves Apple, token de Play) está versionado."
+    ],
+    "evidence": [
+      "Planificado (2026-10-15, decisión del dueño): feature nueva `release-actions` dividida en 4 partes `FT00052-PT1..PT4` (backend, Web, Android, iOS). Backend: imagen a GHCR + despliegue por SSH. Web: estático servido por el Nginx del servidor propio. Disparo: `workflow_dispatch` (manual, con parámetros) y por tag de versión. Prerrequisitos confirmados por el dueño: servidor accesible por SSH, cuenta de Play Console y Apple Developer.",
+      "FT00052-PT1 (2026-10-15, rama `feat/ft00052-pt1-backend-release`, implementer + autoverificación): **release del backend** (8 ficheros de producto). `.github/workflows/release-backend.yml` (`workflow_call` + `workflow_dispatch` + `push: tags: v*`; `permissions` `contents: read` + `packages: write` solo en el job de la imagen; `concurrency: release-backend-${{ github.ref }}` con `cancel-in-progress: false`; jobs `resolve` —versión semver del input o del tag, imagen GHCR en minúsculas, entorno solo `production`—, `image` —Buildx + `docker/login-action` con `GITHUB_TOKEN`, tags `<version>` y `latest`, caché `type=gha,scope=backend`— y `deploy` —entorno `production`, comprobación fail-fast de `SSH_HOST`/`SSH_USER`/`SSH_PRIVATE_KEY`/`SSH_KNOWN_HOSTS`/`DEPLOY_PATH`, SSH con `appleboy/ssh-action@v1` que hace `git fetch --tags` + `git checkout --force vX.Y.Z` y ejecuta el script del tag—). `.github/workflows/release.yml` (*umbrella* `workflow_dispatch` con `targets`/`version`/`environment`; normaliza destinos y llama solo a workflows existentes con `secrets: inherit`; sin `push`). `.github/actions/setup-jdk-gradle/action.yml` (JDK 21 temurin + `gradle/actions/setup-gradle@v4`, para los jobs que compilan en el runner). `scripts/release/deploy-backend.sh` (en el servidor: `up -d postgres` + espera `healthy`, Flyway con `:backend:flywayMigrate` si hay JDK y si no contenedor `flyway/flyway:11-alpine` contra `127.0.0.1`, `pull backend` + `up -d`, health-check contenedor `healthy` + `GET /health` por HTTPS; fail-fast con mensajes claros). `deploy/docker-compose.prod.yml` (`image: ${BACKEND_IMAGE:?}:${BACKEND_VERSION:-latest}` conservando `build:`). `deploy/.env.production.example` (`BACKEND_IMAGE`/`BACKEND_VERSION`, solo placeholders). `docs/release.md` (runbook: tags/dispatch, inventario de secretos y variables, entornos, verificación, rollback) + enlace en `README.md`. Decisión durable: **ADR 0034**. Verificación: gate `./gradlew build -PskipClient` / `test` / `detekt` y `.harness/init.sh` → exit 0 (`:backend:build` OK; sin cambios en `ci.yml` ni `init.sh`); parseo YAML de los 4 ficheros OK; `bash -n scripts/release/deploy-backend.sh` OK; lógica de `resolve`/`plan` probada (semver: `v0.7.0`→`0.7.0`, `v1.0.0-rc.1` OK, `main`/`v0.7` fallan con mensaje; destinos: `all`→backend, `foo` falla); fail-fast del script comprobado sin servidor (falta `BACKEND_VERSION`/`BACKEND_IMAGE`/`deploy/.env.production`/`DOMAIN` → mensajes claros, exit 1); `docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env.production.example config -q` OK; `deploy/verify-deploy.sh` exit 0; `git grep` sin credenciales versionadas. Opt-in no ejecutado: `actionlint` (no instalado), `docker build` y el run real con tag (daemon Docker no disponible en la sesión)."
+    ],
+    "notes": "Fuente: petición del dueño (2026-10-15) y `docs/roadmap.md` 0.7-T01/0.7-T02/0.8-T01..T04/1.0-T01. El empaquetado y la firma de cada plataforma viven en FT00038 (Android), FT00039 (Web) y FT00040 (iOS); esta feature cablea los workflows de publicación sobre esos artefactos y añade el del backend (sobre `deploy/` de FT00041). Sin decisiones durables nuevas previsibles fuera del propio CI/CD.",
+    "parts": [
+      {
+        "id": "FT00052-PT1",
+        "scope": "Backend: workflow que construye la imagen (Dockerfile de FT00041), la publica en GHCR y despliega por SSH (docker pull + flywayMigrate + up) con health-check final.",
+        "status": "passing"
+      },
+      {
+        "id": "FT00052-PT2",
+        "scope": "Web: build Wasm de producción (URL de API de prod) y publicación del estático en el Nginx del servidor por SSH/rsync.",
+        "status": "not_started"
+      },
+      {
+        "id": "FT00052-PT3",
+        "scope": "Android: firma release (keystore en secretos) + AAB y subida a Google Play (pista internal) con la API de Play.",
+        "status": "not_started"
+      },
+      {
+        "id": "FT00052-PT4",
+        "scope": "iOS: firma (certificados/provisioning) + archivo y subida a TestFlight vía App Store Connect API.",
+        "status": "not_started"
+      }
+    ]
   }
 ]

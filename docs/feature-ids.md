@@ -67,7 +67,18 @@
 | FT00048 | cliente-http-detalle | Cliente HTTP del detalle de publicación | cliente-cmp | in_progress |
 | FT00049 | operacion-generacion-resumenes | Generación one-shot de resúmenes ciudadanos y sesión de OpenCode | operacion | in_progress |
 | FT00050 | dev-up-local | Script de arranque del entorno local (dev-up) | operacion | in_progress |
+| FT00051 | web-full-viewport | Viewport completo en la Web (Wasm) | cliente-cmp | in_progress |
+| FT00052 | release-actions | CI/CD de publicación con GitHub Actions (backend y apps) | operacion | not_started |
 
 ## Siguiente FT libre
 
-**FT00051**
+**FT00053**
+
+## Partes
+
+| PT | Feature | Alcance | Estado |
+| --- | --- | --- | --- |
+| FT00052-PT1 | release-actions | Backend: imagen a GHCR + despliegue por SSH | not_started |
+| FT00052-PT2 | release-actions | Web: build Wasm de producción + publicación en el Nginx del servidor | not_started |
+| FT00052-PT3 | release-actions | Android: firma release + AAB a Google Play (internal) | not_started |
+| FT00052-PT4 | release-actions | iOS: firma + archivo a TestFlight | not_started |

@@ -4053,3 +4053,44 @@
 - Pendiente: PR #43 a revisión. Observado: en la **web (Wasm)** solo se pinta el
   primer destacado del feed y no la lista de publicaciones (render, no backend: la
   API devuelve 20 publicaciones + 3 destacados). Sin diagnosticar.
+
+### Session 084
+
+- Fecha: 2026-10-15
+- Objetivo: implementar **`FT00052-PT1`** (`release-actions`, backend): publicar la
+  imagen del backend en GHCR y desplegarla por SSH con health-check.
+- Contexto: rama `feat/ft00052-pt1-backend-release` desde `origin/main` `34b49fc`
+  (ya con `deploy/` de FT00041 fusionada); spec `.harness/docs/specs/release-actions.md`.
+- Completado (`FT00052-PT1` → `passing`, pendiente de validación independiente):
+  - **Producto (8 ficheros)**: `.github/actions/setup-jdk-gradle/action.yml` (JDK 21
+    temurin + `gradle/actions/setup-gradle@v4`); `.github/workflows/release-backend.yml`
+    (`workflow_call`/`workflow_dispatch`/`push: tags: v*`; `resolve` —versión semver,
+    imagen GHCR en minúsculas, entorno solo `production`—, `image` —Buildx → GHCR con
+    `packages: write`, tags `<version>`/`latest`, caché `type=gha`— y `deploy`
+    —entorno `production`, validación fail-fast de `SSH_*`/`DEPLOY_PATH`, SSH
+    `appleboy/ssh-action@v1` con `git fetch/checkout` del tag + script—);
+    `.github/workflows/release.yml` (*umbrella* `workflow_dispatch` con
+    `targets`/`version`/`environment`, solo workflows existentes); `scripts/release/deploy-backend.sh`
+    (pull + Flyway —Gradle del host o contenedor `flyway/flyway:11-alpine`— + `up -d`
+    + health-check, fail-fast); `deploy/docker-compose.prod.yml` (`image: ${BACKEND_IMAGE}:${BACKEND_VERSION}`
+    manteniendo `build:`); `deploy/.env.production.example` (`BACKEND_IMAGE`/`BACKEND_VERSION`);
+    `docs/release.md` (runbook + inventario de secretos/variables) y enlace en `README.md`.
+  - **Harness**: ADR **0034** + índice; `CONSTRAINTS.md` §«Publicación / Release`;
+    `ARCHITECTURE.md` §«Publicación (CI/CD)»; `feature_list.json` (feature
+    `in_progress`, PT1 `passing`); esta bitácora.
+- Evidencia: gate verde (`build -PskipClient`, `test`, `detekt`, `.harness/init.sh`
+  → exit 0) con `ci.yml`/`init.sh` **sin cambios**; parseo YAML de los 4 ficheros;
+  `bash -n` del script; lógica de `resolve`/`plan` probada (semver y destinos);
+  fail-fast del script comprobado sin servidor (falta `BACKEND_VERSION`,
+  `BACKEND_IMAGE`, `deploy/.env.production` o `DOMAIN` → mensaje claro, exit 1);
+  `docker compose config -q` OK con la plantilla; `deploy/verify-deploy.sh` exit 0;
+  sin credenciales versionadas. Opt-in no ejecutado: `actionlint` (no instalado),
+  `docker build` y el run real con tag (daemon Docker no disponible).
+- Estado: PT1 implementada y autoverificada (PR abierto a revisión). **PT2/PT3/PT4**
+  siguen `not_started` (bloqueadas por FT00039/FT00038/FT00040). El *umbrella* nace
+  con solo el job del backend; cada parte añadirá el suyo.
+- Decisión durable: **ADR 0034** (release/CI-CD; queda anotada la herramienta de
+  subida a tiendas para PT3/PT4).
+- Siguiente: validación independiente de `FT00052-PT1`; después, `dist-web`
+  (FT00039) → `FT00052-PT2`.
+

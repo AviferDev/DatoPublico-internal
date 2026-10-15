@@ -393,6 +393,31 @@ Decisión durable en `docs/adr/0030`; runbook en `deploy/README.md`.
   lint/`flywayMigrate` son opt-in). Alternativas para no ocupar el 80 documentadas
   (detrás de un proxy existente o backend directo sin Nginx).
 
+### Publicación (CI/CD)
+
+Decisión durable en `docs/adr/0034`; runbook en `docs/release.md` (producto).
+
+- **Workflows** en `.github/workflows/`: `release.yml` (*umbrella* `workflow_dispatch`
+  con `targets`/`version`/`environment`, que llama a los workflows por destino) y
+  `release-backend.yml` (`workflow_call` + `workflow_dispatch` + `push: tags: v*`).
+  PT2/PT3/PT4 (Web/Android/iOS) añadirán los suyos y su job al *umbrella*. Acción
+  compuesta común `.github/actions/setup-jdk-gradle` (JDK 21 temurin + Gradle con
+  caché) para los jobs que compilan en el runner.
+- **Backend**: job `image` (Buildx → **GHCR**, `packages: write`, tags `<version>` y
+  `latest`, caché `type=gha`) y job `deploy` (entorno `production`, **SSH** con
+  acción *pinned*): fija el checkout del servidor en el tag y ejecuta
+  `scripts/release/deploy-backend.sh` (pull + Flyway + `up -d` + health-check,
+  fail-fast). Flyway usa la tarea Gradle del host si hay JDK y, si no, el contenedor
+  `flyway/flyway` contra `127.0.0.1`.
+- **Compose de producción generalizado**: `image: ${BACKEND_IMAGE}:${BACKEND_VERSION}`
+  además de `build:`, de modo que el servidor hace `pull` del tag publicado y el
+  desarrollo local sigue construyendo.
+- **Reglas**: disparo manual o por tag (nunca en `push` a `main`), versión = tag
+  semver, permisos mínimos, `cancel-in-progress: false`, secretos solo en GitHub
+  Secrets/Environments o en el servidor, y el **gate intacto** (`ci.yml` y
+  `.harness/init.sh` sin cambios; la verificación local es estática).
+
+
 ## Fronteras
 
 - **Cliente → API HTTP** (público, solo lectura). El cliente no conoce los

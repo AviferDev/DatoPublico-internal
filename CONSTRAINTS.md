@@ -947,3 +947,37 @@ Decisión durable en `docs/adr/0030`; el runbook está en `deploy/README.md`.
   tiene otro servicio; hay dos vías documentadas (detrás de un proxy existente o
   publicar el backend directo con `deploy/docker-compose.backend-direct.yml`, solo
   pruebas y sin HTTPS).
+
+## Publicación / Release
+
+Decisión durable en `docs/adr/0034`; el runbook está en `docs/release.md` (producto).
+
+- **MUST**: la publicación se dispara **solo** con `workflow_dispatch` (manual, con
+  `targets`/`version`/`environment`), `workflow_call` (umbrella → workflows por
+  destino) o `push` de un tag **`vMAJOR.MINOR.PATCH`**. **MUST NOT**: disparar ni
+  desplegar en `push` a `main` (sin auto-deploy).
+- **MUST**: versionado por **tag semver** (`0.x` preproducción, `1.0.0`
+  producción); la versión es el tag y **no** se duplica en varios ficheros (en el
+  backend vive en el tag de la imagen).
+- **MUST**: **permisos mínimos** por workflow (`contents: read`; `packages: write`
+  solo en el job que publica la imagen) y `concurrency` con
+  **`cancel-in-progress: false`**: un despliegue **no** se cancela a medias.
+- **MUST**: ningún secreto se versiona (ni keystore, ni `.p8`, ni JSON de cuenta de
+  servicio, ni clave SSH): viven **solo** en GitHub Secrets/Environments o en
+  `deploy/.env.production` del servidor; las plantillas solo admiten *placeholders*.
+  Un secreto ausente **falla con mensaje claro** (fail-fast) nombrando los que falten.
+- **MUST**: el **gate no cambia ni se engancha** a la publicación: `ci.yml` y
+  `.harness/init.sh` quedan intactos, y `docker build`, `docker compose config`, el
+  lint de Nginx y `flywayMigrate` siguen siendo **opt-in** (nunca en
+  `build`/`check`/CI).
+- **MUST**: los entornos `production` (backend/Web) e `internal` (tiendas) llevan
+  revisores donde aplica; el job de despliegue del backend exige `production` y
+  rechaza cualquier otro entorno.
+- **MUST**: la imagen del backend se construye y publica en **GHCR** (nunca en el
+  servidor) y el servidor hace `docker compose pull`; `deploy/docker-compose.prod.yml`
+  conserva `build:` para el desarrollo local y el primer despliegue manual.
+- **MUST**: el despliegue es **fail-fast** con health-check final (contenedor
+  `healthy` + `GET /health` por HTTPS); si falla, el run queda en rojo y el release
+  **no** se marca como bueno. El rollback es volver a desplegar el tag anterior
+  (las migraciones son aditivas; nunca se revierte el esquema).
+
