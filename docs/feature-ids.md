@@ -78,7 +78,7 @@
 
 | PT | Feature | Alcance | Estado |
 | --- | --- | --- | --- |
-| FT00052-PT1 | release-actions | Backend: imagen a GHCR + despliegue por SSH | passing |
+| FT00052-PT1 | release-actions | Backend: imagen a GHCR + despliegue por SSH | accepted |
 | FT00052-PT2 | release-actions | Web: build Wasm de producción + publicación en el Nginx del servidor | not_started |
 | FT00052-PT3 | release-actions | Android: firma release + AAB a Google Play (internal) | not_started |
 | FT00052-PT4 | release-actions | iOS: firma + archivo a TestFlight | not_started |

@@ -4103,5 +4103,8 @@
   `deploy/README.md` con referencia a `docs/release.md` + `BACKEND_IMAGE`/
   `BACKEND_VERSION`; nota de permisos en `docs/release.md`; ADR ajustado). Reejecutado
   el gate (`build -PskipClient`+`detekt`), parseo YAML, `bash -n` y
-  `docker compose config -q` → verde. Pendiente: revalidación independiente.
+  `docker compose config -q` → verde. Revalidación independiente: **`accept`**
+  (`feature-validator`, 2026-10-15) — sin bloqueantes; `test -PskipClient --rerun-tasks`
+  `:shared` 39/0 y `:backend` 486/0. **FT00052-PT1 → `accepted`** (feature
+  `release-actions` sigue `in_progress`: PT2–PT4 pendientes).
 
