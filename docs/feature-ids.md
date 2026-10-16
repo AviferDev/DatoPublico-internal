@@ -63,7 +63,7 @@
 | FT00044 | legal-avisos | Avisos legales y disclaimer | operacion | not_started |
 | FT00045 | beta-cerrada | Beta cerrada y corrección de bugs | operacion | not_started |
 | FT00046 | publicacion-1.0.0 | Publicación pública 1.0.0 | operacion | not_started |
-| FT00047 | english-identifiers-rename | Renombrado de identificadores a inglés | calidad | in_progress |
+| FT00047 | english-identifiers-rename | Renombrado de identificadores a inglés | calidad | passing |
 | FT00048 | cliente-http-detalle | Cliente HTTP del detalle de publicación | cliente-cmp | in_progress |
 | FT00049 | operacion-generacion-resumenes | Generación one-shot de resúmenes ciudadanos y sesión de OpenCode | operacion | in_progress |
 | FT00050 | dev-up-local | Script de arranque del entorno local (dev-up) | operacion | in_progress |

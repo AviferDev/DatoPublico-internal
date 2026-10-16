@@ -8,7 +8,7 @@
   aplica el orquestador en `feature_list.json`)
 - `area`: calidad
 - `depends_on`: ingesta-job-diario (FT00009, `accepted`, ya en `main`)
-- `status`: not_started (al planificar)
+- `status`: passing (implementado 2026-10-16, PR #48; pendiente validación y merge)
 - `source`: `feature_list.json`
 - `claim`: rama `feat/ft00047-english-identifiers-rename` ya reclamada en el repo
   de producto (a cargo del orquestador).
@@ -409,15 +409,18 @@ La lista completa por parte se obtiene con:
 
 ## Implementation Tasks
 
-- [ ] (PT1) Mapear `:shared` data classes + propiedades; `git mv` ficheros.
-- [ ] (PT1) Actualizar refs en `:shared`/`:backend` y tests; gate.
-- [ ] (PT2) Renombrar `CategoryDto`/`BoeSectionDto` + constantes; refs; gate.
-- [ ] (PT3) Renombrar `ingesta/sumario`→`ingestion/summary`; refs; gate.
-- [ ] (PT4) Renombrar `ingesta/publicacion`→`ingestion/publication`; refs; gate.
-- [ ] (PT5) Renombrar raíz `ingesta`→`ingestion` + `categorizacion`; refs; gate.
-- [ ] (PT6) Internos persistence/relevance/rag + Application; nombres de test;
+- [x] (PT1) Mapear `:shared` data classes + propiedades; `git mv` ficheros.
+- [x] (PT1) Actualizar refs en `:shared`/`:backend` y tests; gate.
+- [x] (PT2) Renombrar `CategoryDto`/`BoeSectionDto` + constantes; refs; gate.
+- [x] (PT3) Renombrar `ingesta/sumario`→`ingestion/summary`; refs; gate.
+- [x] (PT4) Renombrar `ingesta/publicacion`→`ingestion/publication`; refs; gate.
+- [x] (PT5) Renombrar raíz `ingesta`→`ingestion` + `categorizacion`; refs; gate.
+- [x] (PT6) Internos persistence/relevance/rag + Application; nombres de test;
       barrido de cierre; gate.
-- [ ] Actualizar `ARCHITECTURE.md`/`CONSTRAINTS.md`; registrar evidencia.
+- [x] Actualizar `ARCHITECTURE.md`/`CONSTRAINTS.md`; registrar evidencia.
+
+> Implementado (2026-10-16, PR #48). Desviación: `BoeSeccionDto`→
+> `BoeSectionNodeDto` (colisión con `BoeSectionDto` de `:shared`).
 
 ## Verification Plan
 

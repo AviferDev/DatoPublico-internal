@@ -689,19 +689,19 @@
   identificadores en castellano. El **KDoc y los comentarios** van en castellano
   (idioma de la documentación del proyecto), igual que los mensajes dirigidos al
   operador. No se traducen los identificadores que son **datos/tokens de la
-  fuente** (p. ej. los valores de wire de `CategoriaDto`/`SeccionBoeDto`). El
-  código anterior a esta regla con identificadores en castellano es **deuda** a
-  renombrar de forma incremental (FT00047); el código nuevo no añade más.
+  fuente** (p. ej. los valores de wire de `CategoryDto`/`BoeSectionDto`). El
+  código heredado con identificadores en castellano se renombró a inglés en
+  **FT00047** (sin cambio de wire/BD); el código nuevo no añade más.
 - **MUST**: **todo tipo `@Serializable`/de transporte** lleva sufijo `Dto`: el
-  contrato de `:shared` — las `data class` (`PublicacionDto`, `ResumenDto`,
-  `PlazoDto`, `ResumenDiarioDto`) y los **enums de wire** (`CategoriaDto`,
-  `SeccionBoeDto`) — y también los DTOs de transporte de `:backend`
-  (`HealthDto`, `BoeSumarioResponseDto`, `BoeSeccionDto`…). La configuración de
+  contrato de `:shared` — las `data class` (`PublicationDto`, `SummaryDto`,
+  `DeadlineDto`, `DailySummaryDto`) y los **enums de wire** (`CategoryDto`,
+  `BoeSectionDto`) — y también los DTOs de transporte de `:backend`
+  (`HealthDto`, `BoeSummaryResponseDto`, `BoeSectionNodeDto`…). La configuración de
   serialización no es un tipo de contrato y va sin `Dto` (`DatoPublicoJson`).
 - **MUST**: en las capas internas, entidades de persistencia `...Entity`, filas
   `...Row` y modelos de UI `...Ui`. Un **modelo de dominio/valor interno** que no
   sea serializable ni `Entity`/`Row`/`Ui` va **sin sufijo** (p. ej.
-  `EntradaSumario`). Sin prefijos en ningún caso.
+  `SummaryEntry`). Sin prefijos en ningún caso.
 
 ## Serialización (kotlinx.serialization)
 

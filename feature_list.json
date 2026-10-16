@@ -1179,46 +1179,47 @@
     "depends_on": [
       "ingesta-job-diario"
     ],
-    "status": "in_progress",
+    "status": "passing",
     "verification": [
       "No quedan identificadores en castellano en el código de producto (paquetes, tipos, funciones, propiedades, constantes y tests); el KDoc y los comentarios siguen en castellano.",
       "El JSON de wire y el comportamiento no cambian; el gate (`build`/`test`/`detekt`/`init.sh`) sigue verde."
     ],
     "evidence": [
       "Planificado (`feature-spec`, 2026-10-11): spec `docs/specs/english-identifiers-rename.md`. Enumeración real por grep: ~103 ficheros `.kt` afectados (`:shared` 12, `:backend` 91; `:composeApp` fuera). El renombrado es **atómico por símbolo** (varios símbolos superan 30 ficheros por sí solos) → **6 partes** `FT00047-PT1..PT6` (ver `parts`). Sin cambio de JSON (`@SerialName`, claves, columnas, migraciones `V1`–`V4` y tokens de wire intactos) ni de comportamiento; KDoc/comentarios siguen en castellano. Sin ADR. Decisión pendiente del dueño sobre el límite de 30 ficheros/PR (renombrado mecánico vs alias por etapas).",
-      "Decisión del dueño (2026-10-11): **aprobar las partes `FT00047-PT1..PT6` como PRs de renombrado mecánico**, con **excepción documentada** al límite de 30 ficheros/PR (ver `docs/git-workflow.md` §«Excepción: renombrados mecánicos atómicos»): cada parte es atómica por símbolo, puramente mecánica y con el gate verde; JSON/`@SerialName`/columnas/migraciones/tokens de wire invariantes."
+      "Decisión del dueño (2026-10-11): **aprobar las partes `FT00047-PT1..PT6` como PRs de renombrado mecánico**, con **excepción documentada** al límite de 30 ficheros/PR (ver `docs/git-workflow.md` §«Excepción: renombrados mecánicos atómicos»): cada parte es atómica por símbolo, puramente mecánica y con el gate verde; JSON/`@SerialName`/columnas/migraciones/tokens de wire invariantes.",
+      "Implementado (2026-10-16): rama `feat/ft00047-english-identifiers-rename` con los 6 commits `FT00047-PT1..PT6` (**PR #48**). **158 ficheros** (3095+/3093−), sin cambios en `:composeApp`, migraciones `V1`–`V5` ni columnas SQL; **119 claves `@SerialName` idénticas** antes/después (verificado con `git grep` + `diff`). Desviación de la spec: el DTO interno `BoeSeccionDto` se renombró a **`BoeSectionNodeDto`** porque `BoeSectionDto` colisiona con el enum de `:shared` `SeccionBoeDto`→`BoeSectionDto`; el paquete `ingesta/publicacion` pasó a `ingesta/publication` (luego `ingestion/publication`) al renombrar el segmento `publicacion`. Gate verde tras cada parte (`./gradlew build -PskipClient` = `:shared`/`:backend` + `detekt` + `:cpdCheck`) y `./gradlew :shared:jvmTest :backend:test -PskipClient --rerun-tasks` verde. Completitud: grep de símbolos de la spec → 0 coincidencias; barrido de raíces castellanas → solo KDoc/prosa/literales de datos. **Pendiente**: validación independiente (`feature-validator`) y merge del PR #48."
     ],
-    "notes": "Deuda registrada al fijar la regla MUST «todo el código en inglés» (`CONSTRAINTS.md` §«Nombres y contratos»; KDoc/comentarios en castellano). Código heredado en castellano a renombrar: `:shared` (`PublicacionDto`→`PublicationDto`, `ResumenDto`→`SummaryDto`, `ResumenDiarioDto`→`DailySummaryDto`, `PlazoDto`→`DeadlineDto`, `CategoriaDto`→`CategoryDto`, `SeccionBoeDto`→`BoeSectionDto`) y `:backend` (`EntradaSumario`→`SummaryEntry`, `Publicacion`→`Publication`, `DocumentoBoe`→`BoeDocument`, `MetadatosBoe`→`BoeMetadata`, `BoeSumarioClient`→`BoeSummaryClient`, `BoePublicacionParser`→`BoePublicationParser`, `BoeTextoClient`→`BoeTextClient`, `SumarioWireDto`→`SummaryWireDto`… y métodos como `obtenerSumario`/`parsear`/`obtenerDocumento`). Renombrado **sin** cambio de JSON (`@SerialName` intacto) ni de comportamiento; los tokens/datos de la fuente no se traducen. Dividir en partes (`FT00047-PTn`) por el límite de 30 ficheros. **`in_progress`** (2026-10-11): spec creada y dividida en 6 partes `FT00047-PT1..PT6`; límite de 30 ficheros/PR resuelto con una excepción documentada para renombrados mecánicos (`docs/git-workflow.md`).",
+    "notes": "Deuda registrada al fijar la regla MUST «todo el código en inglés» (`CONSTRAINTS.md` §«Nombres y contratos»; KDoc/comentarios en castellano). Código heredado en castellano a renombrar: `:shared` (`PublicacionDto`→`PublicationDto`, `ResumenDto`→`SummaryDto`, `ResumenDiarioDto`→`DailySummaryDto`, `PlazoDto`→`DeadlineDto`, `CategoriaDto`→`CategoryDto`, `SeccionBoeDto`→`BoeSectionDto`) y `:backend` (`EntradaSumario`→`SummaryEntry`, `Publicacion`→`Publication`, `DocumentoBoe`→`BoeDocument`, `MetadatosBoe`→`BoeMetadata`, `BoeSumarioClient`→`BoeSummaryClient`, `BoePublicacionParser`→`BoePublicationParser`, `BoeTextoClient`→`BoeTextClient`, `SumarioWireDto`→`SummaryWireDto`… y métodos como `obtenerSumario`/`parsear`/`obtenerDocumento`). Renombrado **sin** cambio de JSON (`@SerialName` intacto) ni de comportamiento; los tokens/datos de la fuente no se traducen. Dividir en partes (`FT00047-PTn`) por el límite de 30 ficheros. **`in_progress`** (2026-10-11): spec creada y dividida en 6 partes `FT00047-PT1..PT6`; límite de 30 ficheros/PR resuelto con una excepción documentada para renombrados mecánicos (`docs/git-workflow.md`). **Implementado** (2026-10-16, **PR #48**): los 6 commits `FT00047-PT1..PT6` renombran todos los identificadores; ver `evidence`.",
     "parts": [
       {
         "id": "FT00047-PT1",
         "scope": ":shared data classes (PublicationDto/SummaryDto/DailySummaryDto/DeadlineDto) + propiedades + referencias (~29 ficheros)",
-        "status": "not_started"
+        "status": "passing"
       },
       {
         "id": "FT00047-PT2",
         "scope": ":shared enums de wire (CategoryDto + 11 constantes, BoeSectionDto) + referencias (~49)",
-        "status": "not_started"
+        "status": "passing"
       },
       {
         "id": "FT00047-PT3",
         "scope": ":backend ingesta/sumario → ingestion/summary (SummaryEntry/BoeSummary*/DTOs wire/serializers) + referencias (~30)",
-        "status": "not_started"
+        "status": "passing"
       },
       {
         "id": "FT00047-PT4",
         "scope": ":backend ingesta/publicacion → ingestion/publication (Publication/BoeDocument/BoeMetadata/BoePublication*/BoeText*/PublicationParser/BoeXmlParser) + referencias (~50)",
-        "status": "not_started"
+        "status": "passing"
       },
       {
         "id": "FT00047-PT5",
         "scope": ":backend raíz ingesta → ingestion (job/backfill) + categorizacion → categorization + referencias (~30)",
-        "status": "not_started"
+        "status": "passing"
       },
       {
         "id": "FT00047-PT6",
         "scope": ":backend persistence/relevance/rag internos + Application.kt + nombres de test castellanos + barrido de cierre (~50)",
-        "status": "not_started"
+        "status": "passing"
       }
     ]
   },

@@ -554,14 +554,14 @@ Decisión durable en `docs/adr/0034`; runbook en `docs/release.md` (producto).
   los comentarios van en castellano** (documentación del proyecto). Los
   identificadores que son datos/*tokens* de la fuente (*wire*) no se traducen. El
   código heredado en castellano (`PublicacionDto`, `CategoriaDto`,
-  `EntradaSumario`, `Publicacion`, `BoeSumarioClient`…) se renombra de forma
-  incremental (deuda **FT00047**); el código nuevo no añade identificadores en
+  `EntradaSumario`, `Publicacion`, `BoeSumarioClient`…) se renombró a inglés en
+  **FT00047** (sin cambio de wire/BD); el código nuevo no añade identificadores en
   castellano.
 - **Todo tipo `@Serializable`/de transporte** lleva sufijo **`Dto`**: el contrato
-  de **`:shared`** (las `data class` `PublicacionDto`, `ResumenDto`, `PlazoDto`,
-  `ResumenDiarioDto` y los **enums de wire** `CategoriaDto`, `SeccionBoeDto`) y
+  de **`:shared`** (las `data class` `PublicationDto`, `SummaryDto`, `DeadlineDto`,
+  `DailySummaryDto` y los **enums de wire** `CategoryDto`, `BoeSectionDto`) y
   también los DTOs de transporte de **`:backend`** (`HealthDto`,
-  `BoeSumarioResponseDto`, `BoeSeccionDto`…). Aplica a **cualquier** tipo
+  `BoeSummaryResponseDto`, `BoeSectionNodeDto`…). Aplica a **cualquier** tipo
   `@Serializable`, no solo a los contenedores.
 - La **configuración de serialización** (`DatoPublicoJson`) **no** es un tipo de
   contrato y va **sin** `Dto`.
@@ -570,5 +570,5 @@ Decisión durable en `docs/adr/0034`; runbook en `docs/release.md` (producto).
   defecto); los valores de los enums de wire también lo llevan.
 - En las capas internas: entidades de persistencia `...Entity`, filas `...Row`,
   modelos de UI `...Ui`. Un **modelo de dominio/valor interno** que no sea
-  serializable ni `Entity`/`Row`/`Ui` va **sin sufijo** (p. ej. `EntradaSumario`).
+  serializable ni `Entity`/`Row`/`Ui` va **sin sufijo** (p. ej. `SummaryEntry`).
 - **Sin prefijos** (nada de notación húngara).

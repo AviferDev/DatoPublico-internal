@@ -4273,4 +4273,46 @@
   (run `38798612289`, 8m28s).
 - Siguiente: validación independiente de `FT00053`; capturas manuales del dueño.
 
+### Session 088
+
+- Fecha: 2026-10-16
+- Objetivo: verificar el cumplimiento del código con las skills y, derivado de
+  ello, ejecutar **`FT00047`** (`english-identifiers-rename`): aplicar la regla
+  MUST «todo el código va en inglés» al código heredado en castellano de
+  `:shared`/`:backend`, sin cambiar wire, BD ni comportamiento.
+- Rama de producto: `feat/ft00047-english-identifiers-rename` (ya reclamada;
+  contenía el claim y un `FT00047-PT1` parcial «parked»). Se completaron las 6
+  partes como commits independientes.
+- Completado:
+  - **PT1** (`:shared` data classes + propiedades), **PT2** (`CategoryDto`/
+    `BoeSectionDto` + constantes), **PT3** (`ingesta/sumario`→
+    `ingestion/summary`), **PT4** (`ingesta/publicacion`→
+    `ingestion/publication`), **PT5** (raíz `ingesta`→`ingestion` +
+    `categorizacion`→`categorization`), **PT6** (internos
+    persistence/relevance/rag/feed, extensiones y nombres/constantes de test).
+  - Herramienta de renombrado consciente de strings/comentarios/plantillas KDoc
+    (no toca literales de cadena ni SQL); KDoc/comentarios siguen en castellano
+    (con los enlaces `[Tipo]`/`[prop]` actualizados).
+  - **Desviación documentada**: el DTO interno `BoeSeccionDto` se renombró a
+    `BoeSectionNodeDto` (no `BoeSectionDto`) por colisión con el enum de
+    `:shared` `SeccionBoeDto`→`BoeSectionDto`.
+- Verificación ejecutada (desde el worktree, JDK 21 JBR):
+  - `./gradlew build -PskipClient` → **BUILD SUCCESSFUL** tras cada parte
+    (`:shared`/`:backend` + `detekt` + `:cpdCheck`).
+  - `./gradlew :shared:jvmTest :backend:test -PskipClient --rerun-tasks` → verde
+    (aserciones de wire/BD intactas).
+  - Completitud: grep del listado de la spec → **0 coincidencias**; barrido de
+    raíces castellanas → solo KDoc/prosa/literales de datos.
+  - Invariantes: **119 claves `@SerialName` idénticas**; 0 migraciones tocadas;
+    0 columnas SQL cambiadas; 0 ficheros de `:composeApp`.
+- Ficheros: **158** de producto (3095+/3093−) en 6 commits.
+- Entrega: push a `feat/ft00047-english-identifiers-rename`; **PR #48** hacia
+  `main` (https://github.com/AviferDev/DatoPublico/pull/48), con la excepción
+  documentada de renombrado mecánico.
+- Documentación durable: `ARCHITECTURE.md` §«Convenciones de nombres» y
+  `CONSTRAINTS.md` §«Nombres y contratos» con ejemplos en inglés y FT00047 como
+  hecho; `docs/feature-ids.md` y `feature_list.json` (`FT00047` y sus 6 partes
+  `passing`).
+- Siguiente: validación independiente (`feature-validator`) y merge del PR #48.
+
 
