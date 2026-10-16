@@ -4305,10 +4305,17 @@
     raíces castellanas → solo KDoc/prosa/literales de datos.
   - Invariantes: **119 claves `@SerialName` idénticas**; 0 migraciones tocadas;
     0 columnas SQL cambiadas; 0 ficheros de `:composeApp`.
-- Ficheros: **158** de producto (3095+/3093−) en 6 commits.
-- Entrega: push a `feat/ft00047-english-identifiers-rename`; **PR #48** hacia
-  `main` (https://github.com/AviferDev/DatoPublico/pull/48), con la excepción
-  documentada de renombrado mecánico.
+- Ficheros: **159** de producto (3105+/3103−) en 6 commits.
+- Incidencia: la primera entrega se basó en un `main` antiguo; el merge del PR
+  reintroducía identificadores castellanos de features nuevas. Se **reconstruyó
+  la rama sobre `main` actual** (`2fdb02a`) y **CI pasó** (run `38913504444`,
+  6m56s).
+- Salvedad: la persistencia usa `CategoryDto.name`, así que PT2 cambia el valor
+  guardado por nombre de enum y el nombre de categoría en el prompt (sin datos
+  de producción ni seeds en migraciones); aserciones de test actualizadas.
+- Entrega: push (force-with-lease) a `feat/ft00047-english-identifiers-rename`;
+  **PR #48** hacia `main` (https://github.com/AviferDev/DatoPublico/pull/48),
+  con la excepción documentada de renombrado mecánico.
 - Documentación durable: `ARCHITECTURE.md` §«Convenciones de nombres» y
   `CONSTRAINTS.md` §«Nombres y contratos» con ejemplos en inglés y FT00047 como
   hecho; `docs/feature-ids.md` y `feature_list.json` (`FT00047` y sus 6 partes
