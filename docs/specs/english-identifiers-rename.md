@@ -8,7 +8,7 @@
   aplica el orquestador en `feature_list.json`)
 - `area`: calidad
 - `depends_on`: ingesta-job-diario (FT00009, `accepted`, ya en `main`)
-- `status`: passing (implementado 2026-10-16, PR #48; pendiente validación y merge)
+- `status`: accepted (implementado y fusionado 2026-10-16, PR #48, merge `e31dffdf3`)
 - `source`: `feature_list.json`
 - `claim`: rama `feat/ft00047-english-identifiers-rename` ya reclamada en el repo
   de producto (a cargo del orquestador).

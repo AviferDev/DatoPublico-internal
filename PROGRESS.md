@@ -4316,6 +4316,9 @@
 - Entrega: push (force-with-lease) a `feat/ft00047-english-identifiers-rename`;
   **PR #48** hacia `main` (https://github.com/AviferDev/DatoPublico/pull/48),
   con la excepción documentada de renombrado mecánico.
+- **Fusionado** (2026-10-16): PR #48 mergeado en `main` (merge commit
+  `e31dffdf3`). `FT00047` y sus 6 partes en `accepted`. Rama remota eliminada y
+  worktree retirado.
 - Documentación durable: `ARCHITECTURE.md` §«Convenciones de nombres» y
   `CONSTRAINTS.md` §«Nombres y contratos» con ejemplos en inglés y FT00047 como
   hecho; `docs/feature-ids.md` y `feature_list.json` (`FT00047` y sus 6 partes
