@@ -21,7 +21,10 @@
   (serializa Gradle entre validaciones en paralelo y resuelve el JDK). Estado del
   repo: **53 features → 44 `accepted`, 2 `in_progress` (FT00039 `dist-web` PT2, FT00052
   `release-actions` PT2–PT4), 7 `not_started`**. Siguiente feature lista:
-  `FT00052-PT2` (Web) o `FT00039-PT2` (enlaces compartibles).
+  `FT00052-PT2` (Web) o `FT00039-PT2` (enlaces compartibles). **Entregado**:
+  **PR #49 fusionado** en `main` por squash → `03127ab` (2026-10-18), CI en verde
+  (run `39166677923`); rama remota eliminada. `main` ya contiene todo lo entregado
+  hasta la fecha (FT00001–FT00037, FT00039-PT1, FT00041 y FT00047–FT00053).
 - Harness (privado): `.harness/`
 - Repositorio de producto (código): `..` (repo público `DatoPublico`)
 - Camino de arranque estándar: `./init.sh` (desde `.harness/`)
@@ -4399,10 +4402,12 @@
   `docs/validations/`: `english-identifiers-rename.md`, `dist-web.md`,
   `cliente-http-detalle.md`, `operacion-generacion-resumenes.md`, `dev-up-local.md` y
   `ui-design-refresh.md`.
-- Pendiente de entrega: los cambios de **producto** de las reparaciones (9 ficheros)
-  están **sin commitear sobre `main`**; falta una rama + PR de cierre. Deuda Low anotada
-  por feature en cada artefacto de validación.
-- Siguiente: entregar el PR de cierre y, después, `FT00052-PT2` (publicación Web) o
-  `FT00039-PT2` (enlaces compartibles).
+- **Entrega (cerrada):** rama `chore/closeout-ft00048-50-53` con **6 commits** (uno por
+  feature + el `fix` de `backfill`); **PR #49 fusionado** en `main` por squash →
+  `03127ab` (2026-10-18); CI «Build and test» en verde en la rama (run `39165975668`) y
+  en `main` tras la fusión (run `39166677923`); rama local y remota eliminadas. Harness
+  privado (`DatoPublico-internal`) actualizado en `main` → `7d3d110` (specs retroactivos,
+  artefactos de validación, `scripts/gate-lock.sh` y bookkeeping).
+- Siguiente: `FT00052-PT2` (publicación Web) o `FT00039-PT2` (enlaces compartibles).
 
 
