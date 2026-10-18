@@ -64,12 +64,12 @@
 | FT00045 | beta-cerrada | Beta cerrada y corrección de bugs | operacion | not_started |
 | FT00046 | publicacion-1.0.0 | Publicación pública 1.0.0 | operacion | not_started |
 | FT00047 | english-identifiers-rename | Renombrado de identificadores a inglés | calidad | accepted |
-| FT00048 | cliente-http-detalle | Cliente HTTP del detalle de publicación | cliente-cmp | in_progress |
-| FT00049 | operacion-generacion-resumenes | Generación one-shot de resúmenes ciudadanos y sesión de OpenCode | operacion | in_progress |
-| FT00050 | dev-up-local | Script de arranque del entorno local (dev-up) | operacion | in_progress |
+| FT00048 | cliente-http-detalle | Cliente HTTP del detalle de publicación | cliente-cmp | accepted |
+| FT00049 | operacion-generacion-resumenes | Generación one-shot de resúmenes ciudadanos y sesión de OpenCode | operacion | accepted |
+| FT00050 | dev-up-local | Script de arranque del entorno local (dev-up) | operacion | accepted |
 | FT00051 | web-full-viewport | Viewport completo en la Web (Wasm) | cliente-cmp | accepted |
 | FT00052 | release-actions | CI/CD de publicación con GitHub Actions (backend y apps) | operacion | in_progress |
-| FT00053 | ui-design-refresh | Alineación visual de las 4 pantallas con el diseño | cliente-cmp | passing |
+| FT00053 | ui-design-refresh | Alineación visual de las 4 pantallas con el diseño | cliente-cmp | accepted |
 
 ## Siguiente FT libre
 
@@ -79,7 +79,7 @@
 
 | PT | Feature | Alcance | Estado |
 | --- | --- | --- | --- |
-| FT00039-PT1 | dist-web | Build Wasm de producción con URL de API parametrizable (`-PapiBaseUrl`) + SEO del shell + servido estático | passing |
+| FT00039-PT1 | dist-web | Build Wasm de producción con URL de API parametrizable (`-PapiBaseUrl`) + SEO del shell + servido estático | accepted |
 | FT00039-PT2 | dist-web | Puente de URL Web (History API) para enlaces compartibles de detalle (ADR) | not_started |
 | FT00052-PT1 | release-actions | Backend: imagen a GHCR + despliegue por SSH | accepted |
 | FT00052-PT2 | release-actions | Web: build Wasm de producción + publicación en el Nginx del servidor | not_started |

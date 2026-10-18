@@ -200,6 +200,16 @@
   (`OPENCODE_LIVE_TEST=1` + `DB_LIVE_TEST=1` + `EMBEDDING_LIVE_TEST=1`) y **no** se
   persiste el histórico (log JSON `event=summary.evaluation.started`/`completed` +
   stdout, sin migración). Ver `docs/adr/0019`.
+  FT00049 añade la **operación one-shot de generación de resúmenes** sobre lo
+  anterior: la cabecera **`x-opencode-session`** (id estable por proceso;
+  `OPENCODE_SESSION_ID` opcional) y un **`User-Agent`** propio en
+  `OpenCodeTextGenerationProvider` —sin ella, OpenCode Go responde
+  `400 MissingSessionID`— y la CLI `GenerateSummariesMain` (tarea
+  `:backend:generateSummaries`, **fuera** de `build`/`check`/CI) que compone
+  indexado E5 + OpenCode + guardrails + disposición (publicar/encolar/descartar)
+  para un rango `SUMMARY_FROM`/`SUMMARY_TO`, con `SUMMARY_LIMIT`/`SUMMARY_DELAY_MS`
+  y reejecutable (salta lo ya generado). Ver
+  `docs/specs/operacion-generacion-resumenes.md`.
   FT00025 añade **`rag/chat/`**: la **generación del chat RAG** como librería sin
   wiring. `ChatPromptBuilder` (puro) construye el prompt con la consulta y el
   contexto **numerado** delimitado como **datos, no instrucciones**;
@@ -350,7 +360,12 @@
   aviso de IA; `HttpChatRepository` sobre `core/network`), el destino `chat` y una
   acción en el encabezado del feed. Desde FT00036 añade `feature/search/{domain,data,ui}`
   (búsqueda con filtros de categoría y rango de fechas; `HttpSearchRepository` sobre
-  `core/network`), el destino `search` y una acción en el encabezado del feed. El
+  `core/network`), el destino `search` y una acción en el encabezado del feed. Desde
+  FT00048 el **detalle real** lo sirve `HttpDetailRepository` sobre `core/network`
+  (`DetailApi` + DTOs de wire propios del cliente y su mapeo al dominio: `200` →
+  contenido, `404` → no encontrada, resto → error), cableado en el *composition
+  root* (`App`) y en `AppNavHost`; el `InMemoryDetailRepository` queda para
+  `@Preview`/tests. El
   encabezado del feed (con las acciones de chat y búsqueda) es visible en **todos**
   los estados. Desde FT00039-PT1 la **URL base de la API de la Web** se inyecta en
   **build time** (propiedad Gradle `apiBaseUrl` → constante `API_BASE_URL` generada
@@ -374,6 +389,11 @@
   (Android/Web, iOS).
 - **Migraciones** Flyway con tareas explícitas (`./gradlew :backend:flywayMigrate`), fuera
   de `check`; la CI no necesita base de datos.
+- **Entorno local de un solo comando**: `scripts/dev-up.sh` (FT00050) baja los stacks
+  Compose hermanos del mismo repo, levanta PostgreSQL/pgvector, aplica Flyway y
+  (re)inicia el backend esperando `/health`; `.env` es la fuente de verdad y hay
+  `--no-backend`/`--no-migrate`. No arranca el cliente. Ver
+  `docs/desarrollo-local.md` y `docs/specs/dev-up-local.md`.
 
 ## Despliegue
 

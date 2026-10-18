@@ -95,6 +95,16 @@
   (`OPENCODE_LIVE_TEST=1`, fail-fast sin clave), fuera de `build`/`test`/`init.sh` y
   de la CI; el gate cubre config, proveedor (`MockEngine`), parser, prompt y servicio
   con **dobles deterministas**, sin red ni BD.
+- **MUST**: toda petición al proveedor de OpenCode envía la cabecera
+  **`x-opencode-session`** (id **estable por proceso**; `OPENCODE_SESSION_ID`
+  opcional, si no se genera uno) y un **`User-Agent`** propio: **sin esa cabecera
+  OpenCode Go responde `400 MissingSessionID`**. La comparten la generación de
+  resúmenes y el chat (FT00049).
+- **MUST**: la **generación real** de resúmenes es una tarea **opt-in**
+  (`:backend:generateSummaries`), **fuera** de `build`/`check`/`init.sh`/CI, con
+  config `SUMMARY_FROM`/`SUMMARY_TO`/`SUMMARY_LIMIT`/`SUMMARY_DELAY_MS`; requiere
+  PostgreSQL migrado, el modelo E5 y `OPENCODE_API_KEY`, es **reejecutable** y solo
+  publica lo que pasa los guardrails y la disposición (FT00049).
 
 ## Cacheo y control de coste
 
@@ -465,7 +475,8 @@
   endpoint/API y el DTO de wire en `:shared` los entregó **FT00031**, que **consume**
   esta librería sin modificarla; ver §«API pública: chat».) No se
   modifican `TextGenerationProvider`/`OpenCodeTextGenerationProvider`/`OpenCodeConfig`
-  (FT00020), `SummaryTextNormalizer`/`SummaryGroundingChecker` (FT00022) ni
+  (FT00020; FT00049 añade la cabecera `x-opencode-session` y el `User-Agent`),
+  `SummaryTextNormalizer`/`SummaryGroundingChecker` (FT00022) ni
   `HybridSearch`/`SearchFilter` (FT00017): se **reutilizan**.
 - **MUST**: la prueba real contra OpenCode es **opt-in** (`OPENCODE_LIVE_TEST=1`,
   fail-fast sin clave), fuera de `build`/`test`/`init.sh` y de la CI; el gate cubre

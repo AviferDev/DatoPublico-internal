@@ -2,6 +2,26 @@
 
 ## Current Verified State
 
+- **Cierre de validaciones (2026-10-18, Session 089).** Validadas de forma
+  independiente las **6 features pendientes** y cerrado el bookkeeping:
+  **`accept`** en `english-identifiers-rename` (FT00047), `dist-web` PT1
+  (FT00039-PT1), `cliente-http-detalle` (FT00048),
+  `operacion-generacion-resumenes` (FT00049), `dev-up-local` (FT00050) y
+  `ui-design-refresh` (FT00053). Cuatro necesitaron reparación (rondas 2–3):
+  FT00048 (KDoc de `App.kt` + `ARCHITECTURE.md` + doc durable), FT00049
+  (`GenerateSummariesConfigTest` + doc del CLI y de la cabecera de sesión + MUST en
+  `CONSTRAINTS.md`), FT00050 (health-check estricto: exige el backend propio y falla
+  de verdad) y FT00053 (17 `@Preview` restauradas/añadidas → **0 huecos**). Además:
+  corregida la **regresión de `:backend:backfill`** —el `mainClass` apuntaba a
+  `...backend.ingesta...` en vez de `...backend.ingestion...` desde FT00047, y el gate
+  no lo detecta—, creados los **3 specs retroactivos** (FT00048/49/50, que se habían
+  fusionado sin spec) y los **6 artefactos** en `docs/validations/`. Gate verde:
+  `:shared` **39**, `:backend` **494**, `:composeApp` **110** tests, 0 fallos; detekt +
+  `:cpdCheck`; `init.sh` OK. Herramienta nueva del harness: `scripts/gate-lock.sh`
+  (serializa Gradle entre validaciones en paralelo y resuelve el JDK). Estado del
+  repo: **53 features → 44 `accepted`, 2 `in_progress` (FT00039 `dist-web` PT2, FT00052
+  `release-actions` PT2–PT4), 7 `not_started`**. Siguiente feature lista:
+  `FT00052-PT2` (Web) o `FT00039-PT2` (enlaces compartibles).
 - Harness (privado): `.harness/`
 - Repositorio de producto (código): `..` (repo público `DatoPublico`)
 - Camino de arranque estándar: `./init.sh` (desde `.harness/`)
@@ -4324,5 +4344,65 @@
   hecho; `docs/feature-ids.md` y `feature_list.json` (`FT00047` y sus 6 partes
   `passing`).
 - Siguiente: validación independiente (`feature-validator`) y merge del PR #48.
+
+### Session 089
+
+- Fecha: 2026-10-18
+- Objetivo: **validar de forma independiente todo lo que faltaba por validar y cerrar
+  el bookkeeping**, en paralelo. Seis features estaban pendientes: `english-identifiers-rename`
+  (FT00047), `dist-web` PT1 (FT00039-PT1), `cliente-http-detalle` (FT00048),
+  `operacion-generacion-resumenes` (FT00049), `dev-up-local` (FT00050) y
+  `ui-design-refresh` (FT00053).
+- Infraestructura: los 6 validadores comparten árbol de trabajo y Gradle no admite
+  builds concurrentes en el mismo directorio, así que se añadió al harness
+  **`scripts/gate-lock.sh`** (cerrojo compartido en `$TMPDIR` que serializa solo los
+  builds, con detección de cerrojos obsoletos por PID y resolución del JDK igual que
+  `init.sh`). El resto del trabajo de validación corre en paralelo.
+- **Ronda 1 (6 validadores en paralelo):** 2 `accept` y 4 `revise`:
+  - **FT00047 → `accept`.** Invariantes verificados: 119 `@SerialName` idénticos,
+    0 migraciones/SQL, 0 ficheros de `:composeApp`, ningún identificador en castellano.
+    Hallazgos Low/Info (F1–F8) como deuda documental.
+  - **FT00039-PT1 → `accept`.** Mecanismo `-PapiBaseUrl` verificado extremo a extremo
+    (recorte de barras, fail-fast con vacío/espacios, `UP-TO-DATE`), URL inyectada en
+    el wasm, servido estático con content-types y SEO del shell. Hallazgo de
+    *bookkeeping* M1: el commit `1be16da` (cierre de FT00047) había marcado `accepted`
+    en masa a 9 entradas, entre ellas FT00039-PT1 y FT00053, **sin validar**.
+  - **FT00048, FT00049, FT00050, FT00053 → `revise`.** Patrón dominante: documentación
+    y gobernanza; el código era correcto. FT00053 tenía el único hallazgo de código
+    bloqueante (D1: 17 composables sin `@Preview` y 3 previews borradas).
+- **Reparaciones (3 implementers + 1 planner en paralelo, con reparto de ficheros
+  disjunto):** FT00053 D1 (previews), FT00050 H3 (health-check estricto), FT00049 F3
+  (`GenerateSummariesConfigTest`, 8 casos) y los **3 specs retroactivos** (planner).
+  El orquestador hizo el resto como único escritor de los ficheros compartidos:
+  `docs/desarrollo-local.md` (secciones del detalle, del CLI `generateSummaries` y de
+  `dev-up.sh`), `ARCHITECTURE.md` (`HttpDetailRepository`, FT00049, `dev-up.sh`),
+  `CONSTRAINTS.md` (MUST de cabecera de sesión y de generación opt-in), KDoc de
+  `App.kt`, y la corrección del `mainClass` de `:backend:backfill`.
+- **Rondas 2–3:** FT00053 → `accept` (el validador reprodujo el hallazgo con su propio
+  script y midió 0 huecos; 95 → 112 previews). FT00048 → `accept` en ronda 3 (D1: doc
+  durable). FT00049 → `accept` en ronda 3 (M1/L1 documentales + N1). FT00050 →
+  `accept` en ronda 3 (spec alineado; el validador rehízo el banco aislado del
+  health-check sobre las funciones reales).
+- Verificación ejecutada (con el cerrojo): `./gradlew test -PskipClient
+  --rerun-tasks` → `:shared` 39, `:backend` 494 (486 + 8), 0 fallos;
+  `:composeApp:jvmTest` → 110, 0 fallos; `:composeApp:detekt`, `:backend:detekt` y
+  `:cpdCheck` verdes; `build -PskipClient` y `./init.sh` → OK. Smoke de
+  `:backend:backfill` tras el arreglo del `mainClass`: falla por falta de
+  `POSTGRES_PASSWORD` (no por `ClassNotFound`), lo que confirma que la clase resuelve.
+- Hallazgos transversales registrados: (1) **regresión de `:backend:backfill`**
+  (deuda de FT00047, invisible al gate porque `mainClass` es un string); (2) los 3
+  specs retroactivos; (3) estados `accepted` prematuros del commit `1be16da`;
+  (4) ninguna de las 6 tenía artefacto en `docs/validations/`; (5) `docs/pantallas-frontend.md`
+  sin versionar en el repo de producto (ajeno).
+- Estado: **44 `accepted`, 2 `in_progress`, 7 `not_started`**; `feature_list.json` y
+  `docs/feature-ids.md` sincronizados (0 desalineados). Artefactos nuevos en
+  `docs/validations/`: `english-identifiers-rename.md`, `dist-web.md`,
+  `cliente-http-detalle.md`, `operacion-generacion-resumenes.md`, `dev-up-local.md` y
+  `ui-design-refresh.md`.
+- Pendiente de entrega: los cambios de **producto** de las reparaciones (9 ficheros)
+  están **sin commitear sobre `main`**; falta una rama + PR de cierre. Deuda Low anotada
+  por feature en cada artefacto de validación.
+- Siguiente: entregar el PR de cierre y, después, `FT00052-PT2` (publicación Web) o
+  `FT00039-PT2` (enlaces compartibles).
 
 
